@@ -1,0 +1,161 @@
+.platform {
+  background: white;
+  padding: 6rem 2rem;
+  width: 100%;
+}
+
+.platform-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.platform-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.platform-header h2 {
+  font-size: 4rem;
+  font-weight: 300;
+  color: #041137;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+.platform-nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 4rem;
+}
+
+.platform-nav-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+  font-family: "DM Sans", Arial, sans-serif;
+  color: #041137;
+  background: transparent;
+  border: 2px solid #041137;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 200px;
+}
+
+.platform-nav-btn:hover,
+.platform-nav-btn.active {
+  background: #041137;
+  color: white;
+}
+
+.platform-content {
+    margin-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4rem;
+}
+
+.platform-text {
+  flex: 1;
+  max-width: 600px;
+  order: 2;
+}
+
+.platform-text h3 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: #041137;
+  margin-bottom: 1.5rem;
+  font-family: "DM Sans", Arial, sans-serif;
+  line-height: 1.2;
+}
+
+.platform-text p {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: #4b5563;
+  font-family: "DM Sans", Arial, sans-serif;
+  margin-bottom: 2rem;
+}
+
+.platform-image {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.platform-image img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.platform-cta {
+  background-color: rgb(3, 205, 255);
+  color: #041137;
+  padding: 1rem 2rem;
+  border: none;
+  font-size: 1.1rem;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.platform-cta:hover {
+  background-color: #e5e7eb;
+}
+
+@media (max-width: 1024px) {
+  .platform-header h2 {
+    font-size: 3rem;
+  }
+
+  .platform-text h3 {
+    font-size: 2rem;
+  }
+
+  .platform-text p {
+    font-size: 1.1rem;
+  }
+
+  .platform-nav {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .platform-nav-btn {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .platform {
+    padding: 4rem 2rem;
+  }
+
+  .platform-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 3rem;
+  }
+
+  .platform-text {
+    max-width: 100%;
+    order: 2;
+  }
+
+  .platform-image {
+    order: 1;
+  }
+
+  .platform-image img {
+    max-width: 80%;
+  }
+
+  .platform-text h3 {
+    font-size: 1.75rem;
+    text-align: center;
+  }
+}

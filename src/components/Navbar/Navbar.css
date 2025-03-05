@@ -1,0 +1,136 @@
+.navbar {
+  background: white;
+  padding: 2rem 2rem;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+.navbar-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-logo a {
+  color: #041137;
+  font-size: 1.5rem;
+  font-weight: bold;
+  font-family: 'DM Sans',Arial, Helvetica, sans-serif;
+  text-decoration: none;
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-left: 2rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.nav-links {
+    color: #041137;
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  margin-left: 100px;
+  margin-right: auto;
+  font-size: 1rem;
+  font-family: 'DM Sans',Arial, Helvetica, sans-serif;
+}
+
+.nav-item {
+  color: #041137;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.2rem;
+  transition: color 0.3s ease;
+}
+
+.nav-item:hover {
+  color: #e5e7eb;
+}
+
+.franchise-button {
+  background-color: rgb(3, 205, 255);
+  color: #041137;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  font-family: 'DM Sans',Arial, Helvetica, sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.franchise-button:hover {
+  background-color: #e5e7eb;
+}
+
+.hamburger {
+  display: none;
+  cursor: pointer;
+}
+
+.bar {
+  display: block;
+  width: 25px;
+  height: 3px;
+  margin: 5px auto;
+  transition: all 0.3s ease;
+  background-color: white;
+}
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: block;
+  }
+
+  .navbar-menu {
+    position: fixed;
+    left: -100%;
+    top: 70px;
+    gap: 0;
+    flex-direction: column;
+    background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+    width: 100%;
+    text-align: center;
+    transition: 0.3s;
+    padding: 2rem 0;
+    margin-left: 0;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .navbar-menu.active {
+    left: 0;
+  }
+
+  .nav-item {
+    margin: 1rem 0;
+  }
+
+  .hamburger.active .bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.active .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+
+  .hamburger.active .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+}
