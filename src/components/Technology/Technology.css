@@ -1,0 +1,163 @@
+.technology {
+    background: white;
+    padding: 6rem 2rem;
+    width: 100%;
+  }
+  
+  .technology-container {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  
+  .technology-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .technology-header h2 {
+    font-size: 4rem;
+    font-weight: 300;
+    color: #041137;
+    font-family: "DM Sans", Arial, sans-serif;
+  }
+  
+  .technology-nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 4rem;
+  }
+  
+  .technology-nav-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    font-family: "DM Sans", Arial, sans-serif;
+    color: #041137;
+    background: transparent;
+    border: 2px solid #041137;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 200px;
+  }
+  
+  .technology-nav-btn:hover,
+  .technology-nav-btn.active {
+    background: #041137;
+    color: white;
+  }
+  
+  .technology-content {
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4rem;
+  }
+  
+  .technology-text {
+    flex: 1;
+    max-width: 600px;
+  }
+  
+  .technology-text h3 {
+    padding-left: 30px;
+    font-size: 2.5rem;
+    font-weight: 300;
+    color: #041137;
+    margin-bottom: 1.5rem;
+    font-family: "DM Sans", Arial, sans-serif;
+    line-height: 1.2;
+  }
+  
+  .technology-text p {
+    padding-left: 30px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #4b5563;
+    font-family: "DM Sans", Arial, sans-serif;
+    margin-bottom: 2rem;
+  }
+  
+  .technology-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .technology-image img {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+  
+  .technology-cta {
+    background-color: rgb(3, 205, 255);
+    color: #041137;
+    margin-left: 30px;
+    padding: 1rem 2rem;
+    border: none;
+    font-size: 1rem;
+    font-family: "DM Sans", Arial, sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .technology-cta:hover {
+    background-color: #e5e7eb;
+  }
+  
+  @media (max-width: 1024px) {
+    .technology-header h2 {
+      font-size: 3rem;
+    }
+  
+    .technology-text h3 {
+      font-size: 2rem;
+    }
+  
+    .technology-text p {
+      font-size: 1.1rem;
+    }
+  
+    .technology-nav {
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  
+    .technology-nav-btn {
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .technology {
+      padding: 4rem 2rem;
+    }
+  
+    .technology-content {
+      flex-direction: column;
+      text-align: center;
+      gap: 3rem;
+    }
+  
+    .technology-text {
+      max-width: 100%;
+      order: 2;
+    }
+  
+    .technology-image {
+      order: 1;
+    }
+  
+    .technology-image img {
+      max-width: 80%;
+    }
+  
+    .technology-text h3 {
+      font-size: 1.75rem;
+      text-align: center;
+    }
+  }

@@ -7,22 +7,22 @@ const Featured = () => {
         <h2>As Featured On</h2>
         <div className="featured-logos">
           <div className="logo-item">
-            <img src="/src/assets/featured/bloomberg.png" alt="Bloomberg Logo" />
+            <img src="/src/assets/Featured-images/Bloomberg-Logo.webp" alt="Bloomberg Logo" />
           </div>
           <div className="logo-item">
-            <img src="/src/assets/featured/wsj.png" alt="Wall Street Journal Logo" />
+            <img src="/src/assets/Featured-images/wall-street-journal-logo.png" alt="Wall Street Journal Logo" />
           </div>
           <div className="logo-item">
-            <img src="/src/assets/featured/cnbc.png" alt="CNBC Logo" />
+            <img src="/src/assets/Featured-images/cnbc-logo.webp" alt="CNBC Logo" />
           </div>
           <div className="logo-item">
-            <img src="/src/assets/featured/edsurge.png" alt="EdSurge Logo" />
+            <img src="/src/assets/Featured-images/edsurge-logo.png" alt="EdSurge Logo" />
           </div>
           <div className="logo-item">
-            <img src="/src/assets/featured/forbes.png" alt="Forbes Logo" />
+            <img src="/src/assets/Featured-images/forbes-logo.png" alt="Forbes Logo" />
           </div>
           <div className="logo-item">
-            <img src="/src/assets/featured/fortune.png" alt="Fortune Logo" />
+            <img src="/src/assets/Featured-images/fortune-logo.webp" alt="Fortune Logo" />
           </div>
         </div>
       </div>

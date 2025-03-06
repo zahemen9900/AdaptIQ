@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './Navbar.css';
+import Logo from '../../assets/Logo.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,7 +9,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-logo">
-          <a href="/">AdaptIQ</a>
+          <a href="/"><img src={Logo} alt="AdaptIQ Logo" /></a>
         </div>
 
         <div className={`navbar-menu ${isOpen ? 'active' : ''}}`}>

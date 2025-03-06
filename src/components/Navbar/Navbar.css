@@ -1,6 +1,6 @@
 .navbar {
   background: white;
-  padding: 2rem 2rem;
+  padding: 1rem 2rem;
   position: fixed;
   width: 100%;
   top: 0;
@@ -25,28 +25,34 @@
   color: #041137;
   font-size: 1.5rem;
   font-weight: bold;
-  font-family: 'DM Sans',Arial, Helvetica, sans-serif;
+  font-family: "DM Sans", Arial, Helvetica, sans-serif;
   text-decoration: none;
 }
 
+.navbar-logo img {
+  width:140px;
+  height: auto;
+  object-fit: cover;
+  text-align: center;
+}
 .navbar-menu {
   display: flex;
   align-items: center;
   gap: 2rem;
-  margin-left: 2rem;
+  margin-left: 0;
   flex: 1;
   justify-content: flex-end;
 }
 
 .nav-links {
-    color: #041137;
+  color: #041137;
   display: flex;
   align-items: center;
   gap: 4rem;
   margin-left: 100px;
   margin-right: auto;
   font-size: 1rem;
-  font-family: 'DM Sans',Arial, Helvetica, sans-serif;
+  font-family: "DM Sans", Arial, Helvetica, sans-serif;
 }
 
 .nav-item {
@@ -66,7 +72,7 @@
   color: #041137;
   padding: 0.75rem 1.5rem;
   border: none;
-  font-family: 'DM Sans',Arial, Helvetica, sans-serif;
+  font-family: "DM Sans", Arial, Helvetica, sans-serif;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
