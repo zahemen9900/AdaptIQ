@@ -1,0 +1,79 @@
+.contact-section {
+  background-color: #40E0D0; /* Turquoise background */
+  padding: 1rem 2rem;
+}
+
+.contact-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo-icon {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.logo-icon img {
+  width: 100px;
+  height: auto;
+}
+
+.contact-text {
+  flex: 2;
+  text-align: center;
+}
+
+.contact-text h2 {
+  color: #041137;
+  font-size: 2rem;
+  margin: 0;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-weight: 500;
+}
+
+.contact-button-container {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.contact-button {
+  background-color: #0000CD; /* Dark blue button */
+  color: white;
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.arrow-icon {
+  margin-left: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.contact-button:hover {
+  background-color: #000080;
+}
+
+@media (max-width: 768px) {
+  .contact-container {
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+  }
+  
+  .leaf-icon, .contact-button-container {
+    justify-content: center;
+  }
+  
+  .contact-text h2 {
+    font-size: 1.5rem;
+  }
+}

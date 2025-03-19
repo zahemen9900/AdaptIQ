@@ -1,0 +1,84 @@
+.learning-centers {
+  background: white;
+  padding: 6rem 2rem 0 2rem;
+  width: 100%;
+  overflow-x: hidden; /* Add this to prevent horizontal scrolling */
+}
+
+.learning-centers-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.learning-centers h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: #041137;
+  margin-bottom: 1rem;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+.learning-centers p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: #4b5563;
+  margin-bottom: 2rem;
+  max-width: 800px;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+.signup-button {
+  background-color: rgb(3, 205, 255);
+  color: #041137;
+  padding: 1rem 2rem;
+  border: none;
+  font-size: 1.1rem;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.signup-button:hover {
+  background-color: #e5e7eb;
+}
+.learning-centers-pic-container {
+  margin: 0;
+  padding: 0;
+  display: block;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  height: auto;
+}
+.learning-centers-pic {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 1024px) {
+  .learning-centers h2 {
+    font-size: 3rem;
+  }
+
+  .learning-centers p {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .learning-centers {
+    padding: 4rem 2rem;
+  }
+
+  .learning-centers h2 {
+    font-size: 2.5rem;
+  }
+
+  .learning-centers p {
+    font-size: 1rem;
+  }
+}
