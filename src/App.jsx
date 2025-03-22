@@ -49,6 +49,7 @@ const ContactPage = () => {
     <ContactUs />
   );
 };
+
 function App() {
   return (
     <>

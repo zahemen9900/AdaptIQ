@@ -37,7 +37,7 @@ const Footer = () => {
         <div className="footer-bottom">
           <div className="footer-links">
             <a href="#">Privacy Policy</a>
-            <a href="#">AdaptIQ Ai Asia</a>
+            <a href="#">AdaptIQ Ai Ghana</a>
           </div>
           
           <div className="footer-copyright">

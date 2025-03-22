@@ -25,9 +25,10 @@
 }
 
 .newsletter-content p {
-  color: #000000;
+  color: #0a1172;
   font-size: 1.1rem;
   line-height: 1.5;
+  font-family: "DM Sans", Arial, Helvetica, sans-serif;
 }
 
 .newsletter-form {
@@ -37,10 +38,11 @@
 
 .form-group {
   margin-bottom: 1rem;
+  width: 400px;
 }
 
 .form-group input {
-  width: 400px;
+  width: 100%;
   padding: 1rem 9rem;
   border: 1px solid #e0e0e0;
   border-radius: 4px;

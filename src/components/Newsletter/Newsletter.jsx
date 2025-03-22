@@ -6,9 +6,9 @@ const Newsletter = () => {
     <section className="newsletter">
       <div className="newsletter-container">
         <div className="newsletter-content">
-          <h2>Sign Up to Learn More About Squirrel Ai</h2>
+          <h2>Sign Up to Learn More About AdaptIQ Ai</h2>
           <p>
-            Stay in the know about Squirrel AI learning center locations
+            Stay in the know about AdaptIQ learning center locations
             and offerings in your area.
           </p>
         </div>

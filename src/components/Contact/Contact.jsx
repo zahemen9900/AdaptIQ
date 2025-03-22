@@ -13,7 +13,7 @@ const Contact = () => {
           <h2>Still have questions about AdaptIQ AI?</h2>
         </div>
         <div className="contact-button-container">
-          <a href="/contact" className="contact-button">
+          <a href="/contactUs" className="contact-button">
             CONTACT US
             <span className="arrow-icon">→</span>
           </a>
