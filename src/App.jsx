@@ -1,4 +1,5 @@
 import './App.css'
+import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar/Navbar'
 import Hero from './components/Hero/Hero'
 import About from './components/About/About'
@@ -14,14 +15,14 @@ import ParentAccess from './components/ParentAccess/ParentAccess'
 import FAQ from './components/FAQ/FAQ'
 import Contact from './components/Contact/Contact'
 import Footer from './components/Footer/Footer'
+import FAQPage from './pages/FAQPage'
+import ContactUs from './pages/contactUs' // Fixed casing to match actual file name
 
-function App() {
-
+// Create a HomePage component to contain all the sections
+const HomePage = () => {
   return (
     <>
-      <Navbar />
       <Hero />
-      <About />
       <Platform />
       <Featured />
       <Technology />
@@ -33,6 +34,31 @@ function App() {
       <ParentAccess />
       <FAQ />
       <Contact />
+    </>
+  );
+};
+
+// Create an AboutPage component for the dedicated About page
+const AboutPage = () => {
+  return (
+    <About />
+  );
+};
+const ContactPage = () => {
+  return (
+    <ContactUs />
+  );
+};
+function App() {
+  return (
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/pages" element={<FAQPage />} />
+        <Route path="/contactUs" element={<ContactPage />} />
+      </Routes>
       <Footer />
     </>
   )

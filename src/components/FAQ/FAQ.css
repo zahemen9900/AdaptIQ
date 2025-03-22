@@ -16,6 +16,15 @@
   font-family: "DM Sans", Arial, Helvetica, sans-serif;
 }
 
+.faq-title {
+  text-align: center;
+  font-size: 4rem;
+  color: #041137;
+  margin-bottom: 3rem;
+  font-family: "DM Sans", Arial, Helvetica, sans-serif;
+  font-weight: 300;
+}
+
 .faq-list {
   display: flex;
   flex-direction: column;
@@ -91,6 +100,10 @@
   
   .faq h2 {
     font-size: 2rem;
+  }
+  
+  .faq-title {
+    font-size: 2.5rem;
   }
   
   .faq-question h3 {

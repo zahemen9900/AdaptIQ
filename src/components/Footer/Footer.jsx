@@ -2,6 +2,7 @@ import React from 'react';
 import './Footer.css';
 import { FaYoutube, FaGithub, FaLinkedin, FaTwitter } from 'react-icons/fa';
 import Logo from '../../assets/Logo.png';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
@@ -14,9 +15,9 @@ const Footer = () => {
           
           <nav className="footer-nav">
             <ul>
-              <li><a href="#">Home</a></li>
+              <li><Link to="/">Home</Link></li>
               <li><a href="#">Own a Franchise</a></li>
-              <li><a href="#">Contact Us</a></li>
+              <li><Link to="/contactUs">Contact Us</Link></li>
               <li><a href="#">Careers</a></li>
             </ul>
           </nav>
@@ -40,7 +41,7 @@ const Footer = () => {
           </div>
           
           <div className="footer-copyright">
-            © Copyright 2025 AdaptIQ Ai
+            &copy; Copyright 2025 AdaptIQ Ai
           </div>
           
           <div className="footer-social">

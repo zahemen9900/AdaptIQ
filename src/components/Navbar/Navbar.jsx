@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './Navbar.css';
 import Logo from '../../assets/Logo.png';
 
@@ -9,14 +10,14 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-logo">
-          <a href="/"><img src={Logo} alt="AdaptIQ Logo" /></a>
+          <Link to="/"><img src={Logo} alt="AdaptIQ Logo" /></Link>
         </div>
 
-        <div className={`navbar-menu ${isOpen ? 'active' : ''}}`}>
+        <div className={`navbar-menu ${isOpen ? 'active' : ''}`}>
           <div className="nav-links">
-            <a href="/about" className="nav-item">About</a>
-            <a href="/faqs" className="nav-item">FAQs</a>
-            <a href="/contact" className="nav-item">Contact Us</a>
+            <Link to="/about" className="nav-item">About</Link>
+            <Link to="/pages" className="nav-item">FAQs</Link>
+            <Link to="/contactUs" className="nav-item">Contact Us</Link>
           </div>
           <button className="franchise-button">OWN A FRANCHISE</button>
         </div>

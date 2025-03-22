@@ -64,10 +64,10 @@ const Platform = () => {
                   WATCH THE WALK-THROUGH VIDEO{" "}
                 </button>
               </div>
-              <div className="platform-image">
+              <div className="technology-image">
                 <img
-                  src="/src/assets/Platform-images/accessing-image.png"
-                  alt="Student using tablet"
+                  src="https://images.unsplash.com/photo-1588072432836-e10032774350?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1472&q=80"
+                  alt="Child using educational tablet"
                 />
               </div>
             </>
@@ -93,10 +93,10 @@ const Platform = () => {
                   potential.
                 </p>
               </div>
-              <div className="platform-image">
+              <div className="technology-image">
                 <img
-                  src="/src/assets/Platform-images/Learning-image.png"
-                  alt="Interactive learning platform"
+                  src="https://images.unsplash.com/photo-1587613865763-4b8b0d19e8ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+                  alt="Children learning with advanced technology"
                 />
               </div>
             </>
@@ -119,8 +119,8 @@ const Platform = () => {
               </div>
               <div className="technology-image">
                 <img
-                  src="/src/assets//Platform-images/Practicing-image.png"
-                  alt="Student practicing on platform"
+                  src="https://images.unsplash.com/photo-1587691592099-24045742c181?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1373&q=80"
+                  alt="Child using adaptive learning technology"
                 />
               </div>
             </>

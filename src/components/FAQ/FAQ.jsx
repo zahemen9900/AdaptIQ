@@ -34,7 +34,12 @@ const FAQ = () => {
       question:
         "Is AdaptIQ Ai only for struggling students, or can high-achievers benefit too?",
       answer:
-        "AdaptIQ Ai's adaptive learning platform is designed to support students at every level, from those who are struggling to advanced and even gifted learners. The platform tailors its approach to each student's unique needs, factoring in preferred learning styles and evolving over time to match their progress and abilities. Whether a student needs to catch up or is looking for a greater challenge, Squirrel Ai provides a personalized learning experience that benefits everyone.",
+        "AdaptIQ AI benefits students of all ability levels. For struggling students, it identifies and addresses knowledge gaps, building confidence through targeted practice. For high-achievers, the system recognizes mastery and automatically advances to more challenging material, preventing boredom and encouraging continued growth. Every student receives a personalized experience that optimizes their learning potential.",
+    },
+    {
+      question: "How do I get started with AdaptIQ Ai?",
+      answer:
+        "Getting started with AdaptIQ AI is simple. Contact us through our website or visit one of our learning centers to schedule a diagnostic assessment. This initial evaluation helps our system understand your child's current knowledge level and learning style. Based on these results, we'll create a personalized learning plan and provide a smart tablet with access to our adaptive learning platform. Our team will guide you through the setup process and provide ongoing support.",
     },
     {
       question:
@@ -75,9 +80,9 @@ const FAQ = () => {
   ];
 
   return (
-    <section className="faq">
+    <div className="faq">
       <div className="faq-container">
-        <h2>Frequently Asked Questions</h2>
+        <h1 className="faq-title">Frequently Asked Questions</h1>
         <div className="faq-list">
           {faqItems.map((item, index) => (
             <div
@@ -89,18 +94,20 @@ const FAQ = () => {
                 onClick={() => toggleQuestion(index)}
               >
                 <h3>{item.question}</h3>
-                <div className="faq-icon">
-                  <span className="plus">+</span>
+                <span className="faq-icon">
+                  {activeQuestion === index ? "-" : "+"}
+                </span>
+              </div>
+              {activeQuestion === index && (
+                <div className="faq-answer">
+                  <p>{item.answer}</p>
                 </div>
-              </div>
-              <div className="faq-answer">
-                <p>{item.answer}</p>
-              </div>
+              )}
             </div>
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

@@ -79,8 +79,8 @@ const Platform = () => {
               </div>
               <div className="platform-image">
                 <img
-                  src="/src/assets/Platform-images/accessing-image.png"
-                  alt="Student using tablet"
+                  src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1472&q=80"
+                  alt="Child using tablet for learning"
                 />
               </div>
             </>
@@ -101,8 +101,8 @@ const Platform = () => {
               </div>
               <div className="platform-image">
                 <img 
-                  src="/src/assets/Platform-images/Learning-image.png"
-                  alt="Interactive learning platform"
+                  src="https://images.unsplash.com/photo-1485546246426-74dc88dec4d9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                  alt="Children learning together on tablets"
                 />
               </div>
             </>
@@ -119,8 +119,8 @@ const Platform = () => {
               </div>
               <div className="platform-image">
                 <img
-                  src="/src/assets//Platform-images/Practicing-image.png"
-                  alt="Student practicing on platform"
+                  src="https://images.unsplash.com/photo-1567168544813-cc03465b4fa8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+                  alt="Child practicing skills on digital device"
                 />
               </div>
             </>
@@ -137,8 +137,8 @@ const Platform = () => {
               </div>
               <div className="platform-image">
                 <img
-                  src="/src/assets/Platform-images/Testing-image.png"
-                  alt="Student taking an assessment"
+                  src="https://images.unsplash.com/photo-1516627145497-ae6968895b40?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1440&q=80"
+                  alt="Child taking an assessment on computer"
                 />
               </div>
             </>
@@ -155,8 +155,8 @@ const Platform = () => {
               </div>
               <div className="platform-image">
                 <img
-                  src="/src/assets/Platform-images/Tutoring-image.png"
-                  alt="AI tutoring session"
+                  src="https://images.unsplash.com/photo-1544717305-2782549b5136?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+                  alt="Children in a tutoring session with digital tools"
                 />
               </div>
             </>
