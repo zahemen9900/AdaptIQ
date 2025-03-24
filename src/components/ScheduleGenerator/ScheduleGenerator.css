@@ -1,0 +1,241 @@
+.schedule-generator {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+.schedule-generator-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.loading-animation {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.loading-icon {
+  color: rgb(3, 205, 255);
+  z-index: 2;
+  position: relative;
+}
+
+.loading-spinner {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 84px;
+  height: 84px;
+  border: 4px solid rgba(3, 205, 255, 0.1);
+  border-left: 4px solid rgb(3, 205, 255);
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.schedule-generator-loading h2 {
+  color: #041137;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.schedule-generator-loading p {
+  color: #6c757d;
+  font-size: 1.1rem;
+  max-width: 600px;
+}
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.schedule-header h2 {
+  color: #041137;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.edit-button,
+.save-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+.edit-button {
+  background-color: #f8f9fa;
+  color: #041137;
+  border: 1px solid #e0e0e0;
+}
+
+.edit-button:hover,
+.edit-button.active {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.edit-button.active {
+  background-color: #041137;
+  color: white;
+  border-color: #041137;
+}
+
+.save-button {
+  background-color: rgb(3, 205, 255);
+  color: #041137;
+  border: none;
+  box-shadow: 0 4px 10px rgba(3, 205, 255, 0.3);
+}
+
+.save-button:hover {
+  background-color: rgb(0, 180, 230);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(3, 205, 255, 0.4);
+}
+
+.edit-instructions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: rgba(3, 205, 255, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  color: #041137;
+}
+
+.edit-instructions svg {
+  color: rgb(3, 205, 255);
+}
+
+.schedule-calendar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.calendar-day {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-day:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+}
+
+.day-header {
+  background-color: #041137;
+  color: white;
+  padding: 1rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.day-sessions {
+  padding: 1rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 200px;
+}
+
+.session-card {
+  background-color: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+  cursor: grab;
+}
+
+.session-card:hover {
+  border-color: rgb(3, 205, 255);
+  background-color: rgba(3, 205, 255, 0.05);
+}
+
+.session-card.dragging {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.session-card.drag-over {
+  border-color: rgb(3, 205, 255);
+  background-color: rgba(3, 205, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(3, 205, 255, 0.3);
+}
+
+.session-time {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.session-course {
+  font-weight: 600;
+  color: #041137;
+  font-size: 1.1rem;
+}
+
+.no-sessions {
+  color: #6c757d;
+  text-align: center;
+  padding: 2rem 0;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .schedule-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .schedule-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .schedule-calendar {
+    grid-template-columns: 1fr;
+  }
+}

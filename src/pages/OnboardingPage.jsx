@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './OnboardingPage.css';
 import Logo from '../assets/Logo.png';
-import { IconArrowRight, IconArrowLeft } from '@tabler/icons-react';
+import { IconArrowRight, IconArrowLeft, IconBulb, IconBook, IconCalendar, IconSchool } from '@tabler/icons-react';
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -16,6 +16,9 @@ const OnboardingPage = () => {
     // Subjects
     subjects: [],
     gradeLevel: '',
+    
+    // Courses
+    courses: [],
     
     // Schedule
     availableDays: [],
@@ -38,6 +41,52 @@ const OnboardingPage = () => {
     { id: 'foreign', label: 'Foreign Languages' },
     { id: 'computer', label: 'Computer Science' }
   ];
+
+  // Available courses for each subject
+  const coursesBySubject = {
+    math: [
+      { id: 'algebra', label: 'Algebra' },
+      { id: 'geometry', label: 'Geometry' },
+      { id: 'calculus', label: 'Calculus' },
+      { id: 'statistics', label: 'Statistics' },
+      { id: 'trigonometry', label: 'Trigonometry' }
+    ],
+    science: [
+      { id: 'biology', label: 'Biology' },
+      { id: 'chemistry', label: 'Chemistry' },
+      { id: 'physics', label: 'Physics' },
+      { id: 'environmental', label: 'Environmental Science' },
+      { id: 'astronomy', label: 'Astronomy' }
+    ],
+    history: [
+      { id: 'world', label: 'World History' },
+      { id: 'us', label: 'US History' },
+      { id: 'european', label: 'European History' },
+      { id: 'ancient', label: 'Ancient Civilizations' },
+      { id: 'modern', label: 'Modern History' }
+    ],
+    language: [
+      { id: 'composition', label: 'Composition' },
+      { id: 'literature', label: 'Literature' },
+      { id: 'grammar', label: 'Grammar' },
+      { id: 'creative', label: 'Creative Writing' },
+      { id: 'speech', label: 'Speech & Debate' }
+    ],
+    foreign: [
+      { id: 'spanish', label: 'Spanish' },
+      { id: 'french', label: 'French' },
+      { id: 'german', label: 'German' },
+      { id: 'chinese', label: 'Chinese' },
+      { id: 'japanese', label: 'Japanese' }
+    ],
+    computer: [
+      { id: 'programming', label: 'Programming' },
+      { id: 'webdev', label: 'Web Development' },
+      { id: 'database', label: 'Database Systems' },
+      { id: 'ai', label: 'Artificial Intelligence' },
+      { id: 'cybersecurity', label: 'Cybersecurity' }
+    ]
+  };
 
   const weekdays = [
     { id: 'monday', label: 'Monday' },
@@ -67,6 +116,17 @@ const OnboardingPage = () => {
     });
   };
 
+  const handleCourseToggle = (courseId) => {
+    const updatedCourses = formData.courses.includes(courseId)
+      ? formData.courses.filter(id => id !== courseId)
+      : [...formData.courses, courseId];
+    
+    setFormData({
+      ...formData,
+      courses: updatedCourses
+    });
+  };
+
   const handleDayToggle = (dayId) => {
     const updatedDays = formData.availableDays.includes(dayId)
       ? formData.availableDays.filter(id => id !== dayId)
@@ -86,8 +146,27 @@ const OnboardingPage = () => {
     });
   };
 
+  const validateStep = (currentStep) => {
+    switch(currentStep) {
+      case 1:
+        return formData.learningStyle && formData.studyEnvironment && formData.preferredTime;
+      case 2:
+        return formData.subjects.length > 0 && formData.gradeLevel;
+      case 3:
+        return formData.courses.length > 0;
+      case 4:
+        return formData.availableDays.length > 0 && formData.studyDuration && formData.breakFrequency;
+      default:
+        return true;
+    }
+  };
+
   const nextStep = () => {
-    setStep(step + 1);
+    if (validateStep(step)) {
+      setStep(step + 1);
+    } else {
+      alert('Please complete all required fields before proceeding.');
+    }
   };
 
   const prevStep = () => {
@@ -109,6 +188,8 @@ const OnboardingPage = () => {
         <div className={`step-dot ${step >= 2 ? 'active' : ''}`}></div>
         <div className="step-line"></div>
         <div className={`step-dot ${step >= 3 ? 'active' : ''}`}></div>
+        <div className="step-line"></div>
+        <div className={`step-dot ${step >= 4 ? 'active' : ''}`}></div>
       </div>
     );
   };
@@ -118,8 +199,11 @@ const OnboardingPage = () => {
       case 1:
         return (
           <div className="step-content">
-            <h2>How do you learn best?</h2>
-            <p className="step-description">Select your preferred learning style to help us personalize your experience</p>
+            <div className="step-header">
+              <IconBulb size={32} className="step-icon" />
+              <h2>How do you learn best?</h2>
+              <p className="step-description">Select your preferred learning style to help us personalize your experience</p>
+            </div>
             
             <div className="learning-styles-grid">
               {learningStyles.map(style => (
@@ -141,6 +225,7 @@ const OnboardingPage = () => {
                 name="studyEnvironment" 
                 value={formData.studyEnvironment}
                 onChange={handleInputChange}
+                required
               >
                 <option value="">Select an option</option>
                 <option value="quiet">Quiet space</option>
@@ -157,6 +242,7 @@ const OnboardingPage = () => {
                 name="preferredTime" 
                 value={formData.preferredTime}
                 onChange={handleInputChange}
+                required
               >
                 <option value="">Select an option</option>
                 <option value="morning">Early morning</option>
@@ -171,8 +257,11 @@ const OnboardingPage = () => {
       case 2:
         return (
           <div className="step-content">
-            <h2>What subjects are you studying?</h2>
-            <p className="step-description">Select the subjects you want help with</p>
+            <div className="step-header">
+              <IconBook size={32} className="step-icon" />
+              <h2>What subjects are you studying?</h2>
+              <p className="step-description">Select the subjects you want help with</p>
+            </div>
             
             <div className="subjects-grid">
               {subjects.map(subject => (
@@ -193,6 +282,7 @@ const OnboardingPage = () => {
                 name="gradeLevel" 
                 value={formData.gradeLevel}
                 onChange={handleInputChange}
+                required
               >
                 <option value="">Select your grade</option>
                 <option value="middle">Middle School</option>
@@ -208,8 +298,44 @@ const OnboardingPage = () => {
       case 3:
         return (
           <div className="step-content">
-            <h2>Create your study schedule</h2>
-            <p className="step-description">Let us know when you're available to study</p>
+            <div className="step-header">
+              <IconSchool size={32} className="step-icon" />
+              <h2>Select your courses</h2>
+              <p className="step-description">Choose the specific courses you want to study</p>
+            </div>
+            
+            <div className="subjects-grid">
+              {formData.subjects.map(subjectId => {
+                const subjectCourses = coursesBySubject[subjectId] || [];
+                return (
+                  <div key={subjectId} className="subject-courses-container">
+                    <h3 className="subject-title">{subjects.find(s => s.id === subjectId)?.label}</h3>
+                    <div className="courses-grid">
+                      {subjectCourses.map(course => (
+                        <div 
+                          key={course.id}
+                          className={`subject-card ${formData.courses.includes(course.id) ? 'selected' : ''}`}
+                          onClick={() => handleCourseToggle(course.id)}
+                        >
+                          <h3>{course.label}</h3>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      
+      case 4:
+        return (
+          <div className="step-content">
+            <div className="step-header">
+              <IconCalendar size={32} className="step-icon" />
+              <h2>Create your study schedule</h2>
+              <p className="step-description">Let us know when you're available to study</p>
+            </div>
             
             <div className="days-grid">
               {weekdays.map(day => (
@@ -230,6 +356,7 @@ const OnboardingPage = () => {
                 name="studyDuration" 
                 value={formData.studyDuration}
                 onChange={handleInputChange}
+                required
               >
                 <option value="">Select duration</option>
                 <option value="15">15 minutes</option>
@@ -248,8 +375,10 @@ const OnboardingPage = () => {
                 name="breakFrequency" 
                 value={formData.breakFrequency}
                 onChange={handleInputChange}
+                required
               >
                 <option value="">Select frequency</option>
+                <option value="10">Every 10 minutes</option>
                 <option value="15">Every 15 minutes</option>
                 <option value="25">Every 25 minutes (Pomodoro)</option>
                 <option value="30">Every 30 minutes</option>
@@ -269,27 +398,29 @@ const OnboardingPage = () => {
     <div className="onboarding-page">
       <div className="onboarding-container">
         <div className="onboarding-header">
-          <img src={Logo} alt="AdaptIQ Logo" className="onboarding-logo" />
+          <Link to="/" className="logo-link">
+            <img src={Logo} alt="AdaptIQ Logo" className="onboarding-logo" />
+          </Link>
           {renderStepIndicator()}
         </div>
 
-        <form onSubmit={step === 3 ? handleSubmit : e => e.preventDefault()}>
+        <form onSubmit={step === 4 ? handleSubmit : e => e.preventDefault()}>
           {renderStepContent()}
 
           <div className="onboarding-buttons">
             {step > 1 && (
               <button type="button" className="back-button" onClick={prevStep}>
-                <IconArrowLeft size={18} /> Back
+                <IconArrowLeft size={20} /> Back
               </button>
             )}
             
-            {step < 3 ? (
+            {step < 4 ? (
               <button type="button" className="next-button" onClick={nextStep}>
-                Next <IconArrowRight size={18} />
+                Next <IconArrowRight size={20} />
               </button>
             ) : (
               <button type="submit" className="finish-button">
-                Finish <IconArrowRight size={18} />
+                Finish <IconArrowRight size={20} />
               </button>
             )}
           </div>

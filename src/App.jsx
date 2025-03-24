@@ -20,6 +20,7 @@ import ContactUs from './pages/contactUs' // Fixed casing to match actual file n
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import OnboardingPage from './pages/OnboardingPage'
+import DashboardPage from './pages/DashboardPage'
 
 // Create a HomePage component to contain all the sections
 const HomePage = () => {
@@ -57,6 +58,7 @@ function App() {
   // Use React Router's useLocation hook to track route changes
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || 
+                    location.pathname === '/onboarding' || location.pathname.includes('/dashboard') ||
                     location.pathname.includes('/login') || location.pathname.includes('/signup');
 
   return (
@@ -70,6 +72,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/dashboard/*" element={<DashboardPage />} />
       </Routes>
       {!isAuthPage && <Footer />}
     </>
