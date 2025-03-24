@@ -168,7 +168,9 @@
   font-size: 1rem;
 }
 
-.form-group select {
+.form-group select,
+.form-group input,
+.form-group textarea {
   width: 100%;
   padding: 0.9rem 1.2rem;
   border: 1px solid #e0e0e0;
@@ -180,7 +182,9 @@
   font-family: "DM Sans", Arial, sans-serif;
 }
 
-.form-group select:focus {
+.form-group select:focus,
+.form-group input:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: rgb(3, 205, 255);
   box-shadow: 0 0 0 3px rgba(3, 205, 255, 0.2);
@@ -300,4 +304,13 @@
     flex: 0 0 100%;
     max-width: 100%;
   }
+}
+
+/* Styles for the schedule container */
+.schedule-container {
+  width: 100%;
+  margin-top: 1rem;
+  background-color: white;
+  border-radius: 16px;
+  overflow: hidden;
 }

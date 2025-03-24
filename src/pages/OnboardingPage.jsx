@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './OnboardingPage.css';
 import Logo from '../assets/Logo.png';
-import { IconArrowRight, IconArrowLeft, IconBulb, IconBook, IconCalendar, IconSchool } from '@tabler/icons-react';
+import { IconArrowRight, IconArrowLeft, IconBulb, IconBook, IconCalendar, IconSchool, IconUser } from '@tabler/icons-react';
+import ScheduleGenerator from '../components/ScheduleGenerator/ScheduleGenerator';
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -23,8 +24,16 @@ const OnboardingPage = () => {
     // Schedule
     availableDays: [],
     studyDuration: '',
-    breakFrequency: ''
+    breakFrequency: '',
+    
+    // User information
+    nickname: '',
+    dateOfBirth: '',
+    goals: ''
   });
+  
+  // State for generated schedule
+  const [generatedSchedule, setGeneratedSchedule] = useState(null);
 
   const learningStyles = [
     { id: 'visual', label: 'Visual', description: 'Learn best through images, diagrams, and videos' },
@@ -156,6 +165,10 @@ const OnboardingPage = () => {
         return formData.courses.length > 0;
       case 4:
         return formData.availableDays.length > 0 && formData.studyDuration && formData.breakFrequency;
+      case 5:
+        return formData.nickname && formData.goals;
+      case 6:
+        return true; // Schedule generator step doesn't need validation
       default:
         return true;
     }
@@ -190,8 +203,18 @@ const OnboardingPage = () => {
         <div className={`step-dot ${step >= 3 ? 'active' : ''}`}></div>
         <div className="step-line"></div>
         <div className={`step-dot ${step >= 4 ? 'active' : ''}`}></div>
+        <div className="step-line"></div>
+        <div className={`step-dot ${step >= 5 ? 'active' : ''}`}></div>
+        <div className="step-line"></div>
+        <div className={`step-dot ${step >= 6 ? 'active' : ''}`}></div>
       </div>
     );
+  };
+
+  // Handle schedule completion
+  const handleScheduleComplete = (schedule) => {
+    console.log('Schedule saved:', schedule);
+    navigate('/dashboard');
   };
 
   const renderStepContent = () => {
@@ -389,6 +412,72 @@ const OnboardingPage = () => {
           </div>
         );
       
+      case 5:
+        return (
+          <div className="step-content">
+            <div className="step-header">
+              <IconUser size={32} className="step-icon" />
+              <h2>Tell us about yourself</h2>
+              <p className="step-description">Help us personalize your learning experience</p>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="nickname">Nickname</label>
+              <input 
+                type="text" 
+                id="nickname" 
+                name="nickname" 
+                value={formData.nickname}
+                onChange={handleInputChange}
+                placeholder="Enter a nickname to display on your dashboard"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="dateOfBirth">Date of Birth (Optional)</label>
+              <input 
+                type="date" 
+                id="dateOfBirth" 
+                name="dateOfBirth" 
+                value={formData.dateOfBirth}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="goals">Tell us about yourself</label>
+              <textarea 
+                id="goals" 
+                name="goals" 
+                value={formData.goals}
+                onChange={handleInputChange}
+                placeholder="What do you hope to achieve with AdaptIQ?"
+                rows="3"
+                required
+              />
+            </div>
+          </div>
+        );
+      
+      case 6:
+        return (
+          <div className="step-content">
+            <div className="step-header">
+              <IconCalendar size={32} className="step-icon" />
+              <h2>Your Personalized Schedule</h2>
+              <p className="step-description">Here's your optimized study schedule based on your preferences</p>
+            </div>
+            
+            <div className="schedule-container">
+              <ScheduleGenerator 
+                userData={formData} 
+                onComplete={handleScheduleComplete} 
+              />
+            </div>
+          </div>
+        );
+      
       default:
         return null;
     }
@@ -404,7 +493,7 @@ const OnboardingPage = () => {
           {renderStepIndicator()}
         </div>
 
-        <form onSubmit={step === 4 ? handleSubmit : e => e.preventDefault()}>
+        <form onSubmit={step === 6 ? handleSubmit : e => e.preventDefault()}>
           {renderStepContent()}
 
           <div className="onboarding-buttons">
@@ -414,7 +503,7 @@ const OnboardingPage = () => {
               </button>
             )}
             
-            {step < 4 ? (
+            {step < 6 ? (
               <button type="button" className="next-button" onClick={nextStep}>
                 Next <IconArrowRight size={20} />
               </button>

@@ -112,11 +112,13 @@ const distributeCoursesOptimally = (schedule, courses, availableDays, dayMapping
   availableDays.forEach((day, dayIndex) => {
     const dayName = dayMapping[day];
     let currentHour = startHour;
+    let currentMinute = 0;
     
     // Get courses for this day
-    const startIndex = dayIndex * maxSessionsPerDay;
-    const endIndex = Math.min(startIndex + maxSessionsPerDay, coursesToDistribute.length);
-    const coursesForDay = coursesToDistribute.slice(startIndex, endIndex);
+    const coursesPerDay = Math.max(1, Math.ceil(coursesToDistribute.length / availableDays.length));
+    const startIndex = (dayIndex * coursesPerDay) % coursesToDistribute.length;
+    const endIndex = Math.min(startIndex + coursesPerDay, coursesToDistribute.length);
+    let coursesForDay = coursesToDistribute.slice(startIndex, endIndex);
     
     // If we've run out of courses, cycle back to the beginning
     if (coursesForDay.length === 0 && coursesToDistribute.length > 0) {
@@ -124,13 +126,26 @@ const distributeCoursesOptimally = (schedule, courses, availableDays, dayMapping
       coursesForDay.push(coursesToDistribute[wrappedIndex]);
     }
     
+    // Limit the number of sessions per day according to maxSessionsPerDay
+    if (coursesForDay.length > maxSessionsPerDay) {
+      coursesForDay = coursesForDay.slice(0, maxSessionsPerDay);
+    }
+    
     // Create study sessions for each course
     coursesForDay.forEach((course, index) => {
-      const startTime = formatTime(currentHour, 0);
+      // Calculate start time for this session
+      const startTime = formatTime(currentHour, currentMinute);
       
       // Calculate end time based on session duration
-      const endHour = currentHour + Math.floor(sessionDuration / 60);
-      const endMinute = sessionDuration % 60;
+      let endHour = currentHour;
+      let endMinute = currentMinute + sessionDuration;
+      
+      // Adjust if minutes exceed 60
+      if (endMinute >= 60) {
+        endHour += Math.floor(endMinute / 60);
+        endMinute = endMinute % 60;
+      }
+      
       const endTime = formatTime(endHour, endMinute);
       
       schedule[dayName].push({
@@ -142,7 +157,11 @@ const distributeCoursesOptimally = (schedule, courses, availableDays, dayMapping
       });
       
       // Add break time and move to next session
-      currentHour = endHour + Math.floor(breakDuration / 60);
+      currentMinute += sessionDuration + breakDuration;
+      if (currentMinute >= 60) {
+        currentHour += Math.floor(currentMinute / 60);
+        currentMinute = currentMinute % 60;
+      }
     });
   });
 };
