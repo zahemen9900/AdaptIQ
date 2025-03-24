@@ -1,0 +1,198 @@
+.onboarding-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 2rem;
+}
+
+.onboarding-container {
+  width: 100%;
+  max-width: 800px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
+}
+
+.onboarding-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.onboarding-logo {
+  width: 140px;
+  height: auto;
+  margin-bottom: 2rem;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  transition: background-color 0.3s ease;
+}
+
+.step-dot.active {
+  background-color: rgb(3, 205, 255);
+}
+
+.step-line {
+  width: 60px;
+  height: 2px;
+  background-color: #e0e0e0;
+  margin: 0 5px;
+}
+
+.step-content {
+  margin-bottom: 2rem;
+}
+
+.step-content h2 {
+  color: #041137;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.step-description {
+  color: #6c757d;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.learning-styles-grid,
+.subjects-grid,
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.learning-style-card,
+.subject-card,
+.day-card {
+  background-color: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.learning-style-card:hover,
+.subject-card:hover,
+.day-card:hover {
+  border-color: rgb(3, 205, 255);
+  transform: translateY(-2px);
+}
+
+.learning-style-card.selected,
+.subject-card.selected,
+.day-card.selected {
+  border-color: rgb(3, 205, 255);
+  background-color: rgba(3, 205, 255, 0.1);
+}
+
+.learning-style-card h3,
+.subject-card h3,
+.day-card h3 {
+  color: #041137;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.learning-style-card p {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #041137;
+  margin-bottom: 0.5rem;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: white;
+  color: #041137;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: rgb(3, 205, 255);
+}
+
+.onboarding-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.back-button,
+.next-button,
+.finish-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button {
+  background-color: #f8f9fa;
+  color: #041137;
+  border: 1px solid #e0e0e0;
+}
+
+.back-button:hover {
+  background-color: #e0e0e0;
+}
+
+.next-button,
+.finish-button {
+  background-color: rgb(3, 205, 255);
+  color: #041137;
+  border: none;
+}
+
+.next-button:hover,
+.finish-button:hover {
+  background-color: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .onboarding-container {
+    padding: 1.5rem;
+  }
+  
+  .learning-styles-grid,
+  .subjects-grid,
+  .days-grid {
+    grid-template-columns: 1fr;
+  }
+}

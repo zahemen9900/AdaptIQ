@@ -1,5 +1,5 @@
 import './App.css'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar/Navbar'
 import Hero from './components/Hero/Hero'
 import About from './components/About/About'
@@ -17,6 +17,9 @@ import Contact from './components/Contact/Contact'
 import Footer from './components/Footer/Footer'
 import FAQPage from './pages/FAQPage'
 import ContactUs from './pages/contactUs' // Fixed casing to match actual file name
+import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
+import OnboardingPage from './pages/OnboardingPage'
 
 // Create a HomePage component to contain all the sections
 const HomePage = () => {
@@ -51,16 +54,24 @@ const ContactPage = () => {
 };
 
 function App() {
+  // Use React Router's useLocation hook to track route changes
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || 
+                    location.pathname.includes('/login') || location.pathname.includes('/signup');
+
   return (
     <>
-      <Navbar />
+      {!isAuthPage && <Navbar />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/pages" element={<FAQPage />} />
         <Route path="/contactUs" element={<ContactPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
       </Routes>
-      <Footer />
+      {!isAuthPage && <Footer />}
     </>
   )
 }

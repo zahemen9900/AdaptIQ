@@ -44,6 +44,31 @@
   font-family: "DM Sans", Arial, sans-serif;
 }
 
+.hero-signup-link {
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 20px;
+}
+
+.hero-signup-button {
+  background-color: rgb(3, 205, 255);
+  color: #041137;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-family: "DM Sans", Arial, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hero-signup-button:hover {
+  background-color: #e5e7eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .hero-image {
   flex: 1;
   display: flex;
