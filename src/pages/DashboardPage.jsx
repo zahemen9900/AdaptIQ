@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './DashboardPage.css';
-import Logo from '../assets/Logo.png';
+import Logo from '../assets/logo-white.png';
 import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers } from '@tabler/icons-react';
 
 const DashboardPage = () => {
   const [activeUsers] = useState(189);
   const [totalCourses] = useState(12);
   const [completionRate] = useState(78);
+  const [nickname, setNickname] = useState('');
+
+  useEffect(() => {
+    const onboardingData = localStorage.getItem('onboardingData');
+    if (onboardingData) {
+      const { nickname } = JSON.parse(onboardingData);
+      if (nickname) setNickname(nickname);
+    }
+  }, []);
   const [upcomingAssignments] = useState([
     { id: 1, title: 'Calculus Homework', course: 'Mathematics', dueDate: '2024-01-20' },
     { id: 2, title: 'Physics Lab Report', course: 'Physics', dueDate: '2024-01-22' },
@@ -63,8 +72,8 @@ const DashboardPage = () => {
         <div className="dashboard-header">
           <h1>Dashboard Overview</h1>
           <div className="user-profile">
-            <span className="user-name">Evano</span>
-            <div className="user-avatar">EV</div>
+            <span className="user-name">{nickname || 'Guest'}</span>
+            <div className="user-avatar">{nickname ? nickname.substring(0, 2).toUpperCase() : 'G'}</div>
           </div>
         </div>
         

@@ -189,6 +189,8 @@ const OnboardingPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Onboarding data:', formData);
+    // Save onboarding data to localStorage
+    localStorage.setItem('onboardingData', JSON.stringify(formData));
     // Navigate to dashboard after completing onboarding
     navigate('/dashboard');
   };

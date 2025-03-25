@@ -7,12 +7,12 @@
 
 .dashboard-sidebar {
   width: 250px;
-  background-color: white;
-  color: #64748b;
+  background-color: #041137;
+  color: white;
   padding: 2rem 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-header {
@@ -37,7 +37,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.875rem 1.5rem;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   transition: all 0.3s ease;
   border-radius: 8px;
@@ -45,13 +45,13 @@
 }
 
 .nav-item:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .nav-item.active {
-  background-color: #f1f5f9;
-  color: #3b82f6;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
 }
 
 .dashboard-content {
@@ -93,7 +93,7 @@
 .user-avatar {
   width: 40px;
   height: 40px;
-  background-color: #3b82f6;
+  background-color: #041137;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -240,7 +240,7 @@
 }
 
 .progress-info span {
-  color: #3b82f6;
+  color: #041137;
   font-size: 0.75rem;
   font-weight: 500;
 }
@@ -254,7 +254,7 @@
 
 .progress-fill {
   height: 100%;
-  background-color: #3b82f6;
+  background-color: #041137;
   border-radius: 3px;
   transition: width 0.3s ease;
 }
