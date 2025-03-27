@@ -80,6 +80,31 @@
 .form-group input.error {
   border-color: #dc3545;
 }
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  width: 100%;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.password-toggle:hover {
+  color: #041137;
+}
 
 .error-message {
   color: #dc3545;
@@ -115,13 +140,15 @@
   text-align: center;
 }
 
-.login-link, .terms-link {
+.login-link,
+.terms-link {
   color: rgb(3, 205, 255);
   text-decoration: none;
   font-weight: 600;
 }
 
-.login-link:hover, .terms-link:hover {
+.login-link:hover,
+.terms-link:hover {
   text-decoration: underline;
 }
 
@@ -135,11 +162,11 @@
   .signup-container {
     padding: 1.5rem;
   }
-  
+
   .signup-header h1 {
     font-size: 1.5rem;
   }
-  
+
   .signup-form {
     gap: 1rem;
   }
