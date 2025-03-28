@@ -48,6 +48,27 @@ const SubjectPopup = ({ subject, onClose }) => {
     'Artificial Intelligence': 'computer-science',
     'Cybersecurity': 'computer-science',
     
+    // Engineering subjects
+    'Mechanical Engineering': 'engineering',
+    'Electrical Engineering': 'engineering',
+    'Civil Engineering': 'engineering',
+    'Chemical Engineering': 'engineering',
+    'Software Engineering': 'engineering',
+    
+    // Economics subjects
+    'Microeconomics': 'economics',
+    'Macroeconomics': 'economics',
+    'International Economics': 'economics',
+    'Business Economics': 'economics',
+    'Finance': 'economics',
+    
+    // Psychology subjects
+    'General Psychology': 'psychology',
+    'Developmental Psychology': 'psychology',
+    'Cognitive Psychology': 'psychology',
+    'Abnormal Psychology': 'psychology',
+    'Social Psychology': 'psychology',
+    
     // Arts subjects
     'Drawing': 'arts',
     'Painting': 'arts',
@@ -99,6 +120,28 @@ const SubjectPopup = ({ subject, onClose }) => {
     'Database Systems': 'The study of systems that store and organize data, including design, implementation, and management of database systems.',
     'Artificial Intelligence': 'The simulation of human intelligence processes by machines, especially computer systems, including learning, reasoning, and self-correction.',
     'Cybersecurity': 'The practice of protecting systems, networks, and programs from digital attacks, typically aimed at accessing, changing, or destroying sensitive information.',
+    
+    // Engineering subjects
+    'Mechanical Engineering': 'The branch of engineering that applies physical principles to the creation of machines, mechanical systems, and tools, with applications in manufacturing, robotics, and automotive design.',
+    'Electrical Engineering': 'The field of engineering that deals with electricity, electronics, and electromagnetism, designing and developing electrical systems, from power distribution to electronic circuits.',
+    'Civil Engineering': 'The professional practice of designing and developing infrastructure such as roads, bridges, buildings, and water systems, with a focus on safety, efficiency, and sustainability.',
+    'Chemical Engineering': 'The branch of engineering that applies chemistry, physics, biology, and mathematics to design and improve processes for converting raw materials into valuable products.',
+    'Software Engineering': 'The systematic application of engineering principles to software design, development, testing, and maintenance, with a focus on scalability, reliability, and efficiency.',
+    
+    // Economics subjects
+    'Microeconomics': 'The study of how individuals and businesses make decisions regarding the allocation of resources and prices of goods and services, focusing on supply and demand in markets.',
+    'Macroeconomics': 'The field of economics dealing with the performance, structure, behavior, and decision-making of an economy as a whole, including national income, unemployment, inflation, and economic growth.',
+    'International Economics': 'The study of economic interactions between countries, including trade, investment, and the effects of economic policies on global markets.',
+    'Business Economics': 'The application of economic theory and methods to business decision-making, helping firms understand market dynamics and optimize their operations.',
+    'Finance': 'The study of money management, including investments, assets, liabilities, and the systems that govern them in organizations and markets.',
+    
+    // Psychology subjects
+    'General Psychology': 'An introduction to the scientific study of behavior and mental processes, examining the fundamental principles that govern how we think, feel, and behave.',
+    'Developmental Psychology': 'The study of how humans grow and change throughout their lifespan, examining physical, cognitive, emotional, social, and personality development.',
+    'Cognitive Psychology': 'The scientific study of mental processes such as attention, language use, memory, perception, problem solving, creativity, and reasoning.',
+    'Abnormal Psychology': 'The study of unusual patterns of behavior, emotion, and thought that may be understood as mental disorders, including their causes, treatments, and impacts.',
+    'Social Psychology': 'The scientific study of how people\'s thoughts, feelings, and behaviors are influenced by the actual, imagined, or implied presence of others.',
+    
     'Drawing': 'The art or technique of representing objects, ideas, or emotions through lines, shapes, and values on a surface.',
     'Painting': 'The practice of applying paint, pigment, color, or other medium to a solid surface to create art.',
     'Sculpture': 'The art of making three-dimensional representative or abstract forms, especially by carving stone or wood or by casting metal or plaster.',
@@ -106,7 +149,7 @@ const SubjectPopup = ({ subject, onClose }) => {
     'Music Theory': 'The study of the practices and possibilities of music, including the study of music notation, compositional methods, and the elements of music.',
     'Instrumental': 'The study and practice of playing musical instruments, developing technical proficiency and musical expression.',
     'Vocal': 'The study and practice of singing, including technique, repertoire, and performance skills.',
-    'Composition': 'The creation of original music, including melody, harmony, rhythm, and form.',
+'Composition': 'The creation of original music, including melody, harmony, rhythm, and form.',
     'Fitness': 'Physical activity aimed at improving health and physical strength through regular exercise and proper nutrition.',
     'Sports': 'Competitive physical activities governed by a set of rules, often requiring physical exertion and skill.',
     'Nutrition': 'The study of nutrients in food, how the body uses them, and the relationship between diet, health, and disease.',
@@ -136,7 +179,7 @@ const SubjectPopup = ({ subject, onClose }) => {
           <p>{description}</p>
         </div>
         <div className="subject-popup-footer">
-          <Link to="/dashboard/assignments" className="learn-button">Learn</Link>
+          <Link to="/dashboard/courses" className="learn-button">Learn</Link>
         </div>
       </div>
     </div>

@@ -139,6 +139,29 @@ A new loading screen has been implemented with the following features:
 - Integration of custom courses into the schedule generation algorithm
 - Persistent storage of custom course data
 
+### Subject Popup System Enhancements
+- Implemented a new popup system for subjects in the schedule.
+- Added unique image URLs for each subject to enhance visual representation.
+- Introduced handling for 'Other' subjects with a default image.
+- Resized image containers for improved visual appeal.
+- Prepared for Firebase compatibility for future image storage and retrieval.
+
+### Page Transition System
+- Implemented smooth animated transitions between pages for a more polished user experience
+- Added a dedicated PageTransition component for consistent transition effects across the application
+- Incorporated fade and slide animations with configurable timing and easing functions
+- Optimized transition performance to prevent layout shifts and maintain accessibility
+- Added route-specific transition effects based on navigation direction and context
+
+### Progress Tracking System with Firebase Integration
+- Designed and implemented a comprehensive subject progress tracking system
+- Added Firebase integration for real-time progress data synchronization across devices
+- Created visual progress indicators with percentage completion for each subject
+- Implemented automated progress updates based on completed learning activities and quizzes
+- Added analytics capability to track learning patterns and suggest optimizations
+- Integrated progress data with the schedule generation algorithm for adaptive learning paths
+- Implemented data persistence for offline access to progress information
+
 ## Future Development Considerations
 
 ### Backend Integration

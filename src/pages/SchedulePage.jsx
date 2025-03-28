@@ -46,6 +46,110 @@ const SchedulePage = () => {
     }
   }, []);
 
+  // Helper function to parse course IDs and return proper display labels
+  const getFormattedCourseName = (courseString) => {
+    // Check if this is a course ID in the format "subject-course"
+    if (courseString && courseString.includes('-')) {
+      const [subjectId, courseId] = courseString.split('-');
+      
+      // Define the mapping of course IDs to proper display names
+      const coursesBySubject = {
+        math: {
+          'algebra': 'Algebra',
+          'geometry': 'Geometry', 
+          'calculus': 'Calculus',
+          'statistics': 'Statistics',
+          'trigonometry': 'Trigonometry'
+        },
+        science: {
+          'biology': 'Biology',
+          'chemistry': 'Chemistry',
+          'physics': 'Physics',
+          'environmental': 'Environmental Science',
+          'astronomy': 'Astronomy'
+        },
+        history: {
+          'world': 'World History',
+          'us': 'US History',
+          'european': 'European History',
+          'ancient': 'Ancient Civilizations',
+          'modern': 'Modern History'
+        },
+        language: {
+          'composition': 'Composition',
+          'literature': 'Literature',
+          'grammar': 'Grammar',
+          'creative': 'Creative Writing',
+          'speech': 'Speech & Debate'
+        },
+        foreign: {
+          'spanish': 'Spanish',
+          'french': 'French',
+          'german': 'German',
+          'chinese': 'Chinese',
+          'japanese': 'Japanese'
+        },
+        computer: {
+          'programming': 'Programming',
+          'webdev': 'Web Development',
+          'database': 'Database Systems',
+          'ai': 'Artificial Intelligence',
+          'cybersecurity': 'Cybersecurity'
+        },
+        engineering: {
+          'mechanical': 'Mechanical Engineering',
+          'electrical': 'Electrical Engineering',
+          'civil': 'Civil Engineering',
+          'chemical': 'Chemical Engineering',
+          'software': 'Software Engineering'
+        },
+        economics: {
+          'micro': 'Microeconomics',
+          'macro': 'Macroeconomics',
+          'international': 'International Economics',
+          'business': 'Business Economics',
+          'finance': 'Finance'
+        },
+        psychology: {
+          'general': 'General Psychology',
+          'developmental': 'Developmental Psychology',
+          'cognitive': 'Cognitive Psychology',
+          'abnormal': 'Abnormal Psychology',
+          'social': 'Social Psychology'
+        },
+        art: {
+          'drawing': 'Drawing',
+          'painting': 'Painting',
+          'sculpture': 'Sculpture',
+          'digital': 'Digital Art'
+        },
+        music: {
+          'theory': 'Music Theory',
+          'instrumental': 'Instrumental',
+          'vocal': 'Vocal',
+          'composition': 'Composition'
+        },
+        physical: {
+          'fitness': 'Fitness',
+          'sports': 'Sports',
+          'nutrition': 'Nutrition',
+          'wellness': 'Wellness'
+        }
+      };
+      
+      // Check if we have a mapping for this subject and course
+      if (coursesBySubject[subjectId] && coursesBySubject[subjectId][courseId]) {
+        return coursesBySubject[subjectId][courseId];
+      }
+      
+      // For custom courses or if mapping not found, return the original string
+      return courseString;
+    }
+    
+    // If not in subject-course format, return the original string
+    return courseString;
+  };
+
   // Handle drag start
   const handleDragStart = (e, item) => {
     setDraggedItem(item);
@@ -362,13 +466,13 @@ const SchedulePage = () => {
                         onDragStart={(e) => editMode && handleDragStart(e, session)}
                         onDragOver={(e) => editMode && handleDragOver(e, day, index)}
                         onDrop={(e) => editMode && handleDrop(e, day, index)}
-                        onClick={() => handleSubjectClick(session.course)}
+                        onClick={() => handleSubjectClick(getFormattedCourseName(session.course))}
                         style={{ cursor: editMode ? 'grab' : 'pointer' }}
                       >
                         <div className="session-time">
                           {session.startTime} - {session.endTime}
                         </div>
-                        <div className="session-course">{session.course}</div>
+                        <div className="session-course">{getFormattedCourseName(session.course)}</div>
                         <div className="session-details">
                           <span className="session-type">{session.type}</span>
                           {session.difficulty && (

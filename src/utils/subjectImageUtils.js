@@ -57,19 +57,43 @@ const subjectImageUrls = {
   'Fitness': 'https://img.freepik.com/premium-photo/workout-sexual-woman-with-dumbbells_136403-5416.jpg',
   'Sports': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsZjSTWj--Z1ZlJ-yMNt87-rUApgUgvmj1OA&s',
   'Nutrition': 'https://media.istockphoto.com/id/1471436624/photo/foods-recommended-for-stabilizing-insulin-and-blood-sugar-levels.jpg?s=612x612&w=0&k=20&c=E3dHx8QEP7lSsJhkSOFuz-BPuM7Ek9rBIZ-Ok6Oc5Z4=',
-  'Wellness': 'https://ciiblog.in/wp-content/uploads/2024/03/Yoga-Blog-Cover-scaled-1.jpg'
+  'Wellness': 'https://ciiblog.in/wp-content/uploads/2024/03/Yoga-Blog-Cover-scaled-1.jpg',
+
+  // Economics subjects
+  'Microeconomics': 'https://streetfins.com/wp-content/uploads/2019/06/2370472_201a_2.jpg',
+  'Macroeconomics': 'https://media.istockphoto.com/id/1320955287/vector/macroeconomics-study-of-world-economy-flat-tiny-persons-with-magnifying-glass-and-finance.jpg?s=612x612&w=0&k=20&c=QtjEc_tdvLjmZqO4earA3fe8MEzshQxSyyLu9NhWkdU=',
+  'International Economics': 'https://blogassets.leverageedu.com/blog/wp-content/uploads/2020/09/24193824/International-Economics.jpg',
+  'Business Economics': 'https://www.shutterstock.com/image-vector/financial-business-education-economics-study-600nw-2231967753.jpg',
+  'Finance': 'https://media.istockphoto.com/id/1795167728/photo/growth-in-business-and-finance-growing-graphs-and-charts.jpg?s=612x612&w=0&k=20&c=626gZ0gRzvxnmVODOIGYmIlMWnFc5Uv5fV7OrddBp-w=',
+  
+  // Psychology subjects
+  'General Psychology': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQn0x7rjnc3L5CvLjIKIz8VFNMIJifwlQoiUA&s',
+  'Developmental Psychology': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTD3iXrmZTdBx8HcKaKVuDpPsNxVfg5E3Yg8A&s',
+  'Cognitive Psychology': 'https://www.simplypsychology.org/wp-content/uploads/psychology.jpeg',
+  'Abnormal Psychology': 'https://cdn.psychologytoday.com/sites/default/files/styles/image-article_inline_full_caption/public/field_blog_entry_images/2022-01/black_background.jpg?itok=yS7Q1GW4',
+  'Social Psychology': 'https://media.istockphoto.com/id/1294477039/vector/metaphor-bipolar-disorder-mind-mental-double-face-split-personality-concept-mood-disorder-2.jpg?s=612x612&w=0&k=20&c=JtBxyFapXIA63hzZk_F5WNDF92J8fD2gIFNX3Ta4U3A=',
+  
+  // Engineering subjects
+  'Mechanical Engineering': 'https://www.discoverengineering.org/wp-content/uploads/2023/12/mj_11208_2.jpg',
+  'Electrical Engineering': 'https://www.mohawkcollege.ca/sites/default/files/styles/program_hero_image/public/Programs/403/mohawk-student-electrical-lab-588x386.jpg?itok=J8_mKDA5',
+  'Civil Engineering': 'https://media.istockphoto.com/id/1029794652/photo/engineer-surveyor-working-with-theodolite-at-construction-site.jpg?s=612x612&w=0&k=20&c=jxIbS-0Q1ejfTxMTXAIbhbZ6tgIzFxwXyz5leFwYFxo=',
+  'Chemical Engineering': 'https://media.istockphoto.com/id/887365772/photo/one-small-adjustment.jpg?s=612x612&w=0&k=20&c=XTYxBzNhEb5fRnWN2NYNKxJO9d637y3FdyhKkBhdvdg=',
+  'Software Engineering': 'https://media.istockphoto.com/id/1435220822/photo/african-american-software-developer.jpg?s=612x612&w=0&k=20&c=JESGRQ2xqRH9ZcJzvZBHZIZKVY8MDejBSOfxeM-i5e4='
 };
 
 // Default category image mapping (used as fallback)
 const categoryImageUrls = {
-  'mathematics': '../../assets/subjects/mathematics.svg',
-  'science': '../../assets/subjects/science.svg',
-  'language': '../../assets/subjects/language.svg',
-  'history': '../../assets/subjects/history.svg',
-  'arts': '../../assets/subjects/arts.svg',
-  'computer-science': '../../assets/subjects/computer-science.svg',
-  'physical-education': '../../assets/subjects/physical-education.svg',
-  'other': '../../assets/subjects/mathematics.svg' // Default for 'Other' subjects
+  'mathematics': 'https://img.freepik.com/free-vector/mathematical-geometry-background_53876-89501.jpg',
+  'science': 'https://img.freepik.com/free-vector/hand-drawn-science-background_23-2148534732.jpg',
+  'language': 'https://img.freepik.com/free-vector/realistic-language-speech-bubbles-concept_52683-37980.jpg',
+  'history': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxeBtYDU7h1rF2WMO3RwhoKCE6RpvEdqT6IA&s',
+  'arts': 'https://img.freepik.com/free-vector/hand-painted-watercolor-pastel-sky-background_23-2148902771.jpg',
+  'computer-science': 'https://img.freepik.com/free-vector/programming-concept-illustration_114360-1351.jpg',
+  'physical-education': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWApAK44l-5bP9WiPBVXF9gtHUqflzCi3OcmNCgvIPc0Sk1q4HtO0mDS7SIoTeMRvFHe8&usqp=CAU',
+  'engineering': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQKic3rejigf_iff5vkBu5LuFvy4JyJWoeKQ&s',
+  'economics': 'https://thumbs.dreamstime.com/b/economics-financial-education-handwriting-doodle-icon-ban-banknote-money-currency-investment-profit-graph-cost-analysis-65913064.jpg',
+  'psychology': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSHvZQAUQWAbkFqNXvM6bSM__XCeThe-ltJMw&s',
+  'other': 'https://shotkit.com/wp-content/uploads/2021/04/Abstract-Photography-05-engin-akyurt.jpg' // Default for 'Other' subjects
 };
 
 /**
@@ -191,7 +215,27 @@ const getCategoryForSubject = (subject) => {
     'Fitness': 'physical-education',
     'Sports': 'physical-education',
     'Nutrition': 'physical-education',
-    'Wellness': 'physical-education'
+    'Wellness': 'physical-education',
+    // Economics subjects
+    'Microeconomics': 'economics',
+    'Macroeconomics': 'economics',
+    'International Economics': 'economics',
+    'Business Economics': 'economics',
+    'Finance': 'economics',
+    
+    // Psychology subjects
+    'General Psychology': 'psychology',
+    'Developmental Psychology': 'psychology',
+    'Cognitive Psychology': 'psychology',
+    'Abnormal Psychology': 'psychology',
+    'Social Psychology': 'psychology',
+    
+    // Engineering subjects
+    'Mechanical Engineering': 'engineering',
+    'Electrical Engineering': 'engineering',
+    'Civil Engineering': 'engineering',
+    'Chemical Engineering': 'engineering',
+    'Software Engineering': 'engineering'
   };
   
   return subjectCategories[subject] || 'other';

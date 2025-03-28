@@ -111,6 +111,30 @@ const OnboardingPage = () => {
       { id: 'cybersecurity', label: 'Cybersecurity' },
       { id: 'other', label: 'Other' }
     ],
+    engineering: [
+      { id: 'mechanical', label: 'Mechanical Engineering' },
+      { id: 'electrical', label: 'Electrical Engineering' },
+      { id: 'civil', label: 'Civil Engineering' },
+      { id: 'chemical', label: 'Chemical Engineering' },
+      { id: 'software', label: 'Software Engineering' },
+      { id: 'other', label: 'Other' }
+    ],
+    economics: [
+      { id: 'micro', label: 'Microeconomics' },
+      { id: 'macro', label: 'Macroeconomics' },
+      { id: 'international', label: 'International Economics' },
+      { id: 'business', label: 'Business Economics' },
+      { id: 'finance', label: 'Financial Economics' },
+      { id: 'other', label: 'Other' }
+    ],
+    psychology: [
+      { id: 'clinical', label: 'Clinical Psychology' },
+      { id: 'cognitive', label: 'Cognitive Psychology' },
+      { id: 'developmental', label: 'Developmental Psychology' },
+      { id: 'social', label: 'Social Psychology' },
+      { id: 'abnormal', label: 'Abnormal Psychology' },
+      { id: 'other', label: 'Other' }
+    ],
     art: [
       { id: 'drawing', label: 'Drawing' },
       { id: 'painting', label: 'Painting' },

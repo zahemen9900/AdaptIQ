@@ -21,8 +21,10 @@ import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import OnboardingPage from './pages/OnboardingPage'
 import DashboardPage from './pages/DashboardPage'
+import CoursesPage from './pages/CoursesPage'
 import SchedulePage from './pages/SchedulePage'
 import LoadingPage from './pages/LoadingPage'
+import CourseLearningPage from './pages/CourseLearningPage'
 
 // Create a HomePage component to contain all the sections
 const HomePage = () => {
@@ -50,6 +52,7 @@ const AboutPage = () => {
     <About />
   );
 };
+
 const ContactPage = () => {
   return (
     <ContactUs />
@@ -77,7 +80,9 @@ function App() {
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/loading" element={<LoadingPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard/courses" element={<CoursesPage />} />
         <Route path="/dashboard/schedule" element={<SchedulePage />} />
+        <Route path="/dashboard/course/:courseId" element={<CourseLearningPage />} />
       </Routes>
       {!isAuthPage && <Footer />}
     </>
