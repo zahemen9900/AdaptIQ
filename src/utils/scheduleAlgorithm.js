@@ -29,7 +29,8 @@ export const generateOptimizedSchedule = (userData) => {
     courses, 
     availableDays, 
     studyDuration, 
-    breakFrequency 
+    breakFrequency,
+    schedulingStyle // 'casual' or 'focused'
   } = userData;
 
   // Initialize schedule structure
@@ -76,7 +77,7 @@ export const generateOptimizedSchedule = (userData) => {
   });
 
   // Distribute courses optimally across available days
-  distributeCoursesOptimally(schedule, courses, availableDays, dayMapping, startHour, sessionDuration, breakDuration, learningStyle);
+  distributeCoursesOptimally(schedule, courses, availableDays, dayMapping, startHour, sessionDuration, breakDuration, learningStyle, schedulingStyle, userData);
   
   // Apply advanced optimization techniques
   let optimizedSchedule = applySpacedRepetition(schedule, courses);
@@ -96,13 +97,24 @@ export const generateOptimizedSchedule = (userData) => {
  * @param {number} sessionDuration - Duration of each study session in minutes
  * @param {number} breakDuration - Duration of breaks in minutes
  * @param {string} learningStyle - User's learning style
+ * @param {string} schedulingStyle - Scheduling style ('casual' or 'focused')
+ * @param {Object} userData - User data including custom courses
  */
-const distributeCoursesOptimally = (schedule, courses, availableDays, dayMapping, startHour, sessionDuration, breakDuration, learningStyle) => {
+const distributeCoursesOptimally = (schedule, courses, availableDays, dayMapping, startHour, sessionDuration, breakDuration, learningStyle, schedulingStyle = 'casual', userData = {}) => {
   // Create a copy of courses to distribute
   let coursesToDistribute = [...courses];
   
   // Determine optimal course order based on learning style
   coursesToDistribute = optimizeCourseOrderByLearningStyle(coursesToDistribute, learningStyle);
+  
+  // For focused learning style, duplicate important courses if we have fewer courses than twice the available days
+  if (schedulingStyle === 'focused' && coursesToDistribute.length < availableDays.length * 2) {
+    // Identify important courses (for now, we'll consider the first half of the optimized courses as important)
+    const importantCourses = coursesToDistribute.slice(0, Math.ceil(coursesToDistribute.length / 2));
+    
+    // Add important courses again to ensure they're studied multiple times per week
+    coursesToDistribute = [...coursesToDistribute, ...importantCourses];
+  }
   
   // Calculate how many courses to assign per day
   const coursesPerDay = Math.ceil(coursesToDistribute.length / availableDays.length);
@@ -148,9 +160,94 @@ const distributeCoursesOptimally = (schedule, courses, availableDays, dayMapping
       
       const endTime = formatTime(endHour, endMinute);
       
+      // Parse the course key to get subject and course
+      let courseDisplay = course;
+      if (course.includes('-')) {
+        const [subjectId, courseId] = course.split('-');
+        
+        // For custom courses
+        if (courseId === 'other' && userData.customCourses && userData.customCourses[subjectId]) {
+          courseDisplay = userData.customCourses[subjectId];
+        } 
+        // For regular courses, look up the course label from coursesBySubject
+        else {
+          // Get course label from predefined courses
+          const coursesBySubject = {
+            math: [
+              { id: 'algebra', label: 'Algebra' },
+              { id: 'geometry', label: 'Geometry' },
+              { id: 'calculus', label: 'Calculus' },
+              { id: 'statistics', label: 'Statistics' },
+              { id: 'trigonometry', label: 'Trigonometry' }
+            ],
+            science: [
+              { id: 'biology', label: 'Biology' },
+              { id: 'chemistry', label: 'Chemistry' },
+              { id: 'physics', label: 'Physics' },
+              { id: 'environmental', label: 'Environmental Science' },
+              { id: 'astronomy', label: 'Astronomy' }
+            ],
+            history: [
+              { id: 'world', label: 'World History' },
+              { id: 'us', label: 'US History' },
+              { id: 'european', label: 'European History' },
+              { id: 'ancient', label: 'Ancient Civilizations' },
+              { id: 'modern', label: 'Modern History' }
+            ],
+            language: [
+              { id: 'composition', label: 'Composition' },
+              { id: 'literature', label: 'Literature' },
+              { id: 'grammar', label: 'Grammar' },
+              { id: 'creative', label: 'Creative Writing' },
+              { id: 'speech', label: 'Speech & Debate' }
+            ],
+            foreign: [
+              { id: 'spanish', label: 'Spanish' },
+              { id: 'french', label: 'French' },
+              { id: 'german', label: 'German' },
+              { id: 'chinese', label: 'Chinese' },
+              { id: 'japanese', label: 'Japanese' }
+            ],
+            computer: [
+              { id: 'programming', label: 'Programming' },
+              { id: 'webdev', label: 'Web Development' },
+              { id: 'database', label: 'Database Systems' },
+              { id: 'ai', label: 'Artificial Intelligence' },
+              { id: 'cybersecurity', label: 'Cybersecurity' }
+            ],
+            art: [
+              { id: 'drawing', label: 'Drawing' },
+              { id: 'painting', label: 'Painting' },
+              { id: 'sculpture', label: 'Sculpture' },
+              { id: 'digital', label: 'Digital Art' }
+            ],
+            music: [
+              { id: 'theory', label: 'Music Theory' },
+              { id: 'instrumental', label: 'Instrumental' },
+              { id: 'vocal', label: 'Vocal' },
+              { id: 'composition', label: 'Composition' }
+            ],
+            physical: [
+              { id: 'fitness', label: 'Fitness' },
+              { id: 'sports', label: 'Sports' },
+              { id: 'nutrition', label: 'Nutrition' },
+              { id: 'wellness', label: 'Wellness' }
+            ]
+          };
+          
+          // Find the course in the coursesBySubject
+          if (coursesBySubject[subjectId]) {
+            const courseObj = coursesBySubject[subjectId].find(c => c.id === courseId);
+            if (courseObj) {
+              courseDisplay = courseObj.label;
+            }
+          }
+        }
+      }
+      
       schedule[dayName].push({
         id: `${day}-${index}`,
-        course,
+        course: courseDisplay,
         startTime,
         endTime,
         completed: false

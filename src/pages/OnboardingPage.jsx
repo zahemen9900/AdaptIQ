@@ -17,14 +17,17 @@ const OnboardingPage = () => {
     // Subjects
     subjects: [],
     gradeLevel: '',
+    customSubject: '',
     
     // Courses
     courses: [],
+    customCourses: {},
     
     // Schedule
     availableDays: [],
     studyDuration: '',
     breakFrequency: '',
+    schedulingStyle: '', // 'casual' or 'focused'
     
     // User information
     nickname: '',
@@ -48,7 +51,14 @@ const OnboardingPage = () => {
     { id: 'history', label: 'History' },
     { id: 'language', label: 'Language Arts' },
     { id: 'foreign', label: 'Foreign Languages' },
-    { id: 'computer', label: 'Computer Science' }
+    { id: 'computer', label: 'Computer Science' },
+    { id: 'art', label: 'Art & Design' },
+    { id: 'music', label: 'Music' },
+    { id: 'physical', label: 'Physical Education' },
+    { id: 'economics', label: 'Economics' },
+    { id: 'psychology', label: 'Psychology' },
+    { id: 'engineering', label: 'Engineering' },
+    { id: 'other', label: 'Other' }
   ];
 
   // Available courses for each subject
@@ -58,42 +68,72 @@ const OnboardingPage = () => {
       { id: 'geometry', label: 'Geometry' },
       { id: 'calculus', label: 'Calculus' },
       { id: 'statistics', label: 'Statistics' },
-      { id: 'trigonometry', label: 'Trigonometry' }
+      { id: 'trigonometry', label: 'Trigonometry' },
+      { id: 'other', label: 'Other' }
     ],
     science: [
       { id: 'biology', label: 'Biology' },
       { id: 'chemistry', label: 'Chemistry' },
       { id: 'physics', label: 'Physics' },
       { id: 'environmental', label: 'Environmental Science' },
-      { id: 'astronomy', label: 'Astronomy' }
+      { id: 'astronomy', label: 'Astronomy' },
+      { id: 'other', label: 'Other' }
     ],
     history: [
       { id: 'world', label: 'World History' },
       { id: 'us', label: 'US History' },
       { id: 'european', label: 'European History' },
       { id: 'ancient', label: 'Ancient Civilizations' },
-      { id: 'modern', label: 'Modern History' }
+      { id: 'modern', label: 'Modern History' },
+      { id: 'other', label: 'Other' }
     ],
     language: [
       { id: 'composition', label: 'Composition' },
       { id: 'literature', label: 'Literature' },
       { id: 'grammar', label: 'Grammar' },
       { id: 'creative', label: 'Creative Writing' },
-      { id: 'speech', label: 'Speech & Debate' }
+      { id: 'speech', label: 'Speech & Debate' },
+      { id: 'other', label: 'Other' }
     ],
     foreign: [
       { id: 'spanish', label: 'Spanish' },
       { id: 'french', label: 'French' },
       { id: 'german', label: 'German' },
       { id: 'chinese', label: 'Chinese' },
-      { id: 'japanese', label: 'Japanese' }
+      { id: 'japanese', label: 'Japanese' },
+      { id: 'other', label: 'Other' }
     ],
     computer: [
       { id: 'programming', label: 'Programming' },
       { id: 'webdev', label: 'Web Development' },
       { id: 'database', label: 'Database Systems' },
       { id: 'ai', label: 'Artificial Intelligence' },
-      { id: 'cybersecurity', label: 'Cybersecurity' }
+      { id: 'cybersecurity', label: 'Cybersecurity' },
+      { id: 'other', label: 'Other' }
+    ],
+    art: [
+      { id: 'drawing', label: 'Drawing' },
+      { id: 'painting', label: 'Painting' },
+      { id: 'sculpture', label: 'Sculpture' },
+      { id: 'digital', label: 'Digital Art' },
+      { id: 'other', label: 'Other' }
+    ],
+    music: [
+      { id: 'theory', label: 'Music Theory' },
+      { id: 'instrumental', label: 'Instrumental' },
+      { id: 'vocal', label: 'Vocal' },
+      { id: 'composition', label: 'Composition' },
+      { id: 'other', label: 'Other' }
+    ],
+    physical: [
+      { id: 'fitness', label: 'Fitness' },
+      { id: 'sports', label: 'Sports' },
+      { id: 'nutrition', label: 'Nutrition' },
+      { id: 'wellness', label: 'Wellness' },
+      { id: 'other', label: 'Other' }
+    ],
+    other: [
+      { id: 'other', label: 'Other' }
     ]
   };
 
@@ -115,6 +155,11 @@ const OnboardingPage = () => {
   };
 
   const handleSubjectToggle = (subjectId) => {
+    // If this is the 'other' subject, we don't want to remove it when clicked again
+    if (subjectId === 'other' && formData.subjects.includes('other')) {
+      return;
+    }
+    
     const updatedSubjects = formData.subjects.includes(subjectId)
       ? formData.subjects.filter(id => id !== subjectId)
       : [...formData.subjects, subjectId];
@@ -124,15 +169,43 @@ const OnboardingPage = () => {
       subjects: updatedSubjects
     });
   };
+  
+  const handleCustomSubjectChange = (e) => {
+    const { value } = e.target;
+    
+    setFormData({
+      ...formData,
+      customSubject: value
+    });
+  };
 
-  const handleCourseToggle = (courseId) => {
-    const updatedCourses = formData.courses.includes(courseId)
-      ? formData.courses.filter(id => id !== courseId)
-      : [...formData.courses, courseId];
+  const handleCourseToggle = (courseId, subjectId) => {
+    // Track selected courses by subject
+    const courseKey = `${subjectId}-${courseId}`;
+    
+    // Check if this course is already selected for this subject
+    const isSelected = formData.courses.includes(courseKey);
+    
+    // Update the courses array
+    const updatedCourses = isSelected
+      ? formData.courses.filter(id => id !== courseKey)
+      : [...formData.courses, courseKey];
     
     setFormData({
       ...formData,
       courses: updatedCourses
+    });
+  };
+  
+  const handleCustomCourseChange = (e, subjectId) => {
+    const { value } = e.target;
+    
+    setFormData({
+      ...formData,
+      customCourses: {
+        ...formData.customCourses,
+        [subjectId]: value
+      }
     });
   };
 
@@ -164,7 +237,7 @@ const OnboardingPage = () => {
       case 3:
         return formData.courses.length > 0;
       case 4:
-        return formData.availableDays.length > 0 && formData.studyDuration && formData.breakFrequency;
+        return formData.availableDays.length > 0 && formData.studyDuration && formData.breakFrequency && formData.schedulingStyle;
       case 5:
         return formData.nickname && formData.goals;
       case 6:
@@ -191,8 +264,8 @@ const OnboardingPage = () => {
     console.log('Onboarding data:', formData);
     // Save onboarding data to localStorage
     localStorage.setItem('onboardingData', JSON.stringify(formData));
-    // Navigate to dashboard after completing onboarding
-    navigate('/dashboard');
+    // Navigate to loading page after completing onboarding
+    navigate('/loading');
   };
 
   const renderStepIndicator = () => {
@@ -299,6 +372,21 @@ const OnboardingPage = () => {
                 </div>
               ))}
             </div>
+            
+            {formData.subjects.includes('other') && (
+              <div className="form-group custom-subject-input">
+                <label htmlFor="customSubject">Enter your custom subject</label>
+                <input 
+                  type="text" 
+                  id="customSubject" 
+                  name="customSubject" 
+                  value={formData.customSubject}
+                  onChange={handleCustomSubjectChange}
+                  placeholder="Enter your subject"
+                  required
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="gradeLevel">Your Grade Level</label>
@@ -331,21 +419,66 @@ const OnboardingPage = () => {
             
             <div className="subjects-grid">
               {formData.subjects.map(subjectId => {
+                // If this is the 'other' subject and we have a custom subject name
+                if (subjectId === 'other' && formData.customSubject) {
+                  return (
+                    <div key={subjectId} className="subject-courses-container">
+                      <h3 className="subject-title">{formData.customSubject}</h3>
+                      <div className="form-group custom-course-input">
+                        <label htmlFor={`customCourse-${subjectId}`}>Enter your custom course</label>
+                        <input 
+                          type="text" 
+                          id={`customCourse-${subjectId}`} 
+                          value={formData.customCourses[subjectId] || ''}
+                          onChange={(e) => handleCustomCourseChange(e, subjectId)}
+                          placeholder="Enter your course"
+                          required
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+                
                 const subjectCourses = coursesBySubject[subjectId] || [];
+                const subjectLabel = subjectId === 'other' ? formData.customSubject : subjects.find(s => s.id === subjectId)?.label;
+                
                 return (
                   <div key={subjectId} className="subject-courses-container">
-                    <h3 className="subject-title">{subjects.find(s => s.id === subjectId)?.label}</h3>
+                    <h3 className="subject-title">{subjectLabel}</h3>
                     <div className="courses-grid">
-                      {subjectCourses.map(course => (
+                      {subjectCourses.filter(course => course.id !== 'other').map(course => (
                         <div 
                           key={course.id}
-                          className={`subject-card ${formData.courses.includes(course.id) ? 'selected' : ''}`}
-                          onClick={() => handleCourseToggle(course.id)}
+                          className={`subject-card ${formData.courses.includes(`${subjectId}-${course.id}`) ? 'selected' : ''}`}
+                          onClick={() => handleCourseToggle(course.id, subjectId)}
                         >
                           <h3>{course.label}</h3>
                         </div>
                       ))}
+                      
+                      {/* Add 'Other' option separately */}
+                      <div 
+                        key={`other-${subjectId}`}
+                        className={`subject-card ${formData.courses.includes(`${subjectId}-other`) ? 'selected' : ''}`}
+                        onClick={() => handleCourseToggle('other', subjectId)}
+                      >
+                        <h3>Other</h3>
+                      </div>
                     </div>
+                    
+                    {formData.courses.includes(`${subjectId}-other`) && (
+                      <div className="form-group custom-course-input">
+                        <label htmlFor={`customCourse-${subjectId}`}>Enter your custom course</label>
+                        <input 
+                          type="text" 
+                          id={`customCourse-${subjectId}`} 
+                          value={formData.customCourses[subjectId] || ''}
+                          onChange={(e) => handleCustomCourseChange(e, subjectId)}
+                          placeholder="Enter your course"
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -372,6 +505,21 @@ const OnboardingPage = () => {
                   <h3>{day.label}</h3>
                 </div>
               ))}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="schedulingStyle">Learning Style Approach</label>
+              <select 
+                id="schedulingStyle" 
+                name="schedulingStyle" 
+                value={formData.schedulingStyle}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="">Select learning style</option>
+                <option value="casual">Casual - Study each subject once per week</option>
+                <option value="focused">Focused - Study important subjects multiple times per week</option>
+              </select>
             </div>
 
             <div className="form-group">

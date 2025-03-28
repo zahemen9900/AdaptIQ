@@ -1,6 +1,6 @@
 # AdaptIQ Learning Platform
 
-![AdaptIQ Logo](./src/assets/Logo.png)
+![AdaptIQ Logo](./src/assets/logo-white.png)
 
 AdaptIQ is an intelligent, personalized learning platform that adapts to individual learning styles and preferences. The platform uses advanced algorithms to create optimized study schedules and personalized learning paths for students.
 

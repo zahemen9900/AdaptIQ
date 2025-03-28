@@ -21,6 +21,8 @@ import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import OnboardingPage from './pages/OnboardingPage'
 import DashboardPage from './pages/DashboardPage'
+import SchedulePage from './pages/SchedulePage'
+import LoadingPage from './pages/LoadingPage'
 
 // Create a HomePage component to contain all the sections
 const HomePage = () => {
@@ -59,7 +61,8 @@ function App() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || 
                     location.pathname === '/onboarding' || location.pathname.includes('/dashboard') ||
-                    location.pathname.includes('/login') || location.pathname.includes('/signup');
+                    location.pathname.includes('/login') || location.pathname.includes('/signup') ||
+                    location.pathname === '/loading';
 
   return (
     <>
@@ -72,7 +75,9 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/dashboard/*" element={<DashboardPage />} />
+        <Route path="/loading" element={<LoadingPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard/schedule" element={<SchedulePage />} />
       </Routes>
       {!isAuthPage && <Footer />}
     </>
