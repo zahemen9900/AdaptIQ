@@ -1,15 +1,16 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import './LoginPage.css';
-import Logo from '../assets/Logo.png';
-import { IconArrowRight } from '@tabler/icons-react';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import "./LoginPage.css";
+import Logo from "../assets/Logo.png";
+import { IconArrowRight, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false
+    email: "",
+    password: "",
+    rememberMe: false,
+    showPassword: false,
   });
   const [errors, setErrors] = useState({});
 
@@ -17,19 +18,19 @@ const LoginPage = () => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
   const validateForm = () => {
     const newErrors = {};
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = "Email is invalid";
     }
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
     return newErrors;
   };
@@ -41,9 +42,9 @@ const LoginPage = () => {
       setErrors(newErrors);
     } else {
       // Here you would typically send the data to your backend for authentication
-      console.log('Login form submitted:', formData);
+      console.log("Login form submitted:", formData);
       // Navigate to the dashboard after successful login
-      navigate('/dashboard');
+      navigate("/dashboard");
     }
   };
 
@@ -68,23 +69,45 @@ const LoginPage = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter your email address"
-              className={errors.email ? 'error' : ''}
+              className={errors.email ? "error" : ""}
             />
-            {errors.email && <span className="error-message">{errors.email}</span>}
+            {errors.email && (
+              <span className="error-message">{errors.email}</span>
+            )}
           </div>
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              className={errors.password ? 'error' : ''}
-            />
-            {errors.password && <span className="error-message">{errors.password}</span>}
+            <div className="password-input-container">
+              <input
+                type={formData.showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                className={errors.password ? "error" : ""}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    showPassword: !prev.showPassword,
+                  }))
+                }
+              >
+                {formData.showPassword ? (
+                  <IconEye size={20} />
+                ) : (
+                  <IconEyeOff size={20} />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <span className="error-message">{errors.password}</span>
+            )}
           </div>
 
           <div className="form-options">
@@ -98,7 +121,9 @@ const LoginPage = () => {
               />
               <label htmlFor="rememberMe">Remember me</label>
             </div>
-            <Link to="/forgot-password" className="forgot-password-link">Forgot Password?</Link>
+            <Link to="/forgot-password" className="forgot-password-link">
+              Forgot Password?
+            </Link>
           </div>
 
           <button type="submit" className="login-button">
@@ -107,7 +132,12 @@ const LoginPage = () => {
         </form>
 
         <div className="login-footer">
-          <p>Don't have an account? <Link to="/signup" className="signup-link">Sign Up</Link></p>
+          <p>
+            Don't have an account?{" "}
+            <Link to="/signup" className="signup-link">
+              Sign Up
+            </Link>
+          </p>
         </div>
       </div>
     </div>
