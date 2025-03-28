@@ -149,7 +149,6 @@ const SubjectPopup = ({ subject, onClose }) => {
     'Music Theory': 'The study of the practices and possibilities of music, including the study of music notation, compositional methods, and the elements of music.',
     'Instrumental': 'The study and practice of playing musical instruments, developing technical proficiency and musical expression.',
     'Vocal': 'The study and practice of singing, including technique, repertoire, and performance skills.',
-'Composition': 'The creation of original music, including melody, harmony, rhythm, and form.',
     'Fitness': 'Physical activity aimed at improving health and physical strength through regular exercise and proper nutrition.',
     'Sports': 'Competitive physical activities governed by a set of rules, often requiring physical exertion and skill.',
     'Nutrition': 'The study of nutrients in food, how the body uses them, and the relationship between diet, health, and disease.',
