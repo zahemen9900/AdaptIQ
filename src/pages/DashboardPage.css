@@ -3,6 +3,7 @@
   min-height: 100vh;
   background-color: #f7f7f9;
   font-family: "DM Sans", Arial, sans-serif;
+  overflow: auto; 
 }
 
 .dashboard-sidebar {
@@ -13,6 +14,11 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  position: fixed; /* Make sidebar fixed */
+  height: 100vh; /* Full viewport height */
+  top: 0;
+  left: 0;
+  overflow-y: hidden;/* Remove scrolling */
 }
 
 .sidebar-header {
@@ -22,14 +28,13 @@
 }
 
 .dashboard-logo {
-  width: 120px;
+  width: 100px;
   height: auto;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .nav-item {
@@ -57,8 +62,26 @@
 .dashboard-content {
   flex: 1;
   padding: 2rem;
-  overflow-y: auto;
+  margin-left: 250px; /* Offset content by sidebar width */
+  height: 100vh;
+  overflow-y: auto; /* Make content area scrollable */
   background-color: #f7f7f9;
+}
+
+/* Style scrollbars for better appearance */
+.dashboard-sidebar::-webkit-scrollbar,
+.dashboard-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb,
+.dashboard-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.dashboard-content::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .dashboard-header {
