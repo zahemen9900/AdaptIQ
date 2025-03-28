@@ -5,8 +5,12 @@
  * and ensures Firebase compatibility for the exported data.
  */
 
+// Import jsPDF and jspdf-autotable
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+
+// Note: jspdf-autotable automatically adds itself to the jsPDF prototype
+// when imported, so no explicit registration is needed
 
 /**
  * Exports the schedule to a PDF file
@@ -89,31 +93,34 @@ export const exportScheduleToPDF = (schedule, userName = 'Student') => {
   });
   
   // Add footer with AdaptIQ branding
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('AdaptIQ Learning Platform - Personalized Learning Schedule', 105, 285, { align: 'center' });
-    doc.text(`Page ${i} of ${pageCount}`, 195, 285, { align: 'right' });
+  // Make sure doc.internal exists before accessing its properties
+  if (doc && doc.internal) {
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('AdaptIQ Learning Platform - Personalized Learning Schedule', 105, 285, { align: 'center' });
+      doc.text(`Page ${i} of ${pageCount}`, 195, 285, { align: 'right' });
+    }
+  } else {
+    console.warn('Could not add footer: doc.internal is undefined');
   }
   
   try {
-    // Return the PDF as a blob
-    // Using a string output and converting to blob for better browser compatibility
-    const pdfData = doc.output('datauristring');
-    const base64Data = pdfData.split(',')[1];
-    const binaryData = atob(base64Data);
-    const array = new Uint8Array(binaryData.length);
-    
-    for (let i = 0; i < binaryData.length; i++) {
-      array[i] = binaryData.charCodeAt(i);
+    // Check if autoTable function is available
+    if (typeof doc.autoTable !== 'function') {
+      console.error('jspdf-autotable plugin not properly initialized');
+      throw new Error('doc.autoTable is not a function');
     }
     
-    return new Blob([array], { type: 'application/pdf' });
+    // Return the PDF as a blob
+    // Using a more direct approach to create the blob
+    const pdfOutput = doc.output('blob');
+    return pdfOutput;
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw new Error('Failed to generate PDF: ' + error.message);
+    throw new Error('There was an error exporting your schedule as PDF: ' + error.message + '. Please try again.');
   }
 };
 

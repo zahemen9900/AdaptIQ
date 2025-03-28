@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="10" fill="#f0e6ff" />
+  <text x="50" y="30" font-family="Arial" font-size="12" text-anchor="middle" fill="#041137">Arts</text>
+  <g fill="none" stroke="#041137" stroke-width="2">
+    <path d="M30,30 C40,20 60,20 70,30 C80,40 80,60 70,70 C60,80 40,80 30,70 C20,60 20,40 30,30 Z" />
+    <path d="M40,40 C45,35 55,35 60,40 C65,45 65,55 60,60 C55,65 45,65 40,60 C35,55 35,45 40,40 Z" />
+    <path d="M25,50 L35,50" />
+    <path d="M65,50 L75,50" />
+    <path d="M50,25 L50,35" />
+    <path d="M50,65 L50,75" />
+  </g>
+</svg>

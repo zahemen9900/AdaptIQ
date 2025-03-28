@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import './SchedulePage.css';
 import Logo from '../assets/logo-white.png';
 import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEdit, IconCheck, IconDragDrop, IconDownload, IconRefresh, IconFileText, IconFile } from '@tabler/icons-react';
+import SubjectPopup from '../components/SubjectPopup/SubjectPopup';
 import { exportScheduleToPDF, prepareScheduleForFirebase, saveScheduleToFirebase } from '../utils/scheduleExporter';
 import { exportScheduleToODF } from '../utils/odfExporter';
 import { generateOptimizedSchedule } from '../utils/scheduleAlgorithm';
@@ -15,6 +16,8 @@ const SchedulePage = () => {
   const [draggedOverDay, setDraggedOverDay] = useState(null);
   const [draggedOverTime, setDraggedOverTime] = useState(null);
   const [nickname, setNickname] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     // Load user data and schedule from localStorage
@@ -99,6 +102,20 @@ const SchedulePage = () => {
   // Toggle edit mode
   const toggleEditMode = () => {
     setEditMode(!editMode);
+  };
+  
+  // Handle subject click to show popup
+  const handleSubjectClick = (subject) => {
+    if (!editMode) {
+      setSelectedSubject(subject);
+      setShowPopup(true);
+    }
+  };
+  
+  // Close popup
+  const closePopup = () => {
+    setShowPopup(false);
+    setSelectedSubject(null);
   };
 
   // Regenerate schedule
@@ -345,6 +362,8 @@ const SchedulePage = () => {
                         onDragStart={(e) => editMode && handleDragStart(e, session)}
                         onDragOver={(e) => editMode && handleDragOver(e, day, index)}
                         onDrop={(e) => editMode && handleDrop(e, day, index)}
+                        onClick={() => handleSubjectClick(session.course)}
+                        style={{ cursor: editMode ? 'grab' : 'pointer' }}
                       >
                         <div className="session-time">
                           {session.startTime} - {session.endTime}
@@ -377,6 +396,14 @@ const SchedulePage = () => {
               <button onClick={regenerateSchedule} className="regenerate-button">Generate Schedule</button>
             </div>
           </div>
+        )}
+        
+        {/* Subject Popup */}
+        {showPopup && selectedSubject && (
+          <SubjectPopup 
+            subject={selectedSubject} 
+            onClose={closePopup}
+          />
         )}
       </div>
     </div>

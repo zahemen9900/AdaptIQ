@@ -97,6 +97,48 @@ Routing is handled by React Router v7 with the following main routes:
 - `/pages`: FAQ page
 - `/contactUs`: Contact information
 
+## Recent Updates
+
+### Schedule Page Implementation
+
+A dedicated schedule page has been implemented with the following features:
+
+- Interactive calendar view with drag-and-drop functionality for rearranging study sessions
+- Edit mode for manual schedule adjustments
+- Visual indicators for session difficulty and type
+- Responsive design that works across all device sizes
+
+### Export Functionality
+
+Users can now export their schedules in multiple formats:
+
+- **PDF Export**: High-quality PDF documents with AdaptIQ branding, complete schedule details, and metadata
+- **ODF Export**: Open Document Format support for compatibility with office suites like LibreOffice and OpenOffice
+- **Firebase Integration**: Backend preparation for cloud storage and sharing capabilities
+
+### Loading Screen Transition
+
+A new loading screen has been implemented with the following features:
+
+- Animated transitions between pages for a smoother user experience
+- Progress indicators with dynamic loading text
+- Background schedule generation during loading to optimize perceived performance
+- Branded visual elements consistent with the AdaptIQ design system
+
+### Learning Style Enhancements
+
+- Added "Casual" vs "Focused" scheduling style options in the onboarding process
+- Enhanced algorithm to account for user's preferred intensity level
+- More granular customization of study session duration and frequency
+- Improved adaptation to individual learning preferences
+
+### Custom Course Functionality
+
+- Users can now add custom courses beyond the predefined options
+- Custom difficulty settings for user-defined courses
+- Integration of custom courses into the schedule generation algorithm
+- Persistent storage of custom course data
+
 ## Future Development Considerations
 
 ### Backend Integration
