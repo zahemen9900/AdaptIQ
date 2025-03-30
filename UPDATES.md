@@ -13,6 +13,7 @@ AdaptIQ is built as a single-page application (SPA) using React 19 with Vite as 
 - **React Router 7.4.0**: For client-side routing with the latest features
 - **Mantine UI 7.17.2**: Component library for consistent UI design
 - **Tabler Icons & FontAwesome**: Icon libraries for visual elements
+- **Framer Motion**: Animation library for smooth transitions and UI interactions
 
 ## Component Structure
 
@@ -22,6 +23,10 @@ The application is organized into the following structure:
   - `DashboardPage`: User dashboard with progress tracking and course access
   - `LoginPage` & `SignupPage`: Authentication screens
   - `OnboardingPage`: Multi-step user preference collection
+  - `CoursesPage`: Overview of enrolled courses with progress tracking
+  - `CourseLearningPage`: Interactive learning interface with multiple learning modes
+  - `AssignmentsPage`: Weekly assignments management with calendar and list views
+  - `SchedulePage`: Schedule management and visualization
   - `FAQPage`: Frequently asked questions
   - `ContactUs`: Contact form and information
 
@@ -40,6 +45,7 @@ The application uses React's built-in state management solutions:
 - **useState**: For component-level state
 - **useEffect**: For side effects and lifecycle management
 - **localStorage**: For persisting user preferences and authentication state
+- **Firebase** (future integration): For cloud-based state synchronization and real-time updates
 
 ## Key Features Implementation
 
@@ -98,6 +104,21 @@ Routing is handled by React Router v7 with the following main routes:
 - `/contactUs`: Contact information
 
 ## Recent Updates
+
+### Assignments Management System
+
+A comprehensive assignments management system has been implemented with the following features:
+
+- **Weekly Subject Assignments**: Automated generation of weekly assignments for each subject
+- **Priority System**: Visual indicators for assignment urgency based on due dates
+- **Google Calendar-Style Interface**: Modern calendar view with day cells showing assignments
+- **List View**: Detailed list of all assignments with filtering and sorting capabilities
+- **Assignment Details Panel**: Sliding panel with comprehensive assignment information
+- **Status Tracking**: Ability to mark assignments as pending, in-progress, or completed
+- **Resource Links**: Access to related learning materials for each assignment
+- **Gemini AI Integration**: Foundation for generating AI-powered assignment content
+- **Activity Synchronization**: Integration with course activity tracking
+- **Firebase Ready**: Designed for seamless transition to Firebase backend
 
 ### Enhanced Course Learning Pages
 
@@ -184,12 +205,13 @@ A new loading screen has been implemented with the following features:
 
 ### Backend Integration
 
-The current implementation is frontend-only. Future development should include:
+The current implementation is frontend-only with Firebase integration prepared. Future development includes:
 
-- User authentication API integration
-- Course content management system
-- Progress tracking and analytics backend
-- Real-time collaboration features
+- Complete Firebase Authentication integration
+- Real-time synchronization of assignments and progress data
+- Cloud Functions for automated assignment generation
+- Analytics integration for learning pattern analysis
+- Gemini AI API integration for dynamic content generation
 
 ### Performance Optimizations
 

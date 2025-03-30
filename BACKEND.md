@@ -127,6 +127,58 @@ The Cloud Firestore database will use the following collection and document stru
 }
 ```
 
+### User Assignments Subcollection
+
+**Collection**: `users/{uid}/assignments`  
+**Document ID**: `{assignmentId}` (Generated UUID)
+
+```javascript
+{
+  assignmentId: "string", // unique identifier
+  title: "string", // assignment title
+  subject: "string", // subject name
+  category: "string", // "mathematics", "science", etc.
+  description: "string", // detailed instructions
+  courseId: "string", // reference to course
+  dueDate: Timestamp, // deadline
+  createdDate: Timestamp, // when assignment was generated
+  estimatedMinutes: number, // estimated completion time
+  imageUrl: "string", // subject-related image
+  status: "string", // "pending", "in-progress", "completed", "overdue"
+  priority: number, // 0-5 scale with 5 being highest priority
+  completedDate: Timestamp, // when assignment was marked complete
+  
+  // Generated content information (for AI-generated assignments)
+  generationInfo: {
+    generatedBy: "string", // "system", "gemini", "teacher"
+    generationPrompt: "string", // prompt used for generation
+    modelVersion: "string", // AI model version if applicable
+    generationDate: Timestamp
+  },
+  
+  // Related resources
+  resources: [
+    {
+      resourceId: "string",
+      title: "string",
+      type: "string", // "reading", "video", "practice"
+      url: "string",
+      label: "string"
+    }
+  ],
+  
+  // Submission data
+  submission: {
+    submittedAt: Timestamp,
+    content: "string", // text submission
+    fileUrls: ["string"], // array of uploaded file URLs
+    feedback: "string", // teacher/AI feedback
+    grade: number, // if graded
+    isGraded: boolean
+  }
+}
+```
+
 ### User Activities Subcollection
 
 **Collection**: `users/{uid}/activities`  
@@ -135,7 +187,7 @@ The Cloud Firestore database will use the following collection and document stru
 ```javascript
 {
   activityId: "string",
-  type: "string", // "chat", "quiz", "resource"
+  type: "string", // "chat", "quiz", "resource", "assignment"
   courseId: "string", // reference to course
   courseName: "string",
   timestamp: Timestamp,
@@ -174,6 +226,14 @@ The Cloud Firestore database will use the following collection and document stru
     resourceType: "string", // "textbook", "video", "exercise", etc.
     timeSpent: number, // in minutes
     completionPercentage: number
+  },
+  
+  // For assignment activities
+  assignmentData: {
+    assignmentId: "string", // reference to the assignment
+    status: "string", // "started", "submitted", "completed"
+    timeSpent: number, // in minutes
+    submissionDate: Timestamp
   }
 }
 ```
@@ -276,6 +336,41 @@ The Cloud Firestore database will use the following collection and document stru
 }
 ```
 
+### Assignments Templates Collection
+
+**Collection**: `assignmentTemplates`  
+**Document ID**: `{templateId}` (Generated ID)
+
+```javascript
+{
+  templateId: "string",
+  subject: "string",
+  category: "string", // "mathematics", "science", etc.
+  title: "string", // template title
+  description: "string", // template description
+  
+  // Template content - can be customized for specific students
+  content: "string", // markdown or HTML content
+  
+  // Metadata
+  difficulty: "string", // "beginner", "intermediate", "advanced"
+  estimatedMinutes: number,
+  tags: ["string"],
+  createdAt: Timestamp,
+  updatedAt: Timestamp,
+  
+  // Resources included with this template
+  resources: [
+    {
+      resourceId: "string",
+      title: "string",
+      type: "string", // "reading", "video", "practice"
+      url: "string"
+    }
+  ]
+}
+```
+
 ## Firebase Storage Structure
 
 Firebase Storage will organize files in the following structure:
@@ -289,6 +384,9 @@ Firebase Storage will organize files in the following structure:
     - {timestamp}_{filename}.pdf
   /chat_images/
     - {chatId}_{timestamp}.jpg
+  /assignment_submissions/{assignmentId}/
+    - {timestamp}_{filename}.pdf
+    - {timestamp}_{filename}.jpg
 
 /courses/{courseId}/
   /resources/
@@ -296,6 +394,11 @@ Firebase Storage will organize files in the following structure:
     - {resourceId}.mp4
   /thumbnails/
     - thumbnail.jpg
+    
+/assignments/templates/
+  /{templateId}/
+    - template_resource.pdf
+    - instructions.pdf
 ```
 
 ## Firebase Authentication
@@ -330,7 +433,7 @@ service cloud.firestore {
       allow read: if request.auth.uid == userId || request.auth.token.admin == true;
       allow write: if request.auth.uid == userId || request.auth.token.admin == true;
       
-      // User subcollections - courses, schedule, activities
+      // User subcollections - courses, schedule, activities, assignments
       match /courses/{courseId} {
         allow read: if request.auth.uid == userId || request.auth.token.admin == true;
         allow write: if request.auth.uid == userId || request.auth.token.admin == true;
@@ -351,6 +454,14 @@ service cloud.firestore {
                      get(/databases/$(database)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
         allow write: if request.auth.uid == userId || request.auth.token.admin == true;
       }
+      
+      match /assignments/{assignmentId} {
+        allow read: if request.auth.uid == userId || 
+                     request.auth.token.admin == true || 
+                     request.auth.token.parent == true && 
+                     get(/databases/$(database)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
+        allow write: if request.auth.uid == userId || request.auth.token.admin == true;
+      }
     }
     
     // Global courses - readable by anyone, writable by admins
@@ -363,6 +474,12 @@ service cloud.firestore {
         allow read: if true;
         allow write: if request.auth.token.admin == true;
       }
+    }
+    
+    // Assignment templates - readable by authenticated users, writable by admins
+    match /assignmentTemplates/{templateId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.token.admin == true;
     }
     
     // Quizzes - accessible by authenticated users, writable by admins
@@ -404,9 +521,24 @@ service firebase.storage {
       allow write: if request.auth.uid == userId || request.auth.token.admin == true;
     }
     
+    // Assignment submissions
+    match /users/{userId}/assignment_submissions/{assignmentId}/{fileName} {
+      allow read: if request.auth.uid == userId || 
+                   request.auth.token.admin == true || 
+                   request.auth.token.parent == true && 
+                   firestore.get(/databases/(default)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
+      allow write: if request.auth.uid == userId || request.auth.token.admin == true;
+    }
+    
     // Course resources - readable by anyone, writable by admins
     match /courses/{courseId}/{fileName} {
       allow read: if true;
+      allow write: if request.auth.token.admin == true;
+    }
+    
+    // Assignment templates
+    match /assignments/templates/{templateId}/{fileName} {
+      allow read: if request.auth != null;
       allow write: if request.auth.token.admin == true;
     }
   }
@@ -431,15 +563,28 @@ The following Cloud Functions will be implemented:
    - Trigger: HTTP callable function
    - Actions: Generate optimized study schedule based on user preferences
 
-4. **PDF/ODF Export**
+4. **Weekly Assignment Generation**
+   - Trigger: Scheduled function (weekly)
+   - Actions: Generate new assignments for each subject the student is enrolled in
+   - Implementation: Uses Gemini API to create contextually relevant assignments
+
+5. **Assignment Due Date Monitoring**
+   - Trigger: Scheduled function (daily)
+   - Actions: Check for upcoming and overdue assignments, update status, send notifications
+
+6. **Assignment Submission Processing**
+   - Trigger: `onCreate` for assignment submission documents
+   - Actions: Process submission, update assignment status, calculate progress impact
+
+7. **PDF/ODF Export**
    - Trigger: HTTP callable function
    - Actions: Generate formatted schedule documents for download
 
-5. **Parent Invitation**
+8. **Parent Invitation**
    - Trigger: HTTP callable function
    - Actions: Send invitation to parent, set up access permissions
 
-6. **Activity Analytics**
+9. **Activity Analytics**
    - Trigger: Scheduled function (daily)
    - Actions: Generate user activity reports, learning pattern insights
 
@@ -450,12 +595,41 @@ The following Cloud Functions will be implemented:
 1. **Track Granular Activities**: Record all learning interactions (quizzes, resource access, chat sessions)
 
 2. **Calculate Progress**: Use weighted scoring system:
-   - Quiz scores: 40% of course progress
-   - Resource completion: 30% of course progress
-   - Tutor interactions: 20% of course progress 
+   - Quiz scores: 35% of course progress
+   - Resource completion: 25% of course progress
+   - Tutor interactions: 15% of course progress 
    - Time spent: 10% of course progress
+   - Assignment completion: 15% of course progress
 
 3. **Progress Updates**: Update in real-time when activities are completed
+
+### Assignment Management
+
+1. **Weekly Generation**: Automatically generate new assignments weekly for each enrolled subject
+
+2. **Priority Calculation**: Calculate and update assignment priority based on due dates:
+   - Overdue: Priority 5
+   - Due today: Priority 4
+   - Due tomorrow: Priority 3
+   - Due within 3 days: Priority 2
+   - Due within a week: Priority 1
+   - Due later: Priority 0
+
+3. **Status Management**:
+   - Automatically update status to "overdue" when due date passes
+   - Allow students to manually update status to "in-progress" or "completed"
+   - Record completion date when status changes to "completed"
+
+4. **Gemini API Integration**:
+   - Prepare detailed prompts based on subject, recent topics, and student level
+   - Process API responses to extract assignment content, resources, and metadata
+   - Store generated content in the assignments collection
+   - Include fallback templates for when API is unavailable
+
+5. **Activity Synchronization**:
+   - Record assignment interactions in the activities collection
+   - Update course progress when assignments are completed
+   - Include assignment completion in activity history for each course
 
 ### Data Synchronization
 
@@ -483,10 +657,17 @@ The following Cloud Functions will be implemented:
 - Set up progress calculation functions
 - Complete schedule data storage
 
-### Phase 3: Advanced Features & Analytics
+### Phase 3: Assignment Management System
+- Implement assignment generation and storage
+- Set up priority calculation and status management
+- Create assignment submission handling
+- Configure weekly assignment generation
+
+### Phase 4: Advanced Features & Analytics
 - Implement chat image storage
 - Set up analytics events
 - Deploy cloud functions for advanced features
+- Integrate Gemini API for assignment generation
 
 ## Data Migration Strategy
 
@@ -495,8 +676,9 @@ For migrating from the current localStorage implementation:
 1. Create Firebase user accounts for existing users
 2. Transfer onboarding preferences to Firestore
 3. Migrate locally stored schedules to Firestore
-4. Update application to read/write to Firebase instead of localStorage
-5. Implement data validation and cleanup processes
+4. Migrate locally stored assignments to Firestore
+5. Update application to read/write to Firebase instead of localStorage
+6. Implement data validation and cleanup processes
 
 ## Testing & Security Considerations
 

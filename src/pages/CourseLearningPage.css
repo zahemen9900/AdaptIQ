@@ -1216,3 +1216,53 @@
     max-width: 100%;
   }
 }
+
+/* Streaming message animation */
+.chat-message.bot-message.streaming .message-content p {
+  border-right: 2px solid #007bff;
+  animation: cursor-blink 1s infinite;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+/* Cursor blink animation for streaming messages */
+@keyframes cursor-blink {
+  0%, 100% { border-color: transparent; }
+  50% { border-color: #007bff; }
+}
+
+/* API status indicator */
+.api-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin-top: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  width: fit-content;
+}
+
+.api-status.available {
+  color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.api-status.unavailable {
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.api-status-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* Error message style */
+.chat-message.bot-message .message-content.error {
+  background-color: rgba(220, 53, 69, 0.1);
+  border-left: 3px solid #dc3545;
+}

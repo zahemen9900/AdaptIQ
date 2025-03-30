@@ -17,6 +17,11 @@ import {
   incrementProgress,
   getActivityHistory
 } from '../utils/progressTracker';
+import {
+  generateStreamingResponse,
+  evaluateQuizAnswerWithGemini,
+  checkGeminiApiAvailability
+} from '../utils/geminiUtils';
 
 // Animation variants for different components
 const containerVariants = {
@@ -109,6 +114,29 @@ const CourseLearningPage = () => {
   const [progressAnimation, setProgressAnimation] = useState(false);
   const [showActivityPanel, setShowActivityPanel] = useState(false);
   const fileInputRef = useRef(null);
+
+  // State for streaming responses
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [geminiAvailable, setGeminiAvailable] = useState(null); // null = unknown, true/false = checked
+
+  // Check if Gemini API is available
+  useEffect(() => {
+    const checkApiAvailability = async () => {
+      if (geminiAvailable === null) {
+        try {
+          const isAvailable = await checkGeminiApiAvailability();
+          setGeminiAvailable(isAvailable);
+          console.log("Gemini API available:", isAvailable);
+        } catch (error) {
+          console.error("Error checking Gemini API:", error);
+          setGeminiAvailable(false);
+        }
+      }
+    };
+    
+    checkApiAvailability();
+  }, [geminiAvailable]);
 
   // Fetch progress data
   useEffect(() => {
@@ -340,13 +368,16 @@ const CourseLearningPage = () => {
   };
 
   // Handle sending a message in chat mode
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
+    
+    // Store the current message value
+    const messageContent = currentMessage;
     
     // Add user message to chat
     const newUserMessage = {
       sender: 'user',
-      content: currentMessage,
+      content: messageContent,
       timestamp: new Date().toISOString()
     };
     
@@ -354,41 +385,176 @@ const CourseLearningPage = () => {
     setCurrentMessage('');
     setIsThinking(true);
     
-    // Simulate response from Firebase ML (replace with actual API call)
-    setTimeout(() => {
-      const systemPrompt = generateSystemPrompt(courseName);
-      console.log("System prompt:", systemPrompt);
-      
-      // Generate a response based on the current mode
-      let responseContent = '';
-      
-      if (mode === 'chat') {
-        responseContent = generateChatResponse(currentMessage, courseName);
-      } else if (mode === 'quiz') {
-        responseContent = evaluateQuizAnswer(currentMessage, courseName);
+    // Get system prompt for the course
+    const systemPrompt = generateSystemPrompt(courseName);
+    console.log("System prompt:", systemPrompt);
+    
+    if (mode === 'chat') {
+      // Check if Gemini API is available
+      if (geminiAvailable) {
+        // Create a placeholder message for streaming
+        const placeholder = {
+          sender: 'bot',
+          content: '',
+          timestamp: new Date().toISOString(),
+          streaming: true // Flag to identify this as a streaming message
+        };
+        
+        // Add placeholder for streaming response
+        setChatMessages(prevMessages => [...prevMessages, placeholder]);
+        setIsThinking(false);
+        setIsStreaming(true);
+        setStreamingContent('');
+        
+        try {
+          // Call Gemini API with streaming
+          const fullResponse = await generateStreamingResponse(
+            messageContent, 
+            systemPrompt,
+            (chunkText) => {
+              // Update streaming content with each chunk
+              setStreamingContent(prevContent => prevContent + chunkText);
+              
+              // Update the message in the chat
+              setChatMessages(prevMessages => {
+                const updatedMessages = [...prevMessages];
+                const lastMessageIndex = updatedMessages.length - 1;
+                updatedMessages[lastMessageIndex] = {
+                  ...updatedMessages[lastMessageIndex],
+                  content: updatedMessages[lastMessageIndex].content + chunkText
+                };
+                return updatedMessages;
+              });
+            }
+          );
+          
+          // Streaming complete - update the message
+          setChatMessages(prevMessages => {
+            const updatedMessages = [...prevMessages];
+            const lastMessageIndex = updatedMessages.length - 1;
+            updatedMessages[lastMessageIndex] = {
+              sender: 'bot',
+              content: fullResponse,
+              timestamp: new Date().toISOString(),
+              streaming: false
+            };
+            return updatedMessages;
+          });
+          
+          // Save to chat history
+          const newHistoryItem = {
+            courseName,
+            timestamp: new Date().toISOString(),
+            userMessage: messageContent,
+            botResponse: fullResponse
+          };
+          
+          const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)]; // Keep only latest 20 items
+          setChatHistory(updatedHistory);
+          localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
+        } catch (error) {
+          console.error('Error with Gemini API:', error);
+          // Handle error by updating the message
+          setChatMessages(prevMessages => {
+            const updatedMessages = [...prevMessages];
+            const lastMessageIndex = updatedMessages.length - 1;
+            updatedMessages[lastMessageIndex] = {
+              sender: 'bot',
+              content: "Sorry, I encountered an error while generating a response. Please try again later.",
+              timestamp: new Date().toISOString(),
+              error: true
+            };
+            return updatedMessages;
+          });
+        } finally {
+          setIsStreaming(false);
+        }
+      } else {
+        // Fallback to mock responses if Gemini is not available
+        setTimeout(() => {
+          const responseContent = generateChatResponse(messageContent, courseName);
+          
+          const botResponse = {
+            sender: 'bot',
+            content: responseContent,
+            timestamp: new Date().toISOString()
+          };
+          
+          setChatMessages(prevMessages => [...prevMessages, botResponse]);
+          setIsThinking(false);
+          
+          // Save to chat history
+          const newHistoryItem = {
+            courseName,
+            timestamp: new Date().toISOString(),
+            userMessage: messageContent,
+            botResponse: responseContent
+          };
+          
+          const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)]; // Keep only latest 20 items
+          setChatHistory(updatedHistory);
+          localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
+        }, 1500);
       }
+    } else if (mode === 'quiz') {
+      // For quiz mode, use the quiz answer evaluation
+      setIsThinking(true);
       
-      const botResponse = {
-        sender: 'bot',
-        content: responseContent,
-        timestamp: new Date().toISOString()
-      };
-      
-      setChatMessages(prevMessages => [...prevMessages, botResponse]);
-      setIsThinking(false);
-      
-      // Save to chat history
-      const newHistoryItem = {
-        courseName,
-        timestamp: new Date().toISOString(),
-        userMessage: currentMessage,
-        botResponse: responseContent
-      };
-      
-      const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)]; // Keep only latest 20 items
-      setChatHistory(updatedHistory);
-      localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
-    }, 1500);
+      try {
+        // Get the current quiz question
+        const currentQuestion = chatMessages.find(
+          msg => msg.sender === 'bot' && !msg.isResource && msg !== chatMessages[0]
+        )?.content || "unknown question";
+        
+        let responseContent;
+        
+        if (geminiAvailable) {
+          // Use Gemini to evaluate the quiz answer if available
+          responseContent = await evaluateQuizAnswerWithGemini(
+            currentQuestion,
+            messageContent,
+            courseName
+          );
+        } else {
+          // Fallback to mock evaluation
+          responseContent = evaluateQuizAnswer(messageContent, courseName);
+        }
+        
+        const botResponse = {
+          sender: 'bot',
+          content: responseContent,
+          timestamp: new Date().toISOString()
+        };
+        
+        setChatMessages(prevMessages => [...prevMessages, botResponse]);
+        
+        // Save to chat history
+        const newHistoryItem = {
+          courseName,
+          timestamp: new Date().toISOString(),
+          userMessage: messageContent,
+          botResponse: responseContent
+        };
+        
+        const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)];
+        setChatHistory(updatedHistory);
+        localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
+      } catch (error) {
+        console.error('Error evaluating quiz answer:', error);
+        // Handle error
+        setChatMessages(prevMessages => [
+          ...prevMessages,
+          {
+            sender: 'bot',
+            content: "Sorry, I encountered an error while evaluating your answer. Please try again.",
+            timestamp: new Date().toISOString(),
+            error: true
+          }
+        ]);
+      } finally {
+        setIsThinking(false);
+      }
+    }
   };
 
   // Generate dynamic system prompt based on course
