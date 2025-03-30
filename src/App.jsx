@@ -23,6 +23,7 @@ import OnboardingPage from './pages/OnboardingPage'
 import DashboardPage from './pages/DashboardPage'
 import CoursesPage from './pages/CoursesPage'
 import SchedulePage from './pages/SchedulePage'
+import AssignmentsPage from './pages/AssignmentsPage'
 import LoadingPage from './pages/LoadingPage'
 import CourseLearningPage from './pages/CourseLearningPage'
 
@@ -82,6 +83,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/dashboard/courses" element={<CoursesPage />} />
         <Route path="/dashboard/schedule" element={<SchedulePage />} />
+        <Route path="/dashboard/assignments" element={<AssignmentsPage />} />
         <Route path="/dashboard/course/:courseId" element={<CourseLearningPage />} />
       </Routes>
       {!isAuthPage && <Footer />}

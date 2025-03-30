@@ -99,6 +99,21 @@ Routing is handled by React Router v7 with the following main routes:
 
 ## Recent Updates
 
+### Enhanced Course Learning Pages
+
+The course learning pages have been significantly improved with the following features:
+
+- **Distinct Learning Interfaces**: Separate interfaces for different learning modes (chat, quiz, resources)
+- **Progress Tracking System**: Real-time progress tracking with visual indicators and animations
+- **Image Upload Capability**: Image attachment functionality for the Q&A interface to enhance learning
+- **Animated Transitions**: Smooth animations between different states and sections
+- **Activity History Panel**: Comprehensive history of learning activities with filtering options
+- **Quiz-Specific Interface**: Specialized quiz layout with blue accent colors and improved question formatting
+- **Resource Library**: Grid-based resource library with filtering capabilities for different content types
+- **Firebase Integration**: Preparation for backend progress tracking with proper placeholders
+- **Progress Calculations**: Smart algorithms for calculating progress based on different activity types
+- **Visual Feedback**: Success popups and progress notifications when completing activities
+
 ### Schedule Page Implementation
 
 A dedicated schedule page has been implemented with the following features:
@@ -140,6 +155,7 @@ A new loading screen has been implemented with the following features:
 - Persistent storage of custom course data
 
 ### Subject Popup System Enhancements
+
 - Implemented a new popup system for subjects in the schedule.
 - Added unique image URLs for each subject to enhance visual representation.
 - Introduced handling for 'Other' subjects with a default image.
@@ -147,6 +163,7 @@ A new loading screen has been implemented with the following features:
 - Prepared for Firebase compatibility for future image storage and retrieval.
 
 ### Page Transition System
+
 - Implemented smooth animated transitions between pages for a more polished user experience
 - Added a dedicated PageTransition component for consistent transition effects across the application
 - Incorporated fade and slide animations with configurable timing and easing functions
@@ -154,6 +171,7 @@ A new loading screen has been implemented with the following features:
 - Added route-specific transition effects based on navigation direction and context
 
 ### Progress Tracking System with Firebase Integration
+
 - Designed and implemented a comprehensive subject progress tracking system
 - Added Firebase integration for real-time progress data synchronization across devices
 - Created visual progress indicators with percentage completion for each subject

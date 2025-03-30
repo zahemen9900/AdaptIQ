@@ -10,13 +10,86 @@ import {
   IconTrash, IconCheck, IconX, IconDownload, IconExternalLink
 } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { 
   getProgressFromFirebase, 
   updateProgressInFirebase, 
   incrementProgress,
   getActivityHistory
 } from '../utils/progressTracker';
+
+// Animation variants for different components
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      when: "beforeChildren",
+      duration: 0.3, // Faster overall animation
+      delayChildren: 0.05,
+      staggerChildren: 0.03 // Much faster staggering effect
+    }
+  },
+  exit: {
+    opacity: 0,
+    transition: { 
+      when: "afterChildren",
+      staggerChildren: 0.02, // Faster exit staggering
+      staggerDirection: -1,
+      duration: 0.2
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { 
+    y: 0, 
+    opacity: 1,
+    transition: { type: "spring", stiffness: 400, damping: 20 } // Faster spring motion
+  },
+  exit: { 
+    y: -20, 
+    opacity: 0,
+    transition: { duration: 0.15 } // Faster exit
+  }
+};
+
+// New variant for mode selector cards - no staggered effect
+const cardVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { 
+      type: "spring", 
+      stiffness: 400, 
+      damping: 20,
+      duration: 0.2 // Quick spring motion
+    }
+  },
+  hover: { y: -10, transition: { duration: 0.2 } } // Quick hover motion
+};
+
+const resourceCardVariants = {
+  hidden: { scale: 0.95, opacity: 0 },
+  visible: { 
+    scale: 1, 
+    opacity: 1,
+    transition: { type: "spring", stiffness: 400, damping: 20, duration: 0.2 } // Faster animation
+  },
+  hover: { 
+    scale: 1.03,
+    boxShadow: "0px 5px 15px rgba(0,0,0,0.1)",
+    transition: { duration: 0.15 } // Faster hover
+  },
+  tap: { scale: 0.98 },
+  exit: { 
+    scale: 0.95,
+    opacity: 0,
+    transition: { duration: 0.15 } // Faster exit
+  }
+};
 
 const CourseLearningPage = () => {
   const { courseId } = useParams();
@@ -438,7 +511,7 @@ const CourseLearningPage = () => {
       const newHistoryItem = {
         courseName,
         timestamp: new Date().toISOString(),
-        userMessage: currentMessage + ' [Image attached]',
+        userMessage: currentMessage,
         botResponse: responseContent
       };
       
@@ -451,10 +524,10 @@ const CourseLearningPage = () => {
   return (
     <motion.div
       className="dashboard-page"
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 50 }}
-      transition={{ duration: 0.5 }}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
     >
       <div className="dashboard-sidebar">
         <div className="sidebar-header">
@@ -618,349 +691,575 @@ const CourseLearningPage = () => {
             </div>
           ) : (
             <div className="course-learning-container">
-              {mode === 'select' ? (
-                <motion.div 
-                  className="learning-mode-selector"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="course-banner">
-                    <img src={courseImage} alt={courseName} className="course-banner-image" />
-                    <div className="course-banner-overlay">
-                      <h2>Welcome to {courseName}</h2>
-                      <p>Select a learning mode to begin your personalized education journey</p>
-                    </div>
-                  </div>
-                  
-                  <div className="learning-options">
-                    <motion.div 
-                      className="learning-option-card"
-                      onClick={handleStartChat}
-                      whileHover={{ y: -10 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="option-icon">
-                        <IconMessageCircle size={48} />
+              <AnimatePresence mode="wait">
+                {mode === 'select' ? (
+                  <motion.div 
+                    key="mode-selector"
+                    className="learning-mode-selector"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ 
+                      duration: 0.3, 
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 30 
+                    }}
+                  >
+                    <div className="course-banner">
+                      <img src={courseImage} alt={courseName} className="course-banner-image" />
+                      <div className="course-banner-overlay">
+                        <h2>Welcome to {courseName}</h2>
+                        <p>Select a learning mode to begin your personalized education journey</p>
                       </div>
-                      <h3>Ask Questions</h3>
-                      <p>Chat with your AI tutor to get answers to your questions</p>
-                    </motion.div>
+                    </div>
                     
-                    <motion.div 
-                      className="learning-option-card"
-                      onClick={handleStartQuiz}
-                      whileHover={{ y: -10 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="option-icon">
-                        <IconQuestionMark size={48} />
-                      </div>
-                      <h3>Take a Quiz</h3>
-                      <p>Test your knowledge with interactive quizzes</p>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="learning-option-card"
-                      onClick={handleStartResources}
-                      whileHover={{ y: -10 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="option-icon">
-                        <IconNotebook size={48} />
-                      </div>
-                      <h3>Learning Resources</h3>
-                      <p>Access curated study materials for this course</p>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  className="chat-interface"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="chat-header">
-                    <div className="chat-title">
-                      <h2>
-                        {mode === 'chat' ? 'Ask Questions' : 
-                         mode === 'quiz' ? 'Knowledge Quiz' : 'Learning Resources'}
-                      </h2>
-                      <p>{courseName}</p>
-                    </div>
-                    <div className="chat-header-actions">
-                      <button 
-                        className="complete-activity-button" 
-                        onClick={() => handleCompleteActivity(mode === 'quiz' ? 10 : 5)}
-                      >
-                        <IconChartLine size={20} />
-                        <span>Complete {mode === 'chat' ? 'Session' : mode === 'quiz' ? 'Quiz' : 'Study'}</span>
-                      </button>
-                      <button 
-                        className={`history-button ${showChatHistory ? 'active' : ''}`}
-                        onClick={toggleChatHistory}
-                      >
-                        <IconHistory size={20} />
-                        <span>History</span>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <AnimatePresence>
-                    {showChatHistory && (
+                    <div className="learning-options">
                       <motion.div 
-                        className="chat-history-panel"
-                        initial={{ opacity: 0, x: 320 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 320 }}
-                        transition={{ duration: 0.3 }}
+                        className="learning-option-card"
+                        onClick={handleStartChat}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ 
+                          duration: 0.25, 
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 25
+                        }}
+                        whileHover={{ y: -10, transition: { duration: 0.2 } }}
                       >
-                        <h3>Recent Conversations</h3>
-                        {chatHistory.length > 0 ? (
-                          <div className="history-list">
-                            {chatHistory.map((item, index) => (
-                              <div key={index} className="history-item">
-                                <div className="history-metadata">
-                                  <span className="history-date">
-                                    {new Date(item.timestamp).toLocaleDateString()}
-                                  </span>
-                                  <span className="history-time">
-                                    {new Date(item.timestamp).toLocaleTimeString()}
-                                  </span>
-                                </div>
-                                <div className="history-content">
-                                  <p className="history-question">{item.userMessage}</p>
-                                  <p className="history-answer">{typeof item.botResponse === 'string' ? item.botResponse.substring(0, 60) + (item.botResponse.length > 60 ? '...' : '') : 'Complex response...'}</p>
-                                </div>
+                        <div className="option-icon">
+                          <IconMessageCircle size={48} />
+                        </div>
+                        <h3>Ask Questions</h3>
+                        <p>Chat with your AI tutor to get answers to your questions</p>
+                      </motion.div>
+                      
+                      <motion.div 
+                        className="learning-option-card"
+                        onClick={handleStartQuiz}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ 
+                          duration: 0.25, 
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 25
+                        }}
+                        whileHover={{ y: -10, transition: { duration: 0.2 } }}
+                      >
+                        <div className="option-icon">
+                          <IconQuestionMark size={48} />
+                        </div>
+                        <h3>Take a Quiz</h3>
+                        <p>Test your knowledge with interactive quizzes</p>
+                      </motion.div>
+                      
+                      <motion.div 
+                        className="learning-option-card"
+                        onClick={handleStartResources}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ 
+                          duration: 0.25, 
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 25
+                        }}
+                        whileHover={{ y: -10, transition: { duration: 0.2 } }}
+                      >
+                        <div className="option-icon">
+                          <IconNotebook size={48} />
+                        </div>
+                        <h3>Learning Resources</h3>
+                        <p>Access curated study materials for this course</p>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="chat-interface"
+                    className="chat-interface"
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                  >
+                    <div className="chat-header">
+                      <div className="chat-title">
+                        <h2>
+                          {mode === 'chat' ? 'Ask Questions' : 
+                           mode === 'quiz' ? 'Knowledge Quiz' : 'Learning Resources'}
+                        </h2>
+                        <p>{courseName}</p>
+                      </div>
+                      <div className="chat-header-actions">
+                        <button 
+                          className="complete-activity-button" 
+                          onClick={() => handleCompleteActivity(mode === 'quiz' ? 10 : 5)}
+                        >
+                          <IconChartLine size={20} />
+                          <span>Complete {mode === 'chat' ? 'Session' : mode === 'quiz' ? 'Quiz' : 'Study'}</span>
+                        </button>
+                        {mode !== 'resources' && (
+                          <button 
+                            className={`history-button ${showChatHistory ? 'active' : ''}`}
+                            onClick={toggleChatHistory}
+                          >
+                            <IconHistory size={20} />
+                            <span>History</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Chat History Panel - Only shown for chat and quiz modes */}
+                    {mode !== 'resources' && (
+                      <AnimatePresence>
+                        {showChatHistory && (
+                          <motion.div 
+                            className="chat-history-panel"
+                            initial={{ opacity: 0, x: 320 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 320 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <h3>Recent Conversations</h3>
+                            {chatHistory.length > 0 ? (
+                              <div className="history-list">
+                                {chatHistory.map((item, index) => (
+                                  <div key={index} className="history-item">
+                                    <div className="history-metadata">
+                                      <span className="history-date">
+                                        {new Date(item.timestamp).toLocaleDateString()}
+                                      </span>
+                                      <span className="history-time">
+                                        {new Date(item.timestamp).toLocaleTimeString()}
+                                      </span>
+                                    </div>
+                                    <div className="history-content">
+                                      <p className="history-question">{item.userMessage}</p>
+                                      <p className="history-answer">{typeof item.botResponse === 'string' ? item.botResponse.substring(0, 60) + (item.botResponse.length > 60 ? '...' : '') : 'Complex response...'}</p>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="no-history">No conversation history yet</p>
+                            ) : (
+                              <p className="no-history">No conversation history yet</p>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
+                    
+                    {/* Chat Messages - Only for chat and quiz modes */}
+                    {(mode === 'chat' || mode === 'quiz') && (
+                      <motion.div 
+                        className="chat-messages"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        {chatMessages.map((message, index) => (
+                          <motion.div 
+                            key={index}
+                            variants={itemVariants}
+                            className={`chat-message ${message.sender === 'user' ? 'user-message' : 'bot-message'} ${mode === 'quiz' ? 'quiz-message' : ''}`}
+                          >
+                            <div className="message-avatar">
+                              {message.sender === 'user' 
+                                ? (nickname ? nickname.substring(0, 2).toUpperCase() : 'Y') 
+                                : mode === 'quiz' ? 'Q' : courseName.substring(0, 2)
+                              }
+                            </div>
+                            <div className={`message-content ${mode === 'quiz' && message.sender === 'bot' ? 'quiz-content' : ''}`}>
+                              {message.isResource ? (
+                                message.content 
+                              ) : message.image ? (
+                                <>
+                                  <motion.div 
+                                    className="message-image-container"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                  >
+                                    <img src={message.image} alt="Uploaded content" className="message-image" />
+                                  </motion.div>
+                                  <p>{message.content}</p>
+                                </>
+                              ) : (
+                                <p>{message.content}</p>
+                              )}
+                              <span className="message-time">
+                                {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </span>
+                            </div>
+                          </motion.div>
+                        ))}
+                        
+                        {isThinking && (
+                          <motion.div 
+                            className="chat-message bot-message thinking"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <div className="message-avatar">{mode === 'quiz' ? 'Q' : courseName.substring(0, 2)}</div>
+                            <div className="message-content">
+                              <div className="thinking-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                              </div>
+                            </div>
+                          </motion.div>
                         )}
                       </motion.div>
                     )}
-                  </AnimatePresence>
-                  
-                  <div className="chat-messages">
-                    {chatMessages.map((message, index) => (
+                    
+                    {/* Chat Input - Only for chat mode */}
+                    {mode === 'chat' && (
                       <motion.div 
-                        key={index}
+                        className="chat-input-wrapper"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className={`chat-message ${message.sender === 'user' ? 'user-message' : 'bot-message'} ${mode === 'quiz' ? 'quiz-message' : ''}`}
+                        transition={{ delay: 0.2, duration: 0.4 }}
                       >
-                        <div className="message-avatar">
-                          {message.sender === 'user' 
-                            ? (nickname ? nickname.substring(0, 2).toUpperCase() : 'Y') 
-                            : mode === 'quiz' ? 'Q' : courseName.substring(0, 2)
-                          }
-                        </div>
-                        <div className={`message-content ${mode === 'quiz' && message.sender === 'bot' ? 'quiz-content' : ''}`}>
-                          {message.isResource ? (
-                            message.content 
-                          ) : message.image ? (
-                            <>
-                              <div className="message-image-container">
-                                <img src={message.image} alt="Uploaded content" className="message-image" />
-                              </div>
-                              <p>{message.content}</p>
-                            </>
-                          ) : (
-                            <p>{message.content}</p>
-                          )}
-                          <span className="message-time">
-                            {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
-                    
-                    {isThinking && (
-                      <div className="chat-message bot-message thinking">
-                        <div className="message-avatar">{mode === 'quiz' ? 'Q' : courseName.substring(0, 2)}</div>
-                        <div className="message-content">
-                          <div className="thinking-indicator">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {mode === 'chat' && (
-                    <div className="chat-input-wrapper">
-                      {showImagePreview && (
-                        <div className="image-preview-container">
-                          <div className="image-preview">
-                            <img src={previewUrl} alt="Preview" />
-                            <button className="cancel-image-button" onClick={cancelImageUpload}>
-                              <IconTrash size={16} />
-                            </button>
-                          </div>
-                          <div className="image-preview-actions">
-                            <button 
-                              className="submit-image-button" 
-                              onClick={submitWithImage}
-                              disabled={!selectedFile && !currentMessage.trim()}
+                        <AnimatePresence>
+                          {showImagePreview && (
+                            <motion.div 
+                              className="image-preview-container"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3 }}
                             >
-                              <IconSend size={18} />
-                              <span>Send with Image</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="chat-input-container">
-                        <label className="upload-image-button">
-                          <IconPhotoUp size={20} />
-                          <input 
-                            type="file" 
-                            ref={fileInputRef}
-                            accept="image/*" 
-                            style={{ display: 'none' }} 
-                            onChange={handleFileSelect}
-                          />
-                        </label>
-                        <textarea 
-                          className="chat-input"
-                          placeholder="Ask your question here..."
-                          value={currentMessage}
-                          onChange={(e) => setCurrentMessage(e.target.value)}
-                          onKeyPress={handleKeyPress}
-                        ></textarea>
-                        <button 
-                          className="send-button" 
-                          onClick={handleSendMessage}
-                          disabled={!currentMessage.trim()}
+                              <motion.div 
+                                className="image-preview"
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                              >
+                                <img src={previewUrl} alt="Preview" />
+                                <motion.button 
+                                  className="cancel-image-button" 
+                                  onClick={cancelImageUpload}
+                                  whileHover={{ scale: 1.1, backgroundColor: "#ff6b6b" }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <IconTrash size={16} />
+                                </motion.button>
+                              </motion.div>
+                              <div className="image-preview-actions">
+                                <motion.button 
+                                  className="submit-image-button" 
+                                  onClick={submitWithImage}
+                                  disabled={!selectedFile && !currentMessage.trim()}
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <IconSend size={18} />
+                                  <span>Send with Image</span>
+                                </motion.button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        
+                        <motion.div 
+                          className="chat-input-container"
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.3, duration: 0.3 }}
                         >
-                          <IconSend size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {mode === 'quiz' && (
-                    <div className="quiz-answer-container">
-                      <div className="quiz-instruction">
-                        <IconQuestionMark size={16} />
-                        <span>Type your answer to the question above</span>
-                      </div>
-                      <div className="chat-input-container quiz-input-container">
-                        <textarea 
-                          className="chat-input quiz-input"
-                          placeholder="Type your answer here..."
-                          value={currentMessage}
-                          onChange={(e) => setCurrentMessage(e.target.value)}
-                          onKeyPress={handleKeyPress}
-                        ></textarea>
-                        <button 
-                          className="submit-answer-button" 
-                          onClick={handleSendMessage}
-                          disabled={!currentMessage.trim()}
+                          <motion.label 
+                            className="upload-image-button"
+                            whileHover={{ scale: 1.1, backgroundColor: "#f0f0f0" }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <IconPhotoUp size={20} />
+                            <input 
+                              type="file" 
+                              ref={fileInputRef}
+                              accept="image/*" 
+                              style={{ display: 'none' }} 
+                              onChange={handleFileSelect}
+                            />
+                          </motion.label>
+                          <textarea 
+                            className="chat-input"
+                            placeholder="Ask your question here..."
+                            value={currentMessage}
+                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                          ></textarea>
+                          <motion.button 
+                            className="send-button" 
+                            onClick={handleSendMessage}
+                            disabled={!currentMessage.trim()}
+                            whileHover={{ scale: 1.1, backgroundColor: "#007bff" }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <IconSend size={20} />
+                          </motion.button>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                    
+                    {/* Quiz Input - Only for quiz mode */}
+                    {mode === 'quiz' && (
+                      <motion.div 
+                        className="quiz-answer-container"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.4 }}
+                      >
+                        <motion.div 
+                          className="quiz-instruction"
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.3, duration: 0.3 }}
                         >
-                          <IconCheck size={20} />
-                          <span>Submit Answer</span>
-                        </button>
-                      </div>
+                          <IconQuestionMark size={16} />
+                          <span>Type your answer to the question above</span>
+                        </motion.div>
+                        <motion.div 
+                          className="chat-input-container quiz-input-container"
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.4, duration: 0.3 }}
+                        >
+                          <textarea 
+                            className="chat-input quiz-input"
+                            placeholder="Type your answer here..."
+                            value={currentMessage}
+                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                          ></textarea>
+                          <motion.button 
+                            className="submit-answer-button" 
+                            onClick={handleSendMessage}
+                            disabled={!currentMessage.trim()}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <IconCheck size={20} />
+                            <span>Submit Answer</span>
+                          </motion.button>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                    
+                    {/* Resources Grid - Only for resources mode */}
+                    {mode === 'resources' && (
+                      <motion.div 
+                        className="resources-container"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <motion.div 
+                          className="resources-filter"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1, duration: 0.3 }}
+                        >
+                          <motion.button 
+                            className="filter-button active"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            All Resources
+                          </motion.button>
+                          <motion.button 
+                            className="filter-button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            Textbooks
+                          </motion.button>
+                          <motion.button 
+                            className="filter-button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            Videos
+                          </motion.button>
+                          <motion.button 
+                            className="filter-button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            Exercises
+                          </motion.button>
+                          <motion.button 
+                            className="filter-button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            Papers
+                          </motion.button>
+                        </motion.div>
+                        
+                        <motion.div 
+                          className="resources-grid"
+                          variants={containerVariants}
+                          initial="hidden"
+                          animate="visible"
+                        >
+                          <motion.div 
+                            className="resource-card"
+                            variants={resourceCardVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <div className="resource-card-icon">📚</div>
+                            <h3>{courseName} Fundamentals</h3>
+                            <p>Core textbook covering all essential topics</p>
+                            <div className="resource-card-actions">
+                              <motion.button 
+                                className="resource-action-button"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <IconDownload size={16} />
+                                <span>Download</span>
+                              </motion.button>
+                              <motion.button 
+                                className="resource-action-button"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <IconExternalLink size={16} />
+                                <span>Open</span>
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                          
+                          <motion.div 
+                            className="resource-card"
+                            variants={resourceCardVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <div className="resource-card-icon">🎥</div>
+                            <h3>Video Lectures</h3>
+                            <p>Expert-led explanations of key concepts</p>
+                            <div className="resource-card-actions">
+                              <motion.button 
+                                className="resource-action-button"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <IconExternalLink size={16} />
+                                <span>Watch</span>
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                          
+                          <motion.div 
+                            className="resource-card"
+                            variants={resourceCardVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <div className="resource-card-icon">⚙️</div>
+                            <h3>Practice Problems</h3>
+                            <p>Interactive exercises to test your knowledge</p>
+                            <div className="resource-card-actions">
+                              <motion.button 
+                                className="resource-action-button"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <IconExternalLink size={16} />
+                                <span>Practice</span>
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                          
+                          <motion.div 
+                            className="resource-card"
+                            variants={resourceCardVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <div className="resource-card-icon">📝</div>
+                            <h3>Study Notes</h3>
+                            <p>Comprehensive study materials and summaries</p>
+                            <div className="resource-card-actions">
+                              <motion.button 
+                                className="resource-action-button"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <IconDownload size={16} />
+                                <span>Download</span>
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                          
+                          <motion.div 
+                            className="resource-card"
+                            variants={resourceCardVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <div className="resource-card-icon">💻</div>
+                            <h3>Online Course</h3>
+                            <p>Complete self-paced learning module</p>
+                            <div className="resource-card-actions">
+                              <motion.button 
+                                className="resource-action-button"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <IconExternalLink size={16} />
+                                <span>Enroll</span>
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                          
+                          <motion.div 
+                            className="resource-card"
+                            variants={resourceCardVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <div className="resource-card-icon">🔍</div>
+                            <h3>Research Papers</h3>
+                            <p>Academic articles for deeper understanding</p>
+                            <div className="resource-card-actions">
+                              <motion.button 
+                                className="resource-action-button"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <IconDownload size={16} />
+                                <span>View List</span>
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                    
+                    <div className="mode-controls">
+                      <motion.button 
+                        className="mode-control-button" 
+                        onClick={() => setMode('select')}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <IconArrowLeft size={20} />
+                        <span>Back to Menu</span>
+                      </motion.button>
                     </div>
-                  )}
-                  
-                  {mode === 'resources' && (
-                    <div className="resources-container">
-                      <div className="resources-filter">
-                        <button className="filter-button active">All Resources</button>
-                        <button className="filter-button">Textbooks</button>
-                        <button className="filter-button">Videos</button>
-                        <button className="filter-button">Exercises</button>
-                        <button className="filter-button">Papers</button>
-                      </div>
-                      
-                      <div className="resources-grid">
-                        <div className="resource-card">
-                          <div className="resource-card-icon">📚</div>
-                          <h3>{courseName} Fundamentals</h3>
-                          <p>Core textbook covering all essential topics</p>
-                          <div className="resource-card-actions">
-                            <button className="resource-action-button">
-                              <IconDownload size={16} />
-                              <span>Download</span>
-                            </button>
-                            <button className="resource-action-button">
-                              <IconExternalLink size={16} />
-                              <span>Open</span>
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="resource-card">
-                          <div className="resource-card-icon">🎥</div>
-                          <h3>Video Lectures</h3>
-                          <p>Expert-led explanations of key concepts</p>
-                          <div className="resource-card-actions">
-                            <button className="resource-action-button">
-                              <IconExternalLink size={16} />
-                              <span>Watch</span>
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="resource-card">
-                          <div className="resource-card-icon">⚙️</div>
-                          <h3>Practice Problems</h3>
-                          <p>Interactive exercises to test your knowledge</p>
-                          <div className="resource-card-actions">
-                            <button className="resource-action-button">
-                              <IconExternalLink size={16} />
-                              <span>Practice</span>
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="resource-card">
-                          <div className="resource-card-icon">📝</div>
-                          <h3>Study Notes</h3>
-                          <p>Comprehensive study materials and summaries</p>
-                          <div className="resource-card-actions">
-                            <button className="resource-action-button">
-                              <IconDownload size={16} />
-                              <span>Download</span>
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="resource-card">
-                          <div className="resource-card-icon">💻</div>
-                          <h3>Online Course</h3>
-                          <p>Complete self-paced learning module</p>
-                          <div className="resource-card-actions">
-                            <button className="resource-action-button">
-                              <IconExternalLink size={16} />
-                              <span>Enroll</span>
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="resource-card">
-                          <div className="resource-card-icon">🔍</div>
-                          <h3>Research Papers</h3>
-                          <p>Academic articles for deeper understanding</p>
-                          <div className="resource-card-actions">
-                            <button className="resource-action-button">
-                              <IconDownload size={16} />
-                              <span>View List</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
         </div>

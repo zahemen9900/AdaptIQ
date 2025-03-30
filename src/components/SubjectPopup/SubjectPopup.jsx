@@ -30,7 +30,6 @@ const SubjectPopup = ({ subject, onClose }) => {
     'Modern History': 'history',
     
     // Language subjects
-    'Composition': 'language',
     'Literature': 'language',
     'Grammar': 'language',
     'Creative Writing': 'language',
