@@ -1368,3 +1368,134 @@
     transform: scale(1.0);
   }
 }
+
+/* Current Assignment Panel */
+.current-assignment-panel {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin: 0 0 20px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #4a6cf7;
+}
+
+.current-assignment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.current-assignment-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.view-all-assignments {
+  color: #4a6cf7;
+  font-size: 14px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.view-all-assignments:hover {
+  text-decoration: underline;
+}
+
+.current-assignment-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.assignment-icon {
+  background-color: rgba(74, 108, 247, 0.1);
+  color: #4a6cf7;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assignment-details {
+  flex: 1;
+}
+
+.assignment-details h4 {
+  margin: 0 0 5px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+}
+
+.assignment-meta {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 13px;
+  color: #666;
+}
+
+.assignment-due {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.assignment-status {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.status-pending {
+  background-color: rgba(74, 108, 247, 0.1);
+  color: #4a6cf7;
+}
+
+.status-in-progress {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+
+.status-completed {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.status-overdue {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.assignment-warning {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+/* Resource Assignment Styles */
+.resource-item.assignment-resource {
+  background-color: rgba(74, 108, 247, 0.05);
+  border: 1px solid rgba(74, 108, 247, 0.2);
+}
+
+.assignment-details .assignment-meta {
+  margin-top: 8px;
+}
+
+.resource-explore-btn.assignment-btn {
+  background-color: #4a6cf7;
+  color: white;
+}

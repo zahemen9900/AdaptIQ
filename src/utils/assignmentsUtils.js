@@ -150,7 +150,7 @@ Format your response as follows:
 
 ## Estimated Time: [Provide an estimated completion time in minutes]
 `,
-    project: `You are AdaptIQ, an intelligent AI education assistant. Design a project-based assignment for ${subject} focused on "${topic}".
+    project: `You are AdaptIQ, an intelligent AI education assistant. Design an assignment for ${subject} focused on "${topic}".
 
 Format your response as follows:
 # ${subject} Project: ${topic}
@@ -174,6 +174,9 @@ Format your response as follows:
 - [Criterion 3]
 
 ## Estimated Time: [Provide an estimated completion time in minutes]
+
+---
+The project should take about 30-60 minutes to complete. Include a list of resources that students can use to complete the project.
 `
   };
   

@@ -7,7 +7,8 @@ import {
   IconClipboard, IconUsers, IconArrowLeft, IconMessageCircle, 
   IconQuestionMark, IconNotebook, IconSend, IconHistory,
   IconChartLine, IconActivity, IconRefresh, IconPhotoUp,
-  IconTrash, IconCheck, IconX, IconDownload, IconExternalLink
+  IconTrash, IconCheck, IconX, IconDownload, IconExternalLink,
+  IconAlertTriangle, IconClock
 } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -17,6 +18,7 @@ import {
   incrementProgress,
   getActivityHistory
 } from '../utils/progressTracker';
+import { getAssignments, formatAssignmentDate } from '../utils/assignmentsUtils';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -117,6 +119,10 @@ const CourseLearningPage = () => {
   const [progressAnimation, setProgressAnimation] = useState(false);
   const [showActivityPanel, setShowActivityPanel] = useState(false);
   const fileInputRef = useRef(null);
+  
+  // New state for course assignments
+  const [currentAssignment, setCurrentAssignment] = useState(null);
+  const [courseAssignments, setCourseAssignments] = useState([]);
 
   // Fetch progress data
   useEffect(() => {
@@ -134,6 +140,42 @@ const CourseLearningPage = () => {
       }
     }
     fetchProgress();
+  }, [courseName, loading]);
+  
+  // New function to fetch course assignments
+  useEffect(() => {
+    async function fetchCourseAssignments() {
+      if (!loading && courseName) {
+        try {
+          // Get all assignments
+          const allAssignments = getAssignments();
+          
+          // Filter assignments for this course
+          const courseSpecificAssignments = allAssignments.filter(assignment => 
+            assignment.subject === courseName ||
+            (assignment.subject && courseName.includes(assignment.subject)) ||
+            (assignment.subject && assignment.subject.includes(courseName))
+          );
+          
+          setCourseAssignments(courseSpecificAssignments);
+          
+          // Set the current assignment (prioritize upcoming and in-progress ones)
+          if (courseSpecificAssignments.length > 0) {
+            // First try to find an in-progress assignment
+            const inProgressAssignment = courseSpecificAssignments.find(a => a.status === 'in-progress');
+            
+            // Then try to find a pending assignment
+            const pendingAssignment = courseSpecificAssignments.find(a => a.status === 'pending');
+            
+            // Set the current assignment (in-progress > pending > any)
+            setCurrentAssignment(inProgressAssignment || pendingAssignment || courseSpecificAssignments[0]);
+          }
+        } catch (error) {
+          console.error('Error fetching course assignments:', error);
+        }
+      }
+    }
+    fetchCourseAssignments();
   }, [courseName, loading]);
 
   // Update progress when completing activities
@@ -269,6 +311,18 @@ const CourseLearningPage = () => {
       content: `Hi, I'm your ${courseName} tutor. What do you need assistance with today?`,
       timestamp: new Date().toISOString()
     }]);
+    
+    // Add assignment context if there is a current assignment
+    if (currentAssignment) {
+      setTimeout(() => {
+        // Add a message about the current assignment
+        setChatMessages(prevMessages => [...prevMessages, {
+          sender: 'bot',
+          content: `I see you have an assignment on "${currentAssignment.title}" due ${formatAssignmentDate(currentAssignment.dueDate)}. Would you like help with this assignment?`,
+          timestamp: new Date().toISOString()
+        }]);
+      }, 1000);
+    }
   };
 
   // Function to handle starting a quiz
@@ -278,14 +332,26 @@ const CourseLearningPage = () => {
     
     try {
       // Add initial welcome message
-      setChatMessages([{
+      const initialMessages = [{
         sender: 'bot',
         content: `Welcome to the ${courseName} quiz! I'll ask you a series of questions to test your knowledge.`,
         timestamp: new Date().toISOString()
-      }]);
+      }];
       
-      // Generate first quiz question using Gemini
-      const question = await generateQuizQuestion(courseName);
+      // Add context about current assignment if available
+      if (currentAssignment) {
+        initialMessages.push({
+          sender: 'bot',
+          content: `This quiz will focus on topics related to your current assignment: "${currentAssignment.title}".`,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      setChatMessages(initialMessages);
+      
+      // Generate first quiz question using Gemini, related to assignment if possible
+      const topic = currentAssignment ? currentAssignment.title.split(':').pop() : '';
+      const question = await generateQuizQuestion(courseName, topic);
       
       // Add question to messages
       setChatMessages(prevMessages => [...prevMessages, {
@@ -309,17 +375,30 @@ const CourseLearningPage = () => {
   // Function to handle starting the learning resources
   const handleStartResources = () => {
     setMode('resources');
-    setChatMessages([{
+    
+    const initialMessages = [{
       sender: 'bot',
       content: `Here are some learning resources for ${courseName}. These will help you master the subject.`,
       timestamp: new Date().toISOString()
-    },
-    {
+    }];
+    
+    // Add message about current assignment if available
+    if (currentAssignment) {
+      initialMessages.push({
+        sender: 'bot',
+        content: `I've included materials that will help you with your assignment: "${currentAssignment.title}".`,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    initialMessages.push({
       sender: 'bot',
-      content: generateResourcesList(courseName),
+      content: generateResourcesList(courseName, currentAssignment),
       timestamp: new Date().toISOString(),
       isResource: true
-    }]);
+    });
+    
+    setChatMessages(initialMessages);
   };
 
   // Generate dynamic system prompt based on course
@@ -352,11 +431,13 @@ const CourseLearningPage = () => {
     return coursePrompts[course] || `${basePrompt}As a knowledgeable tutor in ${course}, provide clear, accurate, and helpful responses to student questions. Use examples where appropriate and break down complex concepts into understandable parts.`;
   };
 
-  // Generate a quiz question based on course using Gemini
-  const generateQuizQuestion = async (course) => {
+  // Update the quiz question generator to include assignment topic
+  const generateQuizQuestion = async (course, topic = '') => {
     try {
       // Create a prompt for Gemini to generate a question
-      const prompt = `Generate a challenging but fair quiz question about ${course}. The question should test understanding rather than just factual recall. Format it as a concise question without answer choices or explanations.`;
+      const prompt = topic 
+        ? `Generate a challenging but fair quiz question about ${course} focused on the topic of "${topic}". The question should test understanding rather than just factual recall.`
+        : `Generate a challenging but fair quiz question about ${course}. The question should test understanding rather than just factual recall.`;
       
       if (!API_KEY) {
         console.warn("API key not found, using fallback quiz questions");
@@ -374,7 +455,9 @@ const CourseLearningPage = () => {
           'General Psychology': 'What is the difference between classical and operant conditioning?',
         };
         
-        return fallbackQuestions[course] || `What is one key concept you've learned in ${course}?`;
+        return topic
+          ? `Regarding the topic "${topic}": What's one key concept you've learned about this in ${course}?`
+          : (fallbackQuestions[course] || `What is one key concept you've learned in ${course}?`);
       }
       
       const content = await model.generateContent(prompt);
@@ -387,8 +470,8 @@ const CourseLearningPage = () => {
     }
   };
 
-  // Generate resources list for a course using Gemini
-  const generateResourcesList = (course) => {
+  // Update resource generator to include assignment-related resources
+  const generateResourcesList = (course, assignment = null) => {
     const resourceTypes = [
       { title: "Recommended Textbooks", icon: "📚" },
       { title: "Video Lectures", icon: "🎥" },
@@ -399,17 +482,43 @@ const CourseLearningPage = () => {
     
     return (
       <div className="resources-list">
+        {assignment && (
+          <div className="resource-item assignment-resource">
+            <div className="resource-icon">📋</div>
+            <div className="resource-content">
+              <h3>Current Assignment</h3>
+              <p>{assignment.title}</p>
+              <div className="assignment-details">
+                <span className="assignment-due">
+                  <IconClock size={16} />
+                  Due: {formatAssignmentDate(assignment.dueDate)}
+                </span>
+                <span className={`assignment-status status-${assignment.status}`}>
+                  {assignment.status === 'pending' ? 'Not Started' : 
+                  assignment.status === 'in-progress' ? 'In Progress' : 
+                  assignment.status === 'completed' ? 'Completed' : 'Overdue'}
+                </span>
+              </div>
+              <button 
+                className="resource-explore-btn assignment-btn"
+                onClick={() => window.location.href = "/dashboard/assignments"}
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        )}
+        
         {resourceTypes.map((resource, index) => (
           <div key={index} className="resource-item">
             <div className="resource-icon">{resource.icon}</div>
             <div className="resource-content">
               <h3>{resource.title}</h3>
-              <p>Top {course} materials selected for your learning style.</p>
+              <p>Top {course} materials {assignment ? 'related to ' + assignment.title.split(':')[0] : ''} selected for your learning style.</p>
               <button className="resource-explore-btn">Explore</button>
             </div>
           </div>
         ))}
-
       </div>
     );
   };
@@ -437,11 +546,20 @@ const CourseLearningPage = () => {
           return "You're welcome! Is there anything else you'd like to know about this topic?";
         }
         
+        if (userMessage.toLowerCase().includes('assignment') && currentAssignment) {
+          return `Your current assignment "${currentAssignment.title}" is due ${formatAssignmentDate(currentAssignment.dueDate)}. Let me help you understand the key concepts needed to complete it.`;
+        }
+        
         return simpleResponses[course] || `That's an interesting question about ${course}. Let me explain this concept clearly. The main principles involve key concepts which apply in situations like typical examples. Does that help clarify things?`;
       }
       
       // Create the system prompt for the specific course
-      const systemPrompt = generateSystemPrompt(course);
+      let systemPrompt = generateSystemPrompt(course);
+      
+      // Add context about current assignment if available
+      if (currentAssignment) {
+        systemPrompt += `\n\nContext: The student is currently working on an assignment titled "${currentAssignment.title}" which is due on ${formatAssignmentDate(currentAssignment.dueDate)}. The assignment status is ${currentAssignment.status}.`;
+      }
       
       // Generate content with the system prompt
       const prompt = `${systemPrompt}\n\nStudent question: ${userMessage}\n\nYour helpful response:`;
@@ -625,6 +743,37 @@ const CourseLearningPage = () => {
   // Toggle chat history visibility
   const toggleChatHistory = () => {
     setShowChatHistory(!showChatHistory);
+  };
+
+  // Load a conversation from history
+  const loadConversationFromHistory = (historyItem) => {
+    // If we're in the select mode, switch to chat mode first
+    if (mode === 'select') {
+      setMode('chat');
+    }
+    
+    // Create the conversation starter messages
+    const starterMessages = [
+      {
+        sender: 'user',
+        content: historyItem.userMessage,
+        timestamp: historyItem.timestamp
+      },
+      {
+        sender: 'bot',
+        content: historyItem.botResponse,
+        timestamp: new Date(new Date(historyItem.timestamp).getTime() + 1000).toISOString()
+      }
+    ];
+    
+    // Set the messages
+    setChatMessages(starterMessages);
+    
+    // Hide the history panel
+    setShowChatHistory(false);
+    
+    // Log this for analytics purposes
+    console.log('Loaded conversation from history:', historyItem.timestamp);
   };
 
   // File upload states
@@ -860,6 +1009,57 @@ const CourseLearningPage = () => {
           )}
         </AnimatePresence>
         
+        {/* Current Assignment Display */}
+        {!loading && currentAssignment && mode === 'select' && (
+          <motion.div 
+            className="current-assignment-panel"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.3 }}
+          >
+            <div className="current-assignment-header">
+              <h3>Current Assignment</h3>
+              <Link to="/dashboard/assignments" className="view-all-assignments">
+                View All
+              </Link>
+            </div>
+            <div className="current-assignment-content">
+              <div className="assignment-icon">
+                <IconClipboard size={24} />
+              </div>
+              <div className="assignment-details">
+                <h4>{currentAssignment.title}</h4>
+                <div className="assignment-meta">
+                  <span className="assignment-due">
+                    <IconClock size={16} />
+                    Due: {formatAssignmentDate(currentAssignment.dueDate)}
+                  </span>
+                  <span className={`assignment-status status-${currentAssignment.status}`}>
+                    {currentAssignment.status === 'pending' ? 'Not Started' : 
+                    currentAssignment.status === 'in-progress' ? 'In Progress' : 
+                    currentAssignment.status === 'completed' ? 'Completed' : 'Overdue'}
+                  </span>
+                </div>
+              </div>
+              {(currentAssignment.status === 'pending' || currentAssignment.status === 'in-progress') && (
+                <motion.div 
+                  className="assignment-warning"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <IconAlertTriangle size={16} color="#ff9800" />
+                  <span>
+                    {new Date(currentAssignment.dueDate) < new Date() 
+                      ? 'This assignment is overdue!' 
+                      : `${Math.ceil((new Date(currentAssignment.dueDate) - new Date()) / (1000 * 60 * 60 * 24))} days remaining`}
+                  </span>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        )}
+        
         <div className="course-learning-content">
           {loading ? (
             <div className="course-loading">
@@ -1009,7 +1209,11 @@ const CourseLearningPage = () => {
                             {chatHistory.length > 0 ? (
                               <div className="history-list">
                                 {chatHistory.map((item, index) => (
-                                  <div key={index} className="history-item">
+                                  <div 
+                                    key={index} 
+                                    className="history-item"
+                                    onClick={() => loadConversationFromHistory(item)}
+                                  >
                                     <div className="history-metadata">
                                       <span className="history-date">
                                         {new Date(item.timestamp).toLocaleDateString()}

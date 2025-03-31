@@ -4,6 +4,8 @@ import './CoursesPage.css';
 import Logo from '../assets/logo-white.png';
 import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEye, IconPlayerPlay } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
+import { getAssignments } from '../utils/assignmentsUtils';
+import { getProgressFromFirebase } from '../utils/progressTracker';
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
@@ -12,6 +14,9 @@ const CoursesPage = () => {
   const [activeCourseCount, setActiveCourseCount] = useState(0);
   const [completedCourseCount, setCompletedCourseCount] = useState(0);
   const [filterCategory, setFilterCategory] = useState('all');
+  
+  // Track whether course data has been loaded from progress tracker
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   useEffect(() => {
     // Load user data and extract courses
@@ -159,12 +164,15 @@ const CoursesPage = () => {
             
             const displayCategory = categoryMapping[category] || 'other';
             
-            // Generate random progress (in a real app, this would come from a database)
-            const progress = Math.floor(Math.random() * 101);
-            const status = progress < 5 ? 'not-started' : progress >= 100 ? 'completed' : 'in-progress';
+            // Initialize with zero progress - will be updated with actual progress after loading
+            const progress = 0;
+            const status = 'not-started';
             
             // Get image URL based on course name and category
             const imageUrl = getSubjectImageUrl(courseName, displayCategory);
+            
+            // Set a default last accessed date (today's date)
+            const lastAccessed = new Date().toISOString().split('T')[0];
             
             return {
               id: `course-${index}`,
@@ -174,19 +182,15 @@ const CoursesPage = () => {
               progress,
               status,
               imageUrl,
-              lastAccessed: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+              lastAccessed,
               difficulty: ['Easy', 'Moderate', 'Challenging'][Math.floor(Math.random() * 3)]
             };
           });
           
-          // Calculate course statistics
-          const activeCourses = userCourses.filter(c => c.status === 'in-progress').length;
-          const completedCourses = userCourses.filter(c => c.status === 'completed').length;
-          
-          setActiveCourseCount(activeCourses);
-          setCompletedCourseCount(completedCourses);
           setCourses(userCourses);
-          setLoading(false);
+          
+          // After setting initial course data, fetch actual progress
+          fetchCourseProgress(userCourses);
         }, 1000); // Simulate loading time
       } else {
         // No courses found
@@ -197,6 +201,43 @@ const CoursesPage = () => {
       setLoading(false);
     }
   }, []);
+  
+  // Function to fetch actual course progress
+  const fetchCourseProgress = async (initialCourses) => {
+    try {
+      // Create a copy of the courses array to update
+      const updatedCourses = [...initialCourses];
+      
+      // For each course, fetch its actual progress
+      for (let i = 0; i < updatedCourses.length; i++) {
+        const course = updatedCourses[i];
+        // Get progress from progress tracker
+        const progress = await getProgressFromFirebase(course.name);
+        
+        // Update course with actual progress
+        updatedCourses[i] = {
+          ...course,
+          progress,
+          status: progress < 5 ? 'not-started' : progress >= 100 ? 'completed' : 'in-progress'
+        };
+      }
+      
+      // Update courses with actual progress data
+      setCourses(updatedCourses);
+      
+      // Calculate course statistics based on actual progress
+      const activeCourses = updatedCourses.filter(c => c.status === 'in-progress').length;
+      const completedCourses = updatedCourses.filter(c => c.status === 'completed').length;
+      
+      setActiveCourseCount(activeCourses);
+      setCompletedCourseCount(completedCourses);
+      setProgressLoaded(true);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching course progress:', error);
+      setLoading(false);
+    }
+  };
   
   // Filter courses by category
   const filteredCourses = filterCategory === 'all' 

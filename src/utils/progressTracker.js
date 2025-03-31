@@ -1,142 +1,247 @@
-/**
- * Progress Tracker Utility
- * 
- * This module provides functions for tracking and updating user progress
- * in courses, with Firebase integration placeholders.
- */
-
-// Mock data for development - will be replaced with Firebase
-const MOCK_PROGRESS_DATA = {
-  'Algebra': 45,
-  'Geometry': 72,
-  'Calculus': 28,
-  'Physics': 60,
-  'Chemistry': 36,
-  'Biology': 55,
-  'World History': 68,
-  'Programming': 31,
-  'Web Development': 20,
-  'General Psychology': 76
-};
+// Progress tracking utilities for AdaptIQ
 
 /**
- * Fetches a user's progress for a specific course from Firebase
+ * Get progress value from Firebase (or localStorage as fallback)
  * @param {string} courseName - The name of the course
- * @returns {Promise<number>} - The progress percentage (0-100)
+ * @returns {Promise<number>} - The progress value (0-100)
  */
 export const getProgressFromFirebase = async (courseName) => {
   try {
-    // Placeholder for Firebase data fetching
-    // In a real implementation, this would be:
-    // const db = getFirestore();
-    // const userDoc = await getDoc(doc(db, 'users', userId));
-    // const progress = userDoc.data().courses[courseName]?.progress || 0;
-    // return progress;
+    // In a real implementation, this would fetch from Firebase
+    // For now, we'll use localStorage as a stand-in for Firebase
+    const progressKey = `course-progress-${courseName.toLowerCase().replace(/ /g, '-')}`;
+    const storedProgress = localStorage.getItem(progressKey);
     
-    // For now, return mock data or a random value
-    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
-    return MOCK_PROGRESS_DATA[courseName] || Math.floor(Math.random() * 101);
+    // Return stored progress if it exists, otherwise 0
+    return storedProgress ? parseInt(storedProgress, 10) : 0;
   } catch (error) {
-    console.error('Error fetching progress:', error);
+    console.error("Error fetching progress from storage:", error);
     return 0;
   }
 };
 
 /**
- * Updates a user's progress for a specific course in Firebase
+ * Update progress value in Firebase (or localStorage as fallback)
  * @param {string} courseName - The name of the course
- * @param {number} progressValue - The new progress value (0-100)
- * @returns {Promise<boolean>} - Success status
+ * @param {number} newProgress - The new progress value (0-100)
+ * @returns {Promise<number>} - The updated progress value
  */
-export const updateProgressInFirebase = async (courseName, progressValue) => {
+export const updateProgressInFirebase = async (courseName, newProgress) => {
   try {
-    // Placeholder for Firebase data updating
-    // In a real implementation, this would be:
-    // const db = getFirestore();
-    // await updateDoc(doc(db, 'users', userId), {
-    //   [`courses.${courseName}.progress`]: progressValue
-    // });
+    // In a real implementation, this would update Firebase
+    // For now, we'll use localStorage as a stand-in for Firebase
+    const progressKey = `course-progress-${courseName.toLowerCase().replace(/ /g, '-')}`;
     
-    // For now, just log and return success
-    console.log(`Updated progress for ${courseName} to ${progressValue}%`);
-    MOCK_PROGRESS_DATA[courseName] = progressValue;
-    return true;
+    // Ensure progress is within valid range
+    const clampedProgress = Math.min(100, Math.max(0, newProgress));
+    
+    // Store progress in localStorage
+    localStorage.setItem(progressKey, clampedProgress.toString());
+    
+    // Also store update time for tracking activity
+    const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
+    const activityHistory = JSON.parse(localStorage.getItem(activityKey) || '[]');
+    
+    // Add new activity entry
+    const newActivity = {
+      id: Date.now(),
+      type: 'progress-update',
+      date: new Date(),
+      oldProgress: parseInt(localStorage.getItem(progressKey) || '0', 10),
+      newProgress: clampedProgress
+    };
+    
+    activityHistory.unshift(newActivity);
+    
+    // Keep only the latest 50 activities
+    if (activityHistory.length > 50) {
+      activityHistory.length = 50;
+    }
+    
+    localStorage.setItem(activityKey, JSON.stringify(activityHistory));
+    
+    return clampedProgress;
   } catch (error) {
-    console.error('Error updating progress:', error);
-    return false;
-  }
-};
-
-/**
- * Increments a user's progress for a specific course by a specified amount
- * @param {string} courseName - The name of the course
- * @param {number} incrementAmount - Amount to increment (default: 5)
- * @returns {Promise<number>} - The new progress value
- */
-export const incrementProgress = async (courseName, incrementAmount = 5) => {
-  try {
-    const currentProgress = await getProgressFromFirebase(courseName);
-    const newProgress = Math.min(100, currentProgress + incrementAmount);
-    
-    await updateProgressInFirebase(courseName, newProgress);
+    console.error("Error updating progress in storage:", error);
     return newProgress;
-  } catch (error) {
-    console.error('Error incrementing progress:', error);
-    return null;
   }
 };
 
 /**
- * Calculates progress based on completed learning activities
+ * Increment progress value for a course
  * @param {string} courseName - The name of the course
- * @param {Array} completedActivities - Array of completed activity IDs
- * @param {Array} totalActivities - Array of all activity IDs for the course
- * @returns {number} - The calculated progress percentage
+ * @param {number} increment - The amount to increment (default: 5)
+ * @returns {Promise<number>} - The updated progress value
  */
-export const calculateProgressFromActivities = (completedActivities, totalActivities) => {
-  if (!totalActivities || totalActivities.length === 0) {
+export const incrementProgress = async (courseName, increment = 5) => {
+  try {
+    // Get current progress
+    const currentProgress = await getProgressFromFirebase(courseName);
+    
+    // Calculate new progress, ensuring it doesn't exceed 100%
+    const newProgress = Math.min(100, currentProgress + increment);
+    
+    // Update progress in storage
+    return await updateProgressInFirebase(courseName, newProgress);
+  } catch (error) {
+    console.error("Error incrementing progress:", error);
     return 0;
   }
-  
-  return Math.floor((completedActivities.length / totalActivities.length) * 100);
-};
-
-/**
- * Calculates progress based on quiz scores
- * @param {Array} quizScores - Array of quiz score objects {quizId, score, maxScore}
- * @returns {number} - The calculated progress percentage
- */
-export const calculateProgressFromQuizzes = (quizScores) => {
-  if (!quizScores || quizScores.length === 0) {
-    return 0;
-  }
-  
-  const totalEarned = quizScores.reduce((sum, quiz) => sum + quiz.score, 0);
-  const totalPossible = quizScores.reduce((sum, quiz) => sum + quiz.maxScore, 0);
-  
-  return Math.floor((totalEarned / totalPossible) * 100);
 };
 
 /**
  * Get activity history for a course
  * @param {string} courseName - The name of the course
- * @returns {Promise<Array>} - Array of activity records
+ * @returns {Promise<Array>} - Array of activity objects
  */
 export const getActivityHistory = async (courseName) => {
   try {
-    // Placeholder for Firebase data fetching
-    // Would fetch user's activity history for the course
+    // In a real implementation, this would fetch from Firebase
+    // For now, we'll use localStorage as a stand-in for Firebase
+    const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
+    const storedActivity = localStorage.getItem(activityKey);
     
-    // Mock data for now
-    await new Promise(resolve => setTimeout(resolve, 600));
-    return [
-      { id: 1, type: 'quiz', name: 'Quiz 1', date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), score: 85 },
-      { id: 2, type: 'resource', name: 'Chapter 3 Reading', date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-      { id: 3, type: 'chat', name: 'Tutor Session', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
-      { id: 4, type: 'quiz', name: 'Practice Problems', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), score: 92 }
-    ].filter(() => Math.random() > 0.3); // Randomly filter to simulate different activity levels
+    // Parse stored activity data
+    const activityData = storedActivity ? JSON.parse(storedActivity) : [];
+    
+    // If there's no activity data, return an empty array
+    if (!activityData || !Array.isArray(activityData) || activityData.length === 0) {
+      return [];
+    }
+    
+    return activityData;
   } catch (error) {
-    console.error('Error fetching activity history:', error);
+    console.error("Error fetching activity history:", error);
     return [];
   }
+};
+
+/**
+ * Record a learning activity for a course
+ * @param {string} courseName - The name of the course
+ * @param {string} activityType - Type of activity ('chat', 'quiz', 'resources')
+ * @param {string} activityName - Name of the activity
+ * @param {number|null} score - Score if applicable (e.g., for quizzes)
+ * @returns {Promise<Object>} - The recorded activity object
+ */
+export const recordActivity = async (courseName, activityType, activityName, score = null) => {
+  try {
+    const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
+    const activityHistory = JSON.parse(localStorage.getItem(activityKey) || '[]');
+    
+    // Create new activity object
+    const newActivity = {
+      id: Date.now(),
+      type: activityType,
+      name: activityName,
+      date: new Date(),
+      score: score
+    };
+    
+    // Add to the beginning of the array
+    activityHistory.unshift(newActivity);
+    
+    // Keep only the latest 50 activities
+    if (activityHistory.length > 50) {
+      activityHistory.length = 50;
+    }
+    
+    // Save to localStorage
+    localStorage.setItem(activityKey, JSON.stringify(activityHistory));
+    
+    // Increment progress based on activity type
+    // Each activity type contributes differently to overall progress
+    let progressIncrement = 0;
+    
+    switch (activityType) {
+      case 'quiz':
+        // Quiz contributes more to progress
+        progressIncrement = 10;
+        break;
+      case 'chat':
+        // Chat contributes moderately to progress
+        progressIncrement = 5;
+        break;
+      case 'resources':
+        // Resource study contributes slightly to progress
+        progressIncrement = 3;
+        break;
+      default:
+        progressIncrement = 2;
+    }
+    
+    // Increment course progress
+    await incrementProgress(courseName, progressIncrement);
+    
+    return newActivity;
+  } catch (error) {
+    console.error("Error recording activity:", error);
+    return null;
+  }
+};
+
+/**
+ * Reset progress for a course
+ * @param {string} courseName - The name of the course
+ * @returns {Promise<boolean>} - Success status
+ */
+export const resetProgress = async (courseName) => {
+  try {
+    // Reset progress to 0
+    await updateProgressInFirebase(courseName, 0);
+    
+    // Clear activity history
+    const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
+    localStorage.removeItem(activityKey);
+    
+    return true;
+  } catch (error) {
+    console.error("Error resetting progress:", error);
+    return false;
+  }
+};
+
+/**
+ * Get overall progress for all courses
+ * @returns {Promise<Object>} - Object with course names as keys and progress values as values
+ */
+export const getAllCoursesProgress = async () => {
+  try {
+    // In a real implementation, this would be a single Firebase query
+    // For our localStorage implementation, we need to scan for keys
+    const allProgress = {};
+    
+    // Iterate through localStorage and find all course progress entries
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      
+      if (key && key.startsWith('course-progress-')) {
+        // Extract course name from key
+        const courseName = key.replace('course-progress-', '')
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize words
+        
+        // Get progress value
+        const progressValue = parseInt(localStorage.getItem(key) || '0', 10);
+        
+        // Add to results
+        allProgress[courseName] = progressValue;
+      }
+    }
+    
+    return allProgress;
+  } catch (error) {
+    console.error("Error fetching all courses progress:", error);
+    return {};
+  }
+};
+
+export default {
+  getProgressFromFirebase,
+  updateProgressInFirebase,
+  incrementProgress,
+  getActivityHistory,
+  recordActivity,
+  resetProgress,
+  getAllCoursesProgress
 };
