@@ -7,7 +7,7 @@ import {
   IconClipboard, IconUsers, IconFilter, IconSearch, IconChevronLeft, 
   IconChevronRight, IconCheck, IconPlus, IconArrowUpRight, IconX,
   IconListDetails, IconLayoutGrid, IconAlertCircle, IconAdjustments,
-  IconUpload, IconFileUpload
+  IconUpload, IconFileUpload, IconSparkles
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -366,9 +366,9 @@ const AssignmentsPage = () => {
             <IconCalendar size={24} />
             <span>Schedule</span>
           </Link>
-          <Link to="/dashboard/study-groups" className="nav-item">
-            <IconUsers size={24} />
-            <span>Study Groups</span>
+          <Link to="/dashboard/inspiration" className="nav-item">
+            <IconSparkles size={24} />
+            <span>Inspiration</span>
           </Link>
           <Link to="/dashboard/profile" className="nav-item">
             <IconUser size={24} />

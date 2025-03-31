@@ -105,6 +105,22 @@ Routing is handled by React Router v7 with the following main routes:
 
 ## Recent Updates
 
+### AI-Powered Inspiration Page
+
+The platform now features an "✨ Inspiration" page that replaces the previous Study Groups concept:
+
+- **Personalized AI-Generated Content**: Utilizes Google's Gemini AI to generate daily subject-specific facts, tips, questions, and real-world applications based on the user's courses
+- **Course-Specific Insights**: Randomly selects three courses from the user's enrolled subjects to create tailored, educational content
+- **Daily Motivational Quotes**: Features AI-generated inspirational quotes that refresh daily
+- **Interactive Engagement**: Users can "like" inspirational posts with visual feedback, with preferences stored in localStorage
+- **Daily Content Refresh**: All content automatically refreshes each day to provide fresh motivation
+- **Seamless Light/Dark Mode Support**: Complete theme integration with the rest of the platform
+- **Responsive Design**: Fully responsive layout that adapts to all device sizes
+- **Graceful Fallbacks**: System includes pre-written content as fallbacks if AI generation fails
+- **Gemini AI Integration**: Uses the same Gemini 2.0 Flash model as other AI features in the platform
+
+The Inspiration page is designed as a daily touchpoint to increase motivation and provide educational insights without requiring additional assignments or study time. All AI-generated content is contextual to the user's specific courses, making the insights directly relevant to their learning journey.
+
 ### Unified Dark Theme Implementation
 
 A comprehensive dark theme has been implemented across all pages with the following features:

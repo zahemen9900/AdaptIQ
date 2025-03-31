@@ -5,6 +5,9 @@ import {
   IconRefresh, IconMessageCircle, IconBooks, IconArrowRight, IconQuote, IconArrowLeft
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './InspirationPage.css';
 
 // Helper function to get random courses (3 of them)
@@ -85,309 +88,197 @@ const generateDailyQuote = async () => {
   return quotes[randomIndex];
 };
 
-// Mock function to simulate Gemini API call for post generation based on courses
-const generateCoursePosts = async (courses) => {
-  // Simulated delay to represent API call
-  await new Promise(resolve => setTimeout(resolve, 800));
+// Initialize the Google Generative AI with the API key
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
+let genAI;
+let geminiModel;
+
+if (API_KEY) {
+  try {
+    genAI = new GoogleGenerativeAI(API_KEY);
+    geminiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  } catch (error) {
+    console.error("Error initializing Gemini AI:", error);
+  }
+}
+
+// Function to generate content for a course using Gemini AI
+const generateContentWithGemini = async (course, type) => {
+  if (!API_KEY || !geminiModel) {
+    throw new Error("Gemini API key not available or model not initialized");
+  }
   
+  let prompt;
+  switch (type) {
+    case 'fact':
+      prompt = `Generate a fascinating and educational fact about ${course.name} (subject category: ${course.category}). 
+      Make it concise (maximum 2 sentences), intellectually stimulating, and suitable for a college student. 
+      Focus on something surprising or counter-intuitive that would make someone think differently about the subject.`;
+      break;
+    case 'tip':
+      prompt = `Provide a specific, actionable study tip for learning ${course.name} (subject category: ${course.category}). 
+      The tip should be concise (maximum 2 sentences), practical, and based on cognitive science or educational best practices. 
+      Focus on techniques that might not be obvious to most students.`;
+      break;
+    case 'question':
+      prompt = `Create a thought-provoking reflection question about ${course.name} (subject category: ${course.category}). 
+      The question should be concise, open-ended, and designed to deepen understanding of fundamental concepts in ${course.name}. 
+      It should challenge assumptions and encourage critical thinking.`;
+      break;
+    case 'application':
+      prompt = `Describe a specific real-world application of ${course.name} (subject category: ${course.category}) that students might not be aware of. 
+      Keep it concise (maximum 2 sentences), focusing on an interesting or surprising way this knowledge is applied in industry, 
+      research, or everyday life.`;
+      break;
+    default:
+      prompt = `Share an interesting insight about ${course.name} (subject category: ${course.category}) that would help a student appreciate 
+      the value of this subject. Keep it concise (maximum 2 sentences) and make it intellectually engaging.`;
+  }
+  
+  try {
+    const result = await geminiModel.generateContent(prompt);
+    const response = result.response.text().trim();
+    return response;
+  } catch (error) {
+    console.error(`Error generating ${type} for ${course.name}:`, error);
+    throw error;
+  }
+};
+
+// Function to generate course posts using Gemini AI
+const generateCoursePosts = async (courses) => {
   const postTemplates = [
     {
       title: "Did you know? {topic} fact",
-      content: "Fascinating insight about {topic}: {fact}. This connects with many advanced concepts you'll explore further in your studies.",
+      contentTemplate: "Fascinating insight about {topic}: {content}. This connects with many advanced concepts you'll explore further in your studies.",
       type: "fact"
     },
     {
       title: "Quick study tip for {topic}",
-      content: "When studying {topic}, try this: {tip}. Many successful students have found this approach significantly improves retention and understanding.",
+      contentTemplate: "When studying {topic}, try this: {content}. Many successful students have found this approach significantly improves retention and understanding.",
       type: "tip"
     },
     {
       title: "Reflection question on {topic}",
-      content: "Take a moment to consider: {question} This kind of critical thinking will deepen your understanding of {topic} fundamentals.",
+      contentTemplate: "Take a moment to consider: {content} This kind of critical thinking will deepen your understanding of {topic} fundamentals.",
       type: "question"
     },
     {
       title: "Link between {topic} and real world",
-      content: "Here's how {topic} applies in everyday life: {application}. Understanding these connections makes the abstract concepts much more concrete.",
+      contentTemplate: "Here's how {topic} applies in everyday life: {content}. Understanding these connections makes the abstract concepts much more concrete.",
       type: "application"
     }
   ];
   
+  // Fallback content in case the API fails
+  const fallbackContent = {
+    Mathematics: {
+      facts: "The concept of zero as a number was developed independently in multiple ancient civilizations",
+      tips: "working through practice problems actively rather than passively reading examples",
+      questions: "How might mathematics look different if we had evolved with a different number of fingers?",
+      applications: "cryptography secures your online banking and messages through complex mathematical algorithms"
+    },
+    Science: {
+      facts: "Quantum entanglement allows particles to instantly affect each other regardless of distance",
+      tips: "drawing diagrams to visualize complex processes and relationships",
+      questions: "How might our understanding of biology change if we discover life on another planet?",
+      applications: "weather forecasting combines atmospheric physics with computational modeling"
+    },
+    History: {
+      facts: "The ancient Library of Alexandria contained an estimated 400,000 scrolls before its destruction",
+      tips: "creating timelines to visualize how events relate chronologically",
+      questions: "How might world history be different if the printing press had been invented a thousand years earlier?",
+      applications: "diplomatic negotiations draw on historical precedents and relationships"
+    },
+    Language: {
+      facts: "The average adult English speaker knows about 20,000-35,000 words",
+      tips: "immersing yourself in authentic content rather than just studying grammar rules",
+      questions: "How does the language we speak influence how we think about the world?",
+      applications: "forensic linguistics can help determine authorship of documents in legal cases"
+    },
+    "Computer Science": {
+      facts: "The first computer programmer was Ada Lovelace, who wrote algorithms for Charles Babbage's Analytical Engine in the 1840s",
+      tips: "building small projects to apply new programming concepts immediately",
+      questions: "What are the ethical responsibilities of programmers when creating AI systems?",
+      applications: "recommendation algorithms personalize content across streaming services and shopping sites"
+    },
+    Engineering: {
+      facts: "The Burj Khalifa uses a special concrete mixture that can be pumped to extreme heights without separating",
+      tips: "starting design processes by clearly defining the problem before jumping to solutions",
+      questions: "How should engineers balance innovation with reliability in critical infrastructure?",
+      applications: "earthquake engineering saves countless lives through building designs that absorb seismic energy"
+    },
+    Economics: {
+      facts: "Economic game theory was used to design the US spectrum auctions, raising over $60 billion for the government",
+      tips: "thinking in terms of incentives rather than rules when analyzing human behavior",
+      questions: "How might economic systems evolve in a post-scarcity society?",
+      applications: "market design principles create efficient systems for kidney donation matching"
+    },
+    Psychology: {
+      facts: "The human brain typically processes visual information 60,000 times faster than text",
+      tips: "using cognitive biases awareness to improve decision-making",
+      questions: "How does our understanding of psychological development change how we should structure education?",
+      applications: "user experience design applies psychological principles to create intuitive interfaces"
+    },
+    Arts: {
+      facts: "Creating art activates the same reward pathways in the brain as falling in love",
+      tips: "keeping a visual journal to develop observational skills and creative thinking",
+      questions: "How does art creation differ from art appreciation in terms of cognitive benefits?",
+      applications: "art therapy helps process trauma and express emotions that are difficult to verbalize"
+    },
+    "Physical Education": {
+      facts: "Regular exercise increases brain-derived neurotrophic factor (BDNF), which improves learning capacity",
+      tips: "integrating brief physical activity breaks between study sessions to improve focus",
+      questions: "How might education change if physical movement was integrated throughout the learning day?",
+      applications: "exercise programming can be tailored to enhance brain health and cognitive performance"
+    },
+    Other: {
+      facts: "Interdisciplinary studies show that breakthrough innovations often occur at the intersection of different fields",
+      tips: "connecting concepts across different subjects to strengthen understanding",
+      questions: "How might education systems evolve to better prepare people for rapidly changing career landscapes?",
+      applications: "systems thinking approaches help address complex global challenges requiring multiple disciplines"
+    }
+  };
+  
   // Generate a post for each course
-  return courses.map((course, index) => {
+  return Promise.all(courses.map(async (course, index) => {
     // Get a random post template
     const template = postTemplates[Math.floor(Math.random() * postTemplates.length)];
+    const type = template.type;
     
-    // Facts, tips, questions, and applications for different subjects
-    const subjectContent = {
-      Mathematics: {
-        facts: [
-          "The concept of zero as a number was developed independently in multiple ancient civilizations",
-          "There are more possible chess games than atoms in the observable universe",
-          "The Fibonacci sequence appears throughout nature, from flower petals to spiral galaxies"
-        ],
-        tips: [
-          "working through practice problems actively rather than passively reading examples",
-          "teaching concepts to someone else (or even an imaginary student)",
-          "connecting new concepts to previously mastered material through concept mapping"
-        ],
-        questions: [
-          "How might mathematics look different if we had evolved with a different number of fingers?",
-          "Can you think of a real-world situation where mathematical optimization directly impacts people's lives?",
-          "How does the concept of infinity relate to our finite physical world?"
-        ],
-        applications: [
-          "cryptography secures your online banking and messages through complex mathematical algorithms",
-          "traffic flow optimization uses differential equations to reduce congestion in cities",
-          "medical imaging relies on mathematical transformations to convert sensor data into visual images"
-        ]
-      },
-      Science: {
-        facts: [
-          "Quantum entanglement allows particles to instantly affect each other regardless of distance",
-          "Human DNA shares about 60% similarity with banana DNA",
-          "The human body contains more bacterial cells than human cells"
-        ],
-        tips: [
-          "drawing diagrams to visualize complex processes and relationships",
-          "creating analogies to connect scientific concepts to familiar experiences",
-          "designing simple experiments to test your understanding of principles"
-        ],
-        questions: [
-          "How might our understanding of biology change if we discover life on another planet?",
-          "What scientific discovery would most dramatically change human society if made tomorrow?",
-          "How do scientific models balance accuracy with simplicity, and when is one more important than the other?"
-        ],
-        applications: [
-          "weather forecasting combines atmospheric physics with computational modeling",
-          "genetic engineering allows precise modification of crops to increase yield and nutrition",
-          "materials science creates new substances with properties that enable technological innovation"
-        ]
-      },
-      History: {
-        facts: [
-          "The ancient Library of Alexandria contained an estimated 400,000 scrolls before its destruction",
-          "More time separates Cleopatra from the building of the Great Pyramid than separates Cleopatra from us",
-          "The modern weekend originated from labor rights movements in the early 20th century"
-        ],
-        tips: [
-          "creating timelines to visualize how events relate chronologically",
-          "examining primary sources to develop your own interpretations",
-          "considering multiple perspectives on historical events and their causes"
-        ],
-        questions: [
-          "How might world history be different if the printing press had been invented a thousand years earlier?",
-          "What historical period would provide the best insights for addressing contemporary global challenges?",
-          "How do we balance recognizing historical injustices with celebrating historical achievements?"
-        ],
-        applications: [
-          "economic policy is often shaped by analysis of previous economic crises and responses",
-          "diplomatic negotiations draw on historical precedents and relationships",
-          "urban planning builds on understanding how cities have evolved through centuries"
-        ]
-      },
-      Language: {
-        facts: [
-          "The average adult English speaker knows about 20,000-35,000 words",
-          "Language acquisition activates different brain regions than adult language learning",
-          "Over 43% of languages are currently considered endangered"
-        ],
-        tips: [
-          "immersing yourself in authentic content rather than just studying grammar rules",
-          "practicing spaced repetition for vocabulary retention",
-          "finding conversation partners to practice speaking without fear of mistakes"
-        ],
-        questions: [
-          "How does the language we speak influence how we think about the world?",
-          "What would be gained and lost if the world adopted a single universal language?",
-          "How are digital communications changing language evolution compared to previous eras?"
-        ],
-        applications: [
-          "machine translation systems use sophisticated linguistic models to bridge language barriers",
-          "forensic linguistics can help determine authorship of documents in legal cases",
-          "marketing effectiveness depends heavily on language choices and cultural understanding"
-        ]
-      },
-      "Computer Science": {
-        facts: [
-          "The first computer programmer was Ada Lovelace, who wrote algorithms for Charles Babbage's Analytical Engine in the 1840s",
-          "The entire Apollo 11 mission ran on a computer with less processing power than a modern calculator",
-          "Every Google search uses algorithms that process about 20 petabytes of data per day"
-        ],
-        tips: [
-          "building small projects to apply new programming concepts immediately",
-          "using the 'rubber duck debugging' technique of explaining code problems aloud",
-          "reading well-written code from open source projects to improve your own style"
-        ],
-        questions: [
-          "What are the ethical responsibilities of programmers when creating AI systems?",
-          "How might computing change if quantum computers become widely available?",
-          "What balance between automation and human control is optimal for critical systems?"
-        ],
-        applications: [
-          "recommendation algorithms personalize content across streaming services and shopping sites",
-          "computer vision enables medical diagnostic tools that can detect diseases earlier than human doctors",
-          "simulation software allows testing dangerous scenarios safely in fields from aviation to nuclear engineering"
-        ]
-      },
-      Engineering: {
-        facts: [
-          "The Burj Khalifa uses a special concrete mixture that can be pumped to extreme heights without separating",
-          "The International Space Station travels at approximately 17,500 mph, orbiting Earth every 90 minutes",
-          "Modern smartphone processors contain billions of transistors in an area smaller than your fingernail"
-        ],
-        tips: [
-          "starting design processes by clearly defining the problem before jumping to solutions",
-          "using back-of-the-envelope calculations to quickly test if ideas are feasible",
-          "studying failure cases as valuable learning opportunities"
-        ],
-        questions: [
-          "How should engineers balance innovation with reliability in critical infrastructure?",
-          "What engineering challenges would be most difficult to overcome in establishing a Mars colony?",
-          "How might we design systems that remain useful beyond their creators' lifespans?"
-        ],
-        applications: [
-          "earthquake engineering saves countless lives through building designs that absorb seismic energy",
-          "environmental engineering creates systems that clean water and air while minimizing energy use",
-          "biomedical engineering develops implantable devices that restore lost bodily functions"
-        ]
-      },
-      Economics: {
-        facts: [
-          "Economic game theory was used to design the US spectrum auctions, raising over $60 billion for the government",
-          "The 'marshmallow test' on delayed gratification is one of the strongest predictors of future economic success",
-          "Behavioral economics research shows people consistently value what they own more highly than identical items they don't own"
-        ],
-        tips: [
-          "thinking in terms of incentives rather than rules when analyzing human behavior",
-          "distinguishing between correlation and causation when examining economic data",
-          "considering both seen and unseen consequences of economic policies"
-        ],
-        questions: [
-          "How might economic systems evolve in a post-scarcity society?",
-          "What economic indicators best reflect actual well-being rather than just production?",
-          "How should we value environmental resources that provide benefits for generations?"
-        ],
-        applications: [
-          "market design principles create efficient systems for kidney donation matching",
-          "behavioral nudges can significantly increase retirement savings rates",
-          "economic models help predict and mitigate financial crisis risks"
-        ]
-      },
-      Psychology: {
-        facts: [
-          "The human brain typically processes visual information 60,000 times faster than text",
-          "Studies show that spacing learning over time (distributed practice) leads to stronger long-term retention than cramming",
-          "The brain physically changes its structure in response to learning new skills"
-        ],
-        tips: [
-          "using cognitive biases awareness to improve decision-making",
-          "practicing mindfulness to enhance attention and reduce stress response",
-          "applying spaced repetition and active recall for effective studying"
-        ],
-        questions: [
-          "How does our understanding of psychological development change how we should structure education?",
-          "What balance between digital and physical social interaction is healthiest for development?",
-          "How do cultural differences influence psychological processes previously thought to be universal?"
-        ],
-        applications: [
-          "user experience design applies psychological principles to create intuitive interfaces",
-          "cognitive behavioral therapy techniques help people reshape harmful thought patterns",
-          "organizational psychology improves workplace productivity and employee satisfaction"
-        ]
-      },
-      Arts: {
-        facts: [
-          "Creating art activates the same reward pathways in the brain as falling in love",
-          "Music training physically changes brain structure, improving language processing and executive function",
-          "Renaissance painters discovered mathematical perspective rules that revolutionized visual representation"
-        ],
-        tips: [
-          "keeping a visual journal to develop observational skills and creative thinking",
-          "studying the fundamentals before breaking rules creatively",
-          "establishing regular creative practice rather than waiting for inspiration"
-        ],
-        questions: [
-          "How does art creation differ from art appreciation in terms of cognitive benefits?",
-          "What role should AI-generated art play in our understanding of creativity?",
-          "How do different cultures define the boundaries between art, craft, and design?"
-        ],
-        applications: [
-          "art therapy helps process trauma and express emotions that are difficult to verbalize",
-          "design thinking methodology improves problem-solving across disciplines",
-          "public art installations can transform urban spaces and strengthen community identity"
-        ]
-      },
-      "Physical Education": {
-        facts: [
-          "Regular exercise increases brain-derived neurotrophic factor (BDNF), which improves learning capacity",
-          "Coordination exercises create new neural pathways that improve cognitive function",
-          "Research shows that short movement breaks during study sessions improve information retention"
-        ],
-        tips: [
-          "integrating brief physical activity breaks between study sessions to improve focus",
-          "practicing movement skills mindfully to enhance mind-body connection",
-          "using exercise as a stress management tool during intensive learning periods"
-        ],
-        questions: [
-          "How might education change if physical movement was integrated throughout the learning day?",
-          "What balance between specialized and diverse physical activities best supports lifelong health?",
-          "How do different forms of movement affect cognitive function in unique ways?"
-        ],
-        applications: [
-          "exercise programming can be tailored to enhance brain health and cognitive performance",
-          "movement-based learning strategies improve memory encoding for certain types of information",
-          "physical literacy development supports confidence and participation across life domains"
-        ]
-      },
-      Other: {
-        facts: [
-          "Interdisciplinary studies show that breakthrough innovations often occur at the intersection of different fields",
-          "Learning through teaching others has been shown to significantly improve retention and understanding",
-          "Developing expertise in any field typically requires around 10,000 hours of deliberate practice"
-        ],
-        tips: [
-          "connecting concepts across different subjects to strengthen understanding",
-          "creating personal meaning from abstract information to improve memory",
-          "alternating between focused and diffuse thinking modes to solve complex problems"
-        ],
-        questions: [
-          "How might education systems evolve to better prepare people for rapidly changing career landscapes?",
-          "What balance between breadth and depth of knowledge is most valuable in the information age?",
-          "How can we better integrate traditional knowledge with modern scientific understanding?"
-        ],
-        applications: [
-          "systems thinking approaches help address complex global challenges requiring multiple disciplines",
-          "creative problem-solving methods from one field can often be applied to breakthrough innovations in another",
-          "lifelong learning strategies support adaptation to technological and social changes"
-        ]
+    let content;
+    try {
+      // Try to generate content with Gemini
+      if (API_KEY && geminiModel) {
+        content = await generateContentWithGemini(course, type);
+      } else {
+        throw new Error("Gemini API not available");
       }
-    };
-    
-    // Determine which category to use based on course name
-    let category = "Other";
-    for (const cat in subjectContent) {
-      if (course.category.includes(cat) || course.name.includes(cat)) {
-        category = cat;
-        break;
+    } catch (error) {
+      console.warn(`Using fallback content for ${course.name} (${type}):`, error);
+      
+      // Determine which category to use based on course name
+      let category = "Other";
+      for (const cat in fallbackContent) {
+        if (course.category.includes(cat) || course.name.includes(cat)) {
+          category = cat;
+          break;
+        }
       }
+      
+      // Get fallback content for the selected category and type
+      const contentType = type === "fact" ? "facts" : 
+                         type === "tip" ? "tips" : 
+                         type === "question" ? "questions" : "applications";
+      
+      content = fallbackContent[category][contentType];
     }
-    
-    // Get content for the selected category
-    const content = subjectContent[category];
-    const contentType = template.type === "fact" ? "facts" : 
-                      template.type === "tip" ? "tips" : 
-                      template.type === "question" ? "questions" : "applications";
-    
-    // Get a random content item
-    const contentItems = content[contentType];
-    const randomContent = contentItems[Math.floor(Math.random() * contentItems.length)];
     
     // Create the post
     let title = template.title.replace("{topic}", course.name);
-    let postContent = template.content
+    let postContent = template.contentTemplate
       .replace("{topic}", course.name)
-      .replace(/\{(fact|tip|question|application)\}/g, randomContent);
+      .replace("{content}", content);
     
     return {
       id: `post-${Date.now()}-${index}`,
@@ -400,7 +291,7 @@ const generateCoursePosts = async (courses) => {
       type: template.type,
       likes: Math.floor(Math.random() * 50) + 10, // Random number of likes for effect
     };
-  });
+  }));
 };
 
 const InspirationPage = () => {
@@ -502,17 +393,15 @@ const InspirationPage = () => {
         setPosts(generatedPosts);
       } else {
         // Fallback for no courses
-        setPosts([
-          {
-            id: 'default-post-1',
-            title: 'The Power of Lifelong Learning',
-            content: 'Embracing lifelong learning is one of the most empowering choices you can make. It keeps your mind sharp, opens new opportunities, and helps you adapt to our rapidly changing world.',
-            author: 'AdaptIQ Learning AI',
-            date: formatPostDate(),
-            type: 'tip',
-            likes: 42,
-          }
-        ]);
+        setPosts([{
+          id: 'default-post-1',
+          title: 'The Power of Lifelong Learning',
+          content: 'Embracing lifelong learning is one of the most empowering choices you can make. It keeps your mind sharp, opens new opportunities, and helps you adapt to our rapidly changing world.',
+          author: 'AdaptIQ Learning AI',
+          date: formatPostDate(),
+          type: 'tip',
+          likes: 42,
+        }]);
       }
     } catch (error) {
       console.error("Error loading inspiration content:", error);
@@ -553,7 +442,7 @@ const InspirationPage = () => {
       <div className="inspiration-header">
         <div className="inspiration-title">
           <IconSparkles size={28} />
-          <h1>✨ Inspiration</h1>
+          <h1>Inspiration</h1>
         </div>
         <div className="header-actions">
           <Link to="/dashboard" className="return-button">
@@ -623,7 +512,10 @@ const InspirationPage = () => {
                       </div>
                       
                       <div className="post-content">
-                        <p>{post.content}</p>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          children={post.content} 
+                        />
                       </div>
                       
                       <div className="post-footer">

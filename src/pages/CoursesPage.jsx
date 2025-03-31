@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './CoursesPage.css';
 import Logo from '../assets/logo-white.png';
-import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEye, IconPlayerPlay } from '@tabler/icons-react';
+import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEye, IconPlayerPlay, IconSparkles } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
 import { getAssignments } from '../utils/assignmentsUtils';
 import { getProgressFromFirebase } from '../utils/progressTracker';
@@ -272,9 +272,9 @@ const CoursesPage = () => {
             <IconCalendar size={24} />
             <span>Schedule</span>
           </Link>
-          <Link to="/dashboard/study-groups" className="nav-item">
-            <IconUsers size={24} />
-            <span>Study Groups</span>
+          <Link to="/dashboard/inspiration" className="nav-item">
+            <IconSparkles size={24} />
+            <span>Inspiration</span>
           </Link>
           <Link to="/dashboard/profile" className="nav-item">
             <IconUser size={24} />

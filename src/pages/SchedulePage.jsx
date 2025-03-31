@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './SchedulePage.css';
 import Logo from '../assets/logo-white.png';
-import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEdit, IconCheck, IconDragDrop, IconDownload, IconRefresh, IconFileText, IconFile } from '@tabler/icons-react';
+import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEdit, IconCheck, IconDragDrop, IconDownload, IconRefresh, IconFileText, IconFile, IconSparkles } from '@tabler/icons-react';
 import SubjectPopup from '../components/SubjectPopup/SubjectPopup';
 import { exportScheduleToPDF, prepareScheduleForFirebase, saveScheduleToFirebase } from '../utils/scheduleExporter';
 import { exportScheduleToODF } from '../utils/odfExporter';
@@ -364,9 +364,9 @@ const SchedulePage = () => {
             <IconCalendar size={24} />
             <span>Schedule</span>
           </Link>
-          <Link to="/dashboard/study-groups" className="nav-item">
-            <IconUsers size={24} />
-            <span>Study Groups</span>
+          <Link to="/dashboard/inspiration" className="nav-item">
+            <IconSparkles size={24} />
+            <span>Inspiration</span>
           </Link>
           <Link to="/dashboard/profile" className="nav-item">
             <IconUser size={24} />

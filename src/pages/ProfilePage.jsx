@@ -8,7 +8,7 @@ import {
   IconClipboard, IconUsers, IconEdit, IconCamera, IconDownload,
   IconBadge, IconChevronRight, IconClock, IconBrain,
   IconCheck, IconX, IconPencil, IconDeviceAnalytics, IconTrophy,
-  IconPalette, IconHeart, IconStar, IconCertificate
+  IconPalette, IconHeart, IconStar, IconCertificate, IconSparkles
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAllCoursesProgress } from '../utils/progressTracker';
@@ -443,9 +443,9 @@ const ProfilePage = () => {
             <IconCalendar size={24} />
             <span>Schedule</span>
           </Link>
-          <Link to="/dashboard/study-groups" className="nav-item">
-            <IconUsers size={24} />
-            <span>Study Groups</span>
+          <Link to="/dashboard/inspiration" className="nav-item">
+            <IconSparkles size={24} />
+            <span>Inspiration</span>
           </Link>
           <Link to="/dashboard/profile" className="nav-item active">
             <IconUser size={24} />

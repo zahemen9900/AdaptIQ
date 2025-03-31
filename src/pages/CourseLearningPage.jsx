@@ -8,7 +8,7 @@ import {
   IconQuestionMark, IconNotebook, IconSend, IconHistory,
   IconChartLine, IconActivity, IconRefresh, IconPhotoUp,
   IconTrash, IconCheck, IconX, IconDownload, IconExternalLink,
-  IconAlertTriangle, IconClock
+  IconAlertTriangle, IconClock, IconSparkles
 } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -880,9 +880,9 @@ const CourseLearningPage = () => {
             <IconCalendar size={24} />
             <span>Schedule</span>
           </Link>
-          <Link to="/dashboard/study-groups" className="nav-item">
-            <IconUsers size={24} />
-            <span>Study Groups</span>
+          <Link to="/dashboard/inspiration" className="nav-item">
+            <IconSparkles size={24} />
+            <span>Inspiration</span>
           </Link>
           <Link to="/dashboard/profile" className="nav-item">
             <IconUser size={24} />

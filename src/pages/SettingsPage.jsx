@@ -5,7 +5,7 @@ import Logo from '../assets/logo-white.png';
 import { 
   IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, 
   IconClipboard, IconUsers, IconMoon, IconSun, IconBell, 
-  IconMail, IconVolume, IconLanguage, IconCheck, IconLetterA
+  IconMail, IconVolume, IconLanguage, IconCheck, IconLetterA, IconSparkles
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
@@ -75,9 +75,9 @@ const SettingsPage = () => {
             <IconCalendar size={24} />
             <span>Schedule</span>
           </Link>
-          <Link to="/dashboard/study-groups" className="nav-item">
-            <IconUsers size={24} />
-            <span>Study Groups</span>
+          <Link to="/dashboard/inspiration" className="nav-item">
+            <IconSparkles size={24} />
+            <span>Inspiration</span>
           </Link>
           <Link to="/dashboard/profile" className="nav-item">
             <IconUser size={24} />
