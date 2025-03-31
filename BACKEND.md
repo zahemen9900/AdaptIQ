@@ -11,6 +11,7 @@ AdaptIQ uses Firebase as its backend solution with the following services:
 - **Firebase Storage**: For storing user-uploaded files such as images
 - **Firebase Analytics**: For tracking user behavior and application performance
 - **Firebase Cloud Functions**: For server-side logic and API integrations
+- **Firebase Hosting**: For deployment of the web application
 
 ## Database Structure
 
@@ -149,7 +150,6 @@ The Cloud Firestore database will use the following collection and document stru
   lastActivityType: "string",
   totalTimeSpent: number, // in minutes
   averageSessionDuration: number, // in minutes
-  
   // Suggested topics based on progress
   suggestedTopics: [
     {
@@ -207,7 +207,6 @@ The Cloud Firestore database will use the following collection and document stru
   status: "string", // "pending", "in-progress", "completed", "overdue"
   priority: number, // 0-5 scale with 5 being highest priority
   completedDate: Timestamp, // when assignment was marked complete
-  
   // Generated content information (for AI-generated assignments)
   generationInfo: {
     generatedBy: "string", // "system", "gemini", "teacher"
@@ -280,7 +279,6 @@ The Cloud Firestore database will use the following collection and document stru
   courseName: "string",
   timestamp: Timestamp,
   duration: number, // in minutes
-  
   // For chat activities
   chatData: {
     messages: [
@@ -409,7 +407,6 @@ The Cloud Firestore database will use the following collection and document stru
   difficulty: "string",
   timeLimit: number, // in minutes
   passingScore: number, // percentage
-  
   questions: [
     {
       questionId: "string",
@@ -436,10 +433,8 @@ The Cloud Firestore database will use the following collection and document stru
   category: "string", // "mathematics", "science", etc.
   title: "string", // template title
   description: "string", // template description
-  
   // Template content - can be customized for specific students
   content: "string", // markdown or HTML content
-  
   // Metadata
   difficulty: "string", // "beginner", "intermediate", "advanced"
   estimatedMinutes: number,
@@ -496,6 +491,7 @@ AdaptIQ will use Firebase Authentication with the following sign-in methods:
 - Email/Password
 - Google Sign-In
 - Apple Sign-In (for iOS users)
+- Microsoft Account Sign-In (for educational institutions)
 
 Custom claims will be used to assign user roles:
 
@@ -504,9 +500,18 @@ Custom claims will be used to assign user roles:
   "admin": true, // For administrative users
   "parent": true, // For parent accounts
   "student": true, // For student accounts
-  "premium": true // For premium subscriptions
+  "premium": true, // For premium subscriptions
+  "educator": true // For teacher/educator accounts
 }
 ```
+
+User authentication flow includes:
+- Social sign-in options with one-click authentication
+- Secure password policies with complexity requirements
+- Email verification for new accounts
+- Password reset functionality
+- Account linking for multiple sign-in methods
+- Session management with configurable expiration
 
 ## Security Rules
 
@@ -820,6 +825,13 @@ The following Cloud Functions will be implemented:
 - Integrate Gemini API for assignment generation
 - Implement dashboard recommendation engine
 
+### Phase 6: Theme & Settings Sync
+- Add user settings collection for theme preferences
+- Implement background sync for user settings
+- Create cloud functions for settings validation
+- Add real-time updates for shared device settings
+- Implement analytics for feature usage tracking
+
 ## Data Migration Strategy
 
 For migrating from the current localStorage implementation:
@@ -842,3 +854,51 @@ For migrating from the current localStorage implementation:
 4. **Backup Strategy**: Set up regular Firestore backups
 5. **Monitoring**: Configure Firebase alerts for abnormal usage patterns
 6. **Load Testing**: Test dashboard data retrieval performance under various conditions
+
+## Performance Optimization Strategies
+
+### Database Query Optimization
+
+- Implement paginated queries for large collections
+- Use composite indexes for complex queries
+- Structure data to minimize reads (denormalization where appropriate)
+- Cache frequently accessed data client-side
+- Implement query limiting and cursor-based pagination
+
+### Image Storage Optimization
+
+- Implement image compression before upload
+- Generate multiple resolutions for different device sizes
+- Use lazy loading for images in lists and grids
+- Implement Cloud Functions for automated image processing
+- Set up cache control headers for optimal browser caching
+
+### Real-time Updates Optimization
+
+- Use document-level subscriptions instead of collection-level when possible
+- Implement throttling for high-frequency updates
+- Use server timestamps for consistent ordering
+- Batch writes for multiple document updates
+- Implement offline persistence with conflict resolution strategies
+
+## Disaster Recovery Plan
+
+- Regular Firestore backups (daily)
+- Point-in-time recovery capability
+- Export critical data to Cloud Storage monthly
+- Documentation of restoration procedures
+- Regular restoration testing
+
+## Monitoring and Alerting
+
+- Set up Firebase Alerts for:
+  - Unusual authentication activity
+  - Spike in error rates
+  - Quota usage approaching limits
+  - Performance degradation
+  - Security rule violations
+- Implement custom Cloud Functions for advanced monitoring
+- Regular review of Firebase Analytics data for usage patterns
+- Integration with external monitoring tools for comprehensive coverage
+
+## Last Updated: March 31, 2025
