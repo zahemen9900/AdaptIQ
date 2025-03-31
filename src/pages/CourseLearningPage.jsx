@@ -17,11 +17,13 @@ import {
   incrementProgress,
   getActivityHistory
 } from '../utils/progressTracker';
-import {
-  generateStreamingResponse,
-  evaluateQuizAnswerWithGemini,
-  checkGeminiApiAvailability
-} from '../utils/geminiUtils';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Initialize the Google Generative AI with the API key
+// In production, this should be properly handled with environment variables
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
+const genAI = new GoogleGenerativeAI(API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 // Animation variants for different components
 const containerVariants = {
@@ -60,7 +62,6 @@ const itemVariants = {
   }
 };
 
-// New variant for mode selector cards - no staggered effect
 const cardVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { 
@@ -114,29 +115,6 @@ const CourseLearningPage = () => {
   const [progressAnimation, setProgressAnimation] = useState(false);
   const [showActivityPanel, setShowActivityPanel] = useState(false);
   const fileInputRef = useRef(null);
-
-  // State for streaming responses
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingContent, setStreamingContent] = useState('');
-  const [geminiAvailable, setGeminiAvailable] = useState(null); // null = unknown, true/false = checked
-
-  // Check if Gemini API is available
-  useEffect(() => {
-    const checkApiAvailability = async () => {
-      if (geminiAvailable === null) {
-        try {
-          const isAvailable = await checkGeminiApiAvailability();
-          setGeminiAvailable(isAvailable);
-          console.log("Gemini API available:", isAvailable);
-        } catch (error) {
-          console.error("Error checking Gemini API:", error);
-          setGeminiAvailable(false);
-        }
-      }
-    };
-    
-    checkApiAvailability();
-  }, [geminiAvailable]);
 
   // Fetch progress data
   useEffect(() => {
@@ -292,18 +270,38 @@ const CourseLearningPage = () => {
   };
 
   // Function to handle starting a quiz
-  const handleStartQuiz = () => {
+  const handleStartQuiz = async () => {
     setMode('quiz');
-    setChatMessages([{
-      sender: 'bot',
-      content: `Welcome to the ${courseName} quiz! I'll ask you a series of questions to test your knowledge.`,
-      timestamp: new Date().toISOString()
-    },
-    {
-      sender: 'bot',
-      content: generateQuizQuestion(),
-      timestamp: new Date().toISOString()
-    }]);
+    setIsThinking(true);
+    
+    try {
+      // Add initial welcome message
+      setChatMessages([{
+        sender: 'bot',
+        content: `Welcome to the ${courseName} quiz! I'll ask you a series of questions to test your knowledge.`,
+        timestamp: new Date().toISOString()
+      }]);
+      
+      // Generate first quiz question using Gemini
+      const question = await generateQuizQuestion(courseName);
+      
+      // Add question to messages
+      setChatMessages(prevMessages => [...prevMessages, {
+        sender: 'bot',
+        content: question,
+        timestamp: new Date().toISOString()
+      }]);
+    } catch (error) {
+      console.error("Error starting quiz:", error);
+      // Add fallback message if there's an error
+      setChatMessages(prevMessages => [...prevMessages, {
+        sender: 'bot',
+        content: `What are the key principles of ${courseName} that you've learned so far?`,
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   // Function to handle starting the learning resources
@@ -316,33 +314,79 @@ const CourseLearningPage = () => {
     },
     {
       sender: 'bot',
-      content: generateResourcesList(),
+      content: generateResourcesList(courseName),
       timestamp: new Date().toISOString(),
       isResource: true
     }]);
   };
 
-  // Generate a sample quiz question based on the course
-  const generateQuizQuestion = () => {
-    const quizQuestions = {
-      'Algebra': 'If 3x + 5 = 20, what is the value of x?',
-      'Geometry': 'What is the area of a circle with radius 5 units?',
-      'Calculus': 'What is the derivative of f(x) = x²?',
-      'Physics': 'What is Newton\'s Second Law of Motion?',
-      'Chemistry': 'What is the chemical formula for water?',
-      'Biology': 'What are the main components of a cell?',
-      'World History': 'When did World War II end?',
-      'Programming': 'What does HTML stand for?',
-      'Web Development': 'What is the purpose of CSS in web development?',
-      'General Psychology': 'What is the difference between classical and operant conditioning?',
-      'Cognitive Psychology': 'Explain the concept of working memory.'
+  // Generate dynamic system prompt based on course
+  const generateSystemPrompt = (course) => {
+    // Base system prompt identifying the AI as AdaptIQ
+    const basePrompt = "You are AdaptIQ, an intelligent AI tutor specializing in personalized education. You adapt to individual learning styles and preferences to provide the best educational experience. ";
+    
+    // Course-specific prompts
+    const coursePrompts = {
+      'Algebra': basePrompt + "As a mathematics tutor specializing in Algebra, use clear explanations with step-by-step reasoning. Break down algebraic concepts like equations, variables, functions, and expressions. Provide visual representations when possible and use examples that students can relate to.",
+      
+      'Geometry': basePrompt + "As a Geometry tutor, include descriptions of diagrams in your explanations when discussing shapes, and provide proofs when necessary. Cover topics like angles, triangles, polygons, circles, and coordinate geometry. Be precise with your mathematical language.",
+      
+      'Calculus': basePrompt + "As a Calculus tutor, explain concepts with both mathematical formulas and intuitive explanations. Make connections between derivatives, integrals, and their real-world applications. Always clarify notation and include step-by-step solutions.",
+      
+      'Physics': basePrompt + "As a Physics tutor, explain concepts with both mathematical formulas and intuitive real-world examples. Relate physics principles to everyday experiences. Remember to clarify the units and dimensions in your answers and explain the underlying laws of nature.",
+      
+      'Chemistry': basePrompt + "As a Chemistry tutor, explain molecular structures, reaction mechanisms, and chemical processes clearly. Connect chemistry concepts to real-world applications and use examples from everyday life whenever possible.",
+      
+      'Biology': basePrompt + "As a Biology tutor, explain biological processes and systems with clear connections to their functions. Use analogies to help students understand complex processes and relate concepts to real-world examples in health, environment, and everyday life.",
+      
+      'Programming': basePrompt + "As a Programming tutor, provide code examples in your explanations and ensure your code is correct and follows best practices. Explain the logic behind programming concepts clearly and relate them to practical applications.",
+      
+      'Web Development': basePrompt + "As a Web Development tutor, provide code examples using HTML, CSS, and JavaScript where appropriate. Explain both frontend and backend concepts clearly and offer practical tips for designing and implementing web applications.",
+      
+      'General Psychology': basePrompt + "As a Psychology tutor specializing in general concepts, explain psychological theories, research methods, and key studies. Use clear examples from real-world scenarios and avoid clinical diagnoses or therapeutic advice."
     };
     
-    return quizQuestions[courseName] || `What is one key concept you've learned in ${courseName}?`;
+    // Return course-specific prompt or a default one
+    return coursePrompts[course] || `${basePrompt}As a knowledgeable tutor in ${course}, provide clear, accurate, and helpful responses to student questions. Use examples where appropriate and break down complex concepts into understandable parts.`;
   };
 
-  // Generate sample resources for the course
-  const generateResourcesList = () => {
+  // Generate a quiz question based on course using Gemini
+  const generateQuizQuestion = async (course) => {
+    try {
+      // Create a prompt for Gemini to generate a question
+      const prompt = `Generate a challenging but fair quiz question about ${course}. The question should test understanding rather than just factual recall. Format it as a concise question without answer choices or explanations.`;
+      
+      if (!API_KEY) {
+        console.warn("API key not found, using fallback quiz questions");
+        // Fallback quiz questions if no API key
+        const fallbackQuestions = {
+          'Algebra': 'If 3x + 5 = 20, what is the value of x?',
+          'Geometry': 'What is the area of a circle with radius 5 units?',
+          'Calculus': 'What is the derivative of f(x) = x²?',
+          'Physics': 'What is Newton\'s Second Law of Motion?',
+          'Chemistry': 'What is the chemical formula for water?',
+          'Biology': 'What are the main components of a cell?',
+          'World History': 'When did World War II end?',
+          'Programming': 'What does HTML stand for?',
+          'Web Development': 'What is the purpose of CSS in web development?',
+          'General Psychology': 'What is the difference between classical and operant conditioning?',
+        };
+        
+        return fallbackQuestions[course] || `What is one key concept you've learned in ${course}?`;
+      }
+      
+      const content = await model.generateContent(prompt);
+      const response = content.response.text();
+      
+      return response || `What is one key concept you've learned in ${course}?`;
+    } catch (error) {
+      console.error("Error generating quiz question:", error);
+      return `What is one key concept you've learned in ${course}?`;
+    }
+  };
+
+  // Generate resources list for a course using Gemini
+  const generateResourcesList = (course) => {
     const resourceTypes = [
       { title: "Recommended Textbooks", icon: "📚" },
       { title: "Video Lectures", icon: "🎥" },
@@ -358,7 +402,7 @@ const CourseLearningPage = () => {
             <div className="resource-icon">{resource.icon}</div>
             <div className="resource-content">
               <h3>{resource.title}</h3>
-              <p>Top {courseName} materials selected for your learning style.</p>
+              <p>Top {course} materials selected for your learning style.</p>
               <button className="resource-explore-btn">Explore</button>
             </div>
           </div>
@@ -367,17 +411,79 @@ const CourseLearningPage = () => {
     );
   };
 
+  // Generate a chat response using Gemini
+  const generateChatResponse = async (userMessage, course) => {
+    try {
+      if (!API_KEY) {
+        console.warn("API key not found, using fallback chat responses");
+        // Fallback responses if no API key
+        const simpleResponses = {
+          'Algebra': "In algebra, we work with variables and equations. For your question, I'd approach it by isolating the variable first, then solving step by step. Would you like me to show a detailed solution?",
+          'Geometry': "Geometry is all about shapes and their properties. For your question, we can use theorems related to angles, distances, or areas. Let me sketch out a solution approach.",
+          'Calculus': "This is a great calculus question! We would typically approach this using derivatives or integrals, depending on whether we're looking at rates of change or accumulated values.",
+          'Physics': "This physics problem involves fundamental principles. Let's identify the forces involved, apply the relevant laws, and solve for the unknowns step by step.",
+          'Chemistry': "In chemistry, this would involve understanding molecular structures and reactions. Let's break down the chemical processes involved.",
+          'Programming': "For this programming question, I'd recommend an approach using data structures and algorithms. Let me outline a solution with pseudocode first, then we can implement it together."
+        };
+        
+        if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
+          return `Hello! I'm happy to help with any ${course} questions you have today. What would you like to learn about?`;
+        }
+        
+        if (userMessage.toLowerCase().includes('thank')) {
+          return "You're welcome! Is there anything else you'd like to know about this topic?";
+        }
+        
+        return simpleResponses[course] || `That's an interesting question about ${course}. Let me explain this concept clearly. The main principles involve key concepts which apply in situations like typical examples. Does that help clarify things?`;
+      }
+      
+      // Create the system prompt for the specific course
+      const systemPrompt = generateSystemPrompt(course);
+      
+      // Generate content with the system prompt
+      const prompt = `${systemPrompt}\n\nStudent question: ${userMessage}\n\nYour helpful response:`;
+      const content = await model.generateContent(prompt);
+      const response = content.response.text();
+      
+      return response || `I'm sorry, I'm having trouble generating a response about ${course} right now. Could you rephrase your question?`;
+    } catch (error) {
+      console.error("Error generating chat response:", error);
+      return `I'm sorry, I'm having trouble connecting to my knowledge system about ${course} right now. Could you try again in a moment?`;
+    }
+  };
+
+  // Evaluate a quiz answer using Gemini
+  const evaluateQuizAnswer = async (answer, question, course) => {
+    try {
+      if (!API_KEY) {
+        console.warn("API key not found, using fallback quiz evaluation");
+        // Fallback response if no API key
+        return `Thanks for your answer! Here's some feedback: [detailed explanation of the correct approach]. Would you like to try another question?`;
+      }
+      
+      // Create the system prompt for evaluation
+      const systemPrompt = `You are AdaptIQ, an intelligent AI tutor specializing in ${course} education. You're evaluating a student's answer to a quiz question. Provide constructive feedback that acknowledges what's correct and gently corrects misconceptions. Be encouraging and educational.`;
+      
+      // Generate evaluation
+      const prompt = `${systemPrompt}\n\nQuestion: ${question}\n\nStudent's answer: ${answer}\n\nYour educational feedback:`;
+      const content = await model.generateContent(prompt);
+      const response = content.response.text();
+      
+      return response || `Thank you for your answer. Your response shows some understanding of the concept. In ${course}, it's important to remember the key principles. Would you like to try another question?`;
+    } catch (error) {
+      console.error("Error evaluating quiz answer:", error);
+      return `Thank you for your answer. I'm having trouble evaluating it at the moment, but I appreciate your engagement with the material. Would you like to try another question?`;
+    }
+  };
+  
   // Handle sending a message in chat mode
   const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
     
-    // Store the current message value
-    const messageContent = currentMessage;
-    
     // Add user message to chat
     const newUserMessage = {
       sender: 'user',
-      content: messageContent,
+      content: currentMessage,
       timestamp: new Date().toISOString()
     };
     
@@ -385,218 +491,69 @@ const CourseLearningPage = () => {
     setCurrentMessage('');
     setIsThinking(true);
     
-    // Get system prompt for the course
-    const systemPrompt = generateSystemPrompt(courseName);
-    console.log("System prompt:", systemPrompt);
-    
-    if (mode === 'chat') {
-      // Check if Gemini API is available
-      if (geminiAvailable) {
-        // Create a placeholder message for streaming
-        const placeholder = {
-          sender: 'bot',
-          content: '',
-          timestamp: new Date().toISOString(),
-          streaming: true // Flag to identify this as a streaming message
-        };
-        
-        // Add placeholder for streaming response
-        setChatMessages(prevMessages => [...prevMessages, placeholder]);
-        setIsThinking(false);
-        setIsStreaming(true);
-        setStreamingContent('');
-        
-        try {
-          // Call Gemini API with streaming
-          const fullResponse = await generateStreamingResponse(
-            messageContent, 
-            systemPrompt,
-            (chunkText) => {
-              // Update streaming content with each chunk
-              setStreamingContent(prevContent => prevContent + chunkText);
-              
-              // Update the message in the chat
-              setChatMessages(prevMessages => {
-                const updatedMessages = [...prevMessages];
-                const lastMessageIndex = updatedMessages.length - 1;
-                updatedMessages[lastMessageIndex] = {
-                  ...updatedMessages[lastMessageIndex],
-                  content: updatedMessages[lastMessageIndex].content + chunkText
-                };
-                return updatedMessages;
-              });
-            }
-          );
-          
-          // Streaming complete - update the message
-          setChatMessages(prevMessages => {
-            const updatedMessages = [...prevMessages];
-            const lastMessageIndex = updatedMessages.length - 1;
-            updatedMessages[lastMessageIndex] = {
-              sender: 'bot',
-              content: fullResponse,
-              timestamp: new Date().toISOString(),
-              streaming: false
-            };
-            return updatedMessages;
-          });
-          
-          // Save to chat history
-          const newHistoryItem = {
-            courseName,
-            timestamp: new Date().toISOString(),
-            userMessage: messageContent,
-            botResponse: fullResponse
-          };
-          
-          const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)]; // Keep only latest 20 items
-          setChatHistory(updatedHistory);
-          localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
-        } catch (error) {
-          console.error('Error with Gemini API:', error);
-          // Handle error by updating the message
-          setChatMessages(prevMessages => {
-            const updatedMessages = [...prevMessages];
-            const lastMessageIndex = updatedMessages.length - 1;
-            updatedMessages[lastMessageIndex] = {
-              sender: 'bot',
-              content: "Sorry, I encountered an error while generating a response. Please try again later.",
-              timestamp: new Date().toISOString(),
-              error: true
-            };
-            return updatedMessages;
-          });
-        } finally {
-          setIsStreaming(false);
+    try {
+      // Get the last bot message if in quiz mode to use as the question
+      let question = '';
+      if (mode === 'quiz') {
+        const lastBotMessage = [...chatMessages].reverse().find(msg => msg.sender === 'bot');
+        if (lastBotMessage) {
+          question = lastBotMessage.content;
         }
-      } else {
-        // Fallback to mock responses if Gemini is not available
-        setTimeout(() => {
-          const responseContent = generateChatResponse(messageContent, courseName);
-          
-          const botResponse = {
+      }
+      
+      // Generate response based on the current mode
+      let responseContent = '';
+      
+      if (mode === 'chat') {
+        responseContent = await generateChatResponse(currentMessage, courseName);
+      } else if (mode === 'quiz') {
+        responseContent = await evaluateQuizAnswer(currentMessage, question, courseName);
+      }
+      
+      const botResponse = {
+        sender: 'bot',
+        content: responseContent,
+        timestamp: new Date().toISOString()
+      };
+      
+      setChatMessages(prevMessages => [...prevMessages, botResponse]);
+      
+      // Generate a follow-up question if in quiz mode
+      if (mode === 'quiz') {
+        setTimeout(async () => {
+          const nextQuestion = await generateQuizQuestion(courseName);
+          const nextQuestionMessage = {
             sender: 'bot',
-            content: responseContent,
+            content: nextQuestion,
             timestamp: new Date().toISOString()
           };
-          
-          setChatMessages(prevMessages => [...prevMessages, botResponse]);
-          setIsThinking(false);
-          
-          // Save to chat history
-          const newHistoryItem = {
-            courseName,
-            timestamp: new Date().toISOString(),
-            userMessage: messageContent,
-            botResponse: responseContent
-          };
-          
-          const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)]; // Keep only latest 20 items
-          setChatHistory(updatedHistory);
-          localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
-        }, 1500);
+          setChatMessages(prevMessages => [...prevMessages, nextQuestionMessage]);
+        }, 2000);
       }
-    } else if (mode === 'quiz') {
-      // For quiz mode, use the quiz answer evaluation
-      setIsThinking(true);
       
-      try {
-        // Get the current quiz question
-        const currentQuestion = chatMessages.find(
-          msg => msg.sender === 'bot' && !msg.isResource && msg !== chatMessages[0]
-        )?.content || "unknown question";
-        
-        let responseContent;
-        
-        if (geminiAvailable) {
-          // Use Gemini to evaluate the quiz answer if available
-          responseContent = await evaluateQuizAnswerWithGemini(
-            currentQuestion,
-            messageContent,
-            courseName
-          );
-        } else {
-          // Fallback to mock evaluation
-          responseContent = evaluateQuizAnswer(messageContent, courseName);
-        }
-        
-        const botResponse = {
-          sender: 'bot',
-          content: responseContent,
-          timestamp: new Date().toISOString()
-        };
-        
-        setChatMessages(prevMessages => [...prevMessages, botResponse]);
-        
-        // Save to chat history
-        const newHistoryItem = {
-          courseName,
-          timestamp: new Date().toISOString(),
-          userMessage: messageContent,
-          botResponse: responseContent
-        };
-        
-        const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)];
-        setChatHistory(updatedHistory);
-        localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
-      } catch (error) {
-        console.error('Error evaluating quiz answer:', error);
-        // Handle error
-        setChatMessages(prevMessages => [
-          ...prevMessages,
-          {
-            sender: 'bot',
-            content: "Sorry, I encountered an error while evaluating your answer. Please try again.",
-            timestamp: new Date().toISOString(),
-            error: true
-          }
-        ]);
-      } finally {
-        setIsThinking(false);
-      }
+      // Save to chat history
+      const newHistoryItem = {
+        courseName,
+        timestamp: new Date().toISOString(),
+        userMessage: currentMessage,
+        botResponse: responseContent
+      };
+      
+      const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)]; // Keep only latest 20 items
+      setChatHistory(updatedHistory);
+      localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error("Error generating response:", error);
+      // Add fallback error message
+      const errorResponse = {
+        sender: 'bot',
+        content: `I'm sorry, I encountered an issue while processing your request. Please try again later.`,
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages(prevMessages => [...prevMessages, errorResponse]);
+    } finally {
+      setIsThinking(false);
     }
-  };
-
-  // Generate dynamic system prompt based on course
-  const generateSystemPrompt = (course) => {
-    const prompts = {
-      'Algebra': "You are a mathematics tutor specializing in Algebra. Use clear explanations with step-by-step reasoning. Remember that Algebra covers equations, variables, functions, and expressions. Provide visual representations when possible.",
-      'Geometry': "You are a Geometry tutor. Always include diagrams in your explanations when describing shapes, and provide proofs when necessary. Cover topics like angles, triangles, polygons, circles, and coordinate geometry.",
-      'Physics': "You are a Physics tutor. Explain concepts with both mathematical formulas and intuitive real-world examples. Remember to clarify the units and dimensions in your answers.",
-      'Programming': "You are a Programming tutor. Provide code examples in your explanations and ensure your code is correct and follows best practices. Explain the logic behind programming concepts clearly.",
-      'Web Development': "You are a Web Development tutor. Provide code examples using HTML, CSS, and JavaScript where appropriate. Explain both frontend and backend concepts clearly and offer practical tips.",
-      'General Psychology': "You are a Psychology tutor specializing in general concepts. Explain psychological theories, research methods, and key studies. Use clear examples and avoid clinical diagnoses."
-    };
-    
-    return prompts[course] || `You are a knowledgeable tutor in ${course}. Provide clear, accurate, and helpful responses to student questions. Use examples where appropriate and break down complex concepts into understandable parts.`;
-  };
-
-  // Generate a sample chat response (mock for Firebase ML)
-  const generateChatResponse = (userMessage, course) => {
-    const simpleResponses = {
-      'Algebra': "In algebra, we work with variables and equations. For your question, I'd approach it by isolating the variable first, then solving step by step. Would you like me to show a detailed solution?",
-      'Geometry': "Geometry is all about shapes and their properties. For your question, we can use theorems related to angles, distances, or areas. Let me sketch out a solution approach.",
-      'Calculus': "This is a great calculus question! We would typically approach this using derivatives or integrals, depending on whether we're looking at rates of change or accumulated values.",
-      'Physics': "This physics problem involves fundamental principles. Let's identify the forces involved, apply the relevant laws, and solve for the unknowns step by step.",
-      'Chemistry': "In chemistry, this would involve understanding molecular structures and reactions. Let's break down the chemical processes involved.",
-      'Programming': "For this programming question, I'd recommend an approach using data structures and algorithms. Let me outline a solution with pseudocode first, then we can implement it together."
-    };
-    
-    if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
-      return `Hello! I'm happy to help with any ${course} questions you have today. What would you like to learn about?`;
-    }
-    
-    if (userMessage.toLowerCase().includes('thank')) {
-      return "You're welcome! Is there anything else you'd like to know about this topic?";
-    }
-    
-    return simpleResponses[course] || `That's an interesting question about ${course}. Let me explain this concept clearly. The main principles involve [key concepts] which apply in situations like [examples]. Does that help clarify things?`;
-  };
-
-  // Evaluate a quiz answer (mock for Firebase ML)
-  const evaluateQuizAnswer = (answer, course) => {
-    // This would be replaced with actual answer evaluation logic
-    return `Thanks for your answer! Here's some feedback: [detailed explanation of the correct approach]. Would you like to try another question?`;
   };
 
   // Handle key press in chat input
