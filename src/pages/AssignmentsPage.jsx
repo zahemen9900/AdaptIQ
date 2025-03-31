@@ -6,7 +6,8 @@ import {
   IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, 
   IconClipboard, IconUsers, IconFilter, IconSearch, IconChevronLeft, 
   IconChevronRight, IconCheck, IconPlus, IconArrowUpRight, IconX,
-  IconListDetails, IconLayoutGrid, IconAlertCircle, IconAdjustments
+  IconListDetails, IconLayoutGrid, IconAlertCircle, IconAdjustments,
+  IconUpload, IconFileUpload
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -27,6 +28,7 @@ import {
 } from '../utils/assignmentsUtils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import AssignmentSubmission from '../components/AssignmentSubmission/AssignmentSubmission';
 
 const AssignmentsPage = () => {
   // State for user info
@@ -41,6 +43,10 @@ const AssignmentsPage = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [loading, setLoading] = useState(false); // Loading state
+  
+  // New state for assignment submission
+  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+  const [submissionAssignment, setSubmissionAssignment] = useState(null);
   
   // State for calendar view
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -156,6 +162,17 @@ const AssignmentsPage = () => {
 
   // Handle assignment status update
   const handleStatusChange = (assignmentId, newStatus) => {
+    // If the assignment is being marked as completed, we'll show the submission form instead
+    if (newStatus === 'completed') {
+      const assignment = assignments.find(a => a.id === assignmentId);
+      if (assignment) {
+        setSubmissionAssignment(assignment);
+        setShowSubmissionForm(true);
+      }
+      return;
+    }
+    
+    // For other status changes, update directly
     const updatedAssignments = assignments.map(assignment => {
       if (assignment.id === assignmentId) {
         return { ...assignment, status: newStatus };
@@ -274,6 +291,45 @@ const AssignmentsPage = () => {
       console.error("Error generating new assignments:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle assignment submission
+  const handleAssignmentSubmit = (submissionData) => {
+    // Update the assignment with submission data and change status to completed
+    const updatedAssignments = assignments.map(assignment => {
+      if (assignment.id === submissionData.assignmentId) {
+        return { 
+          ...assignment, 
+          status: 'completed',
+          submission: {
+            content: submissionData.submissionContent,
+            feedback: submissionData.feedback,
+            grade: submissionData.grade,
+            submittedAt: submissionData.submittedAt
+          }
+        };
+      }
+      return assignment;
+    });
+    
+    // Update state and save to localStorage
+    setAssignments(updatedAssignments);
+    saveAssignments(updatedAssignments);
+    
+    // Update filtered assignments
+    const filtered = filterAssignments(updatedAssignments, filters);
+    const sorted = sortAssignments(filtered, filters.sortBy);
+    setFilteredAssignments(sorted);
+    
+    // Close the submission form
+    setShowSubmissionForm(false);
+    setSubmissionAssignment(null);
+    
+    // If the same assignment was open in the details panel, update it
+    if (selectedAssignment && selectedAssignment.id === submissionData.assignmentId) {
+      const updatedAssignment = updatedAssignments.find(a => a.id === submissionData.assignmentId);
+      setSelectedAssignment(updatedAssignment);
     }
   };
 
@@ -722,6 +778,48 @@ const AssignmentsPage = () => {
                   </div>
                 </div>
                 
+                {/* Display submission and feedback if available */}
+                {selectedAssignment.submission && (
+                  <div className="details-submission">
+                    <h4>Submission</h4>
+                    <div className="submission-info">
+                      <div className="submission-grade">
+                        <div 
+                          className="grade-display"
+                          style={{ 
+                            backgroundColor: 
+                              selectedAssignment.submission.grade >= 90 ? '#4caf50' :
+                              selectedAssignment.submission.grade >= 70 ? '#8bc34a' :
+                              selectedAssignment.submission.grade >= 60 ? '#ff9800' : '#f44336'
+                          }}
+                        >
+                          {selectedAssignment.submission.grade}
+                        </div>
+                        <span>Grade</span>
+                      </div>
+                      <div className="submission-date">
+                        <span>Submitted on:</span>
+                        <span>{new Date(selectedAssignment.submission.submittedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="feedback-content">
+                      <h4>Feedback</h4>
+                      <div className="markdown-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {selectedAssignment.submission.feedback}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {selectedAssignment.resources && selectedAssignment.resources.length > 0 && (
                   <div className="details-resources">
                     <h4>Resources</h4>
@@ -765,6 +863,7 @@ const AssignmentsPage = () => {
                     <button 
                       className={`status-option ${selectedAssignment.status === 'completed' ? 'active' : ''}`}
                       onClick={() => handleStatusChange(selectedAssignment.id, 'completed')}
+                      disabled={selectedAssignment.status === 'completed'}
                     >
                       <span className="status-icon"></span>
                       <span>Completed</span>
@@ -778,15 +877,37 @@ const AssignmentsPage = () => {
                   <IconCalendar size={18} />
                   <span>Add to Calendar</span>
                 </button>
-                <button 
-                  className="details-action-button primary"
-                  onClick={() => handleStatusChange(selectedAssignment.id, 'completed')}
-                >
-                  <IconCheck size={18} />
-                  <span>Mark as Completed</span>
-                </button>
+                
+                {selectedAssignment.status !== 'completed' ? (
+                  <button 
+                    className="details-action-button primary"
+                    onClick={() => handleStatusChange(selectedAssignment.id, 'completed')}
+                  >
+                    <IconFileUpload size={18} />
+                    <span>Submit Solution</span>
+                  </button>
+                ) : (
+                  <div className="completed-message">
+                    <IconCheck size={18} />
+                    <span>Completed</span>
+                  </div>
+                )}
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Assignment Submission Modal */}
+        <AnimatePresence>
+          {showSubmissionForm && submissionAssignment && (
+            <AssignmentSubmission
+              assignment={submissionAssignment}
+              onSubmit={handleAssignmentSubmit}
+              onCancel={() => {
+                setShowSubmissionForm(false);
+                setSubmissionAssignment(null);
+              }}
+            />
           )}
         </AnimatePresence>
       </div>

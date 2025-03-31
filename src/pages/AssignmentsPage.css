@@ -932,3 +932,80 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Add styles for new submission components */
+.details-submission {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  background-color: #f5f7ff;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #4a6bfb;
+}
+
+.submission-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.submission-grade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.grade-display {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.submission-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.feedback-content {
+  background-color: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.completed-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background-color: rgba(76, 175, 80, 0.1);
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+/* Update the button styles to include file upload icon */
+.details-action-button.primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Disable the completed status button when already completed */
+.status-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

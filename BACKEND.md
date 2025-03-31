@@ -46,6 +46,48 @@ The Cloud Firestore database will use the following collection and document stru
   // Available days for studying
   availableDays: ["string"], // Array of day names
   
+  // Dashboard statistics
+  dashboardStats: {
+    activeCourses: number,
+    totalCourses: number,
+    overallProgress: number, // 0-100 percentage
+    studyStreak: number, // consecutive days of study activity
+    lastStudyDate: Timestamp,
+    totalStudyTime: number, // in minutes
+    todayStudyTime: number, // in minutes
+  },
+  
+  // Today's goals
+  dailyGoals: [
+    {
+      id: "string",
+      text: "string",
+      completed: boolean,
+      createdAt: Timestamp,
+      completedAt: Timestamp
+    }
+  ],
+  
+  // Recent activity tracking
+  recentActivity: [
+    {
+      id: "string",
+      type: "string", // "chat", "quiz", "progress-update", "assignment"
+      name: "string", // activity name
+      date: Timestamp,
+      courseId: "string", // reference to course if applicable
+      details: {
+        // Type-specific details
+        // For progress updates
+        newProgress: number, // if type is "progress-update"
+        // For quiz activities
+        quizScore: number, // if type is "quiz"
+        // For assignments
+        assignmentId: "string" // if type is "assignment"
+      }
+    }
+  ],
+  
   // Metadata for app functionality
   settings: {
     notifications: boolean,
@@ -77,6 +119,13 @@ The Cloud Firestore database will use the following collection and document stru
   
   // Progress tracking
   progress: number, // 0-100 percentage
+  lastProgressUpdate: Timestamp,
+  progressHistory: [
+    {
+      date: Timestamp,
+      value: number // progress value at this date
+    }
+  ],
   completedActivities: [
     {
       activityId: "string",
@@ -99,7 +148,18 @@ The Cloud Firestore database will use the following collection and document stru
   // Course metadata
   lastActivityType: "string",
   totalTimeSpent: number, // in minutes
-  averageSessionDuration: number // in minutes
+  averageSessionDuration: number, // in minutes
+  
+  // Suggested topics based on progress
+  suggestedTopics: [
+    {
+      id: "string",
+      title: "string",
+      description: "string",
+      moduleId: "string", // reference to course module
+      difficulty: "string" // "easy", "medium", "hard"
+    }
+  ]
 }
 ```
 
@@ -176,6 +236,34 @@ The Cloud Firestore database will use the following collection and document stru
     grade: number, // if graded
     isGraded: boolean
   }
+}
+```
+
+### User Events Subcollection
+
+**Collection**: `users/{uid}/events`  
+**Document ID**: `{eventId}` (Generated UUID)
+
+```javascript
+{
+  eventId: "string",
+  title: "string",
+  type: "string", // "study", "quiz", "meeting", "assignment", "other"
+  date: Timestamp,
+  endDate: Timestamp, // for events with duration
+  courseId: "string", // reference to course if applicable
+  description: "string",
+  location: "string", // physical or virtual location
+  isCompleted: boolean,
+  completedAt: Timestamp,
+  isRecurring: boolean,
+  recurringPattern: {
+    frequency: "string", // "daily", "weekly", "monthly"
+    interval: number, // e.g., every 2 weeks
+    endDate: Timestamp
+  },
+  reminderTime: number, // minutes before event to send reminder
+  color: "string" // for UI display
 }
 ```
 
@@ -433,7 +521,7 @@ service cloud.firestore {
       allow read: if request.auth.uid == userId || request.auth.token.admin == true;
       allow write: if request.auth.uid == userId || request.auth.token.admin == true;
       
-      // User subcollections - courses, schedule, activities, assignments
+      // User subcollections - courses, schedule, activities, assignments, events
       match /courses/{courseId} {
         allow read: if request.auth.uid == userId || request.auth.token.admin == true;
         allow write: if request.auth.uid == userId || request.auth.token.admin == true;
@@ -456,6 +544,14 @@ service cloud.firestore {
       }
       
       match /assignments/{assignmentId} {
+        allow read: if request.auth.uid == userId || 
+                     request.auth.token.admin == true || 
+                     request.auth.token.parent == true && 
+                     get(/databases/$(database)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
+        allow write: if request.auth.uid == userId || request.auth.token.admin == true;
+      }
+      
+      match /events/{eventId} {
         allow read: if request.auth.uid == userId || 
                      request.auth.token.admin == true || 
                      request.auth.token.parent == true && 
@@ -588,6 +684,22 @@ The following Cloud Functions will be implemented:
    - Trigger: Scheduled function (daily)
    - Actions: Generate user activity reports, learning pattern insights
 
+10. **Daily Goals Generator**
+    - Trigger: Scheduled function (daily)
+    - Actions: Generate new daily goals based on user courses and progress
+
+11. **Study Streak Calculator**
+    - Trigger: `onWrite` for user activity documents
+    - Actions: Calculate consecutive days of learning activity, update streak counter in user profile
+
+12. **Dashboard Data Aggregator**
+    - Trigger: HTTP callable function
+    - Actions: Aggregate all dashboard-related data into a single response for efficient loading
+
+13. **Course Recommendations**
+    - Trigger: Scheduled function (weekly)
+    - Actions: Generate personalized course and topic recommendations based on progress and learning patterns
+
 ## Implementation Guidelines
 
 ### User Progress Tracking
@@ -602,6 +714,36 @@ The following Cloud Functions will be implemented:
    - Assignment completion: 15% of course progress
 
 3. **Progress Updates**: Update in real-time when activities are completed
+
+4. **Progress History**: Maintain a historical record of progress changes for trend analysis and visualization
+
+5. **Study Streak**: Calculate and update consecutive days of activity to encourage consistent learning
+
+### Dashboard Data Integration
+
+1. **Centralized Stats Collection**:
+   - Store aggregated dashboard statistics in the user document for efficient retrieval
+   - Update statistics in real-time when activities are completed
+
+2. **Recent Activity Feed**:
+   - Store the most recent 10-15 activities in the user document
+   - Include activity type, timestamp, and relevant details
+   - Use this for dashboard activity feed display
+
+3. **Daily Goals Management**:
+   - Generate personalized daily goals based on course progress and scheduled activities
+   - Automatically mark goals as complete when relevant activities are finished
+   - Allow manual completion tracking via the UI
+
+4. **Event Management**:
+   - Store upcoming events in a dedicated subcollection
+   - Include study sessions, quiz deadlines, and assignments
+   - Update dashboard display with the next 3-5 upcoming events
+
+5. **Suggested Topics Generation**:
+   - Analyze course progress to identify areas needing attention
+   - Generate personalized topic suggestions for each course
+   - Include in dashboard recommendations section
 
 ### Assignment Management
 
@@ -652,22 +794,31 @@ The following Cloud Functions will be implemented:
 - Set up Firestore basic collections 
 - Implement basic security rules
 
-### Phase 2: Progress Tracking & Schedule Management
+### Phase 2: Progress Tracking & Dashboard Integration
 - Implement activity tracking
 - Set up progress calculation functions
-- Complete schedule data storage
+- Create dashboard data aggregation
+- Implement study streak calculation
+- Set up real-time progress updates
 
-### Phase 3: Assignment Management System
+### Phase 3: Schedule & Event Management
+- Complete schedule data storage
+- Implement event tracking and management
+- Set up calendar integration
+- Create notification system for upcoming events
+
+### Phase 4: Assignment Management System
 - Implement assignment generation and storage
 - Set up priority calculation and status management
 - Create assignment submission handling
 - Configure weekly assignment generation
 
-### Phase 4: Advanced Features & Analytics
+### Phase 5: Advanced Features & Analytics
 - Implement chat image storage
 - Set up analytics events
 - Deploy cloud functions for advanced features
 - Integrate Gemini API for assignment generation
+- Implement dashboard recommendation engine
 
 ## Data Migration Strategy
 
@@ -675,10 +826,13 @@ For migrating from the current localStorage implementation:
 
 1. Create Firebase user accounts for existing users
 2. Transfer onboarding preferences to Firestore
-3. Migrate locally stored schedules to Firestore
-4. Migrate locally stored assignments to Firestore
-5. Update application to read/write to Firebase instead of localStorage
-6. Implement data validation and cleanup processes
+3. Migrate localStorage progress tracking data to Firestore
+4. Migrate locally stored schedules to Firestore
+5. Migrate locally stored assignments to Firestore
+6. Create initial dashboard statistics based on migrated data
+7. Generate course progress history from available data points
+8. Update application to read/write to Firebase instead of localStorage
+9. Implement data validation and cleanup processes
 
 ## Testing & Security Considerations
 
@@ -687,3 +841,4 @@ For migrating from the current localStorage implementation:
 3. **Error Handling**: Implement robust error handling and logging
 4. **Backup Strategy**: Set up regular Firestore backups
 5. **Monitoring**: Configure Firebase alerts for abnormal usage patterns
+6. **Load Testing**: Test dashboard data retrieval performance under various conditions

@@ -919,26 +919,28 @@ const CourseLearningPage = () => {
           </div>
         </div>
         
-        {/* Progress Bar */}
-        <motion.div 
-          className="progress-bar-container"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <div className="progress-header">
-            <h3>Course Progress</h3>
-            <span className="progress-percentage">{progress}%</span>
-          </div>
-          <div className="progress-bar">
-            <motion.div 
-              className={`progress-fill ${progressAnimation ? 'animating' : ''}`}
-              initial={{ width: `${Math.max(0, progress - 5)}%` }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            ></motion.div>
-          </div>
-        </motion.div>
+        {/* Progress Bar - Only visible on mode selection page */}
+        {mode === 'select' && (
+          <motion.div 
+            className="progress-bar-container"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            <div className="progress-header">
+              <h3>Course Progress</h3>
+              <span className="progress-percentage">{progress}%</span>
+            </div>
+            <div className="progress-bar">
+              <motion.div 
+                className={`progress-fill ${progressAnimation ? 'animating' : ''}`}
+                initial={{ width: `${Math.max(0, progress - 5)}%` }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              ></motion.div>
+            </div>
+          </motion.div>
+        )}
         
         {/* Activity History Panel */}
         <AnimatePresence>

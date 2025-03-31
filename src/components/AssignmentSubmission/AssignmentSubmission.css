@@ -1,0 +1,345 @@
+/* Assignment Submission Styles */
+.assignment-submission-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.assignment-submission-content {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.assignment-submission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.assignment-submission-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: #eee;
+  color: #333;
+}
+
+.assignment-submission-content {
+  padding: 24px;
+}
+
+.assignment-details {
+  margin-bottom: 24px;
+}
+
+.assignment-details h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.assignment-description {
+  background-color: #f5f7ff;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #4a6bfb;
+  margin-bottom: 24px;
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.submission-form,
+.feedback-section {
+  width: 100%;
+}
+
+.submission-input-section {
+  margin-bottom: 24px;
+}
+
+.submission-input-section h4,
+.file-upload-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #444;
+}
+
+.submission-textarea {
+  width: 100%;
+  height: 200px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.submission-textarea:focus {
+  outline: none;
+  border-color: #4a6bfb;
+}
+
+.submission-textarea:disabled {
+  background-color: #f9f9f9;
+  cursor: not-allowed;
+}
+
+.file-upload-section {
+  margin-bottom: 24px;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #f9f9f9;
+}
+
+.file-upload-label:hover {
+  border-color: #4a6bfb;
+  background-color: #f5f7ff;
+}
+
+.file-upload-label span {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.uploaded-file {
+  display: flex;
+  align-items: center;
+  background-color: #f5f7ff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.file-name {
+  margin-left: 8px;
+  flex: 1;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.remove-file-button {
+  background: none;
+  border: none;
+  color: #f44336;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.remove-file-button:hover {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.remove-file-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submission-error {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.submission-error svg {
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.submission-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cancel-button,
+.submit-button,
+.complete-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.cancel-button {
+  background-color: transparent;
+  border: 1px solid #ddd;
+  color: #666;
+}
+
+.cancel-button:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.submit-button,
+.complete-button {
+  background-color: #4a6bfb;
+  border: none;
+  color: white;
+}
+
+.submit-button:hover,
+.complete-button:hover {
+  background-color: #3a5be0;
+}
+
+.submit-button:disabled {
+  background-color: #b0bec5;
+  cursor: not-allowed;
+}
+
+.submit-button svg,
+.complete-button svg {
+  margin-right: 8px;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Grading Results Styles */
+.feedback-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.grade-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.grade-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.grade-label {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.feedback-content {
+  width: 100%;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #333;
+}
+
+/* Adapt to responsive layouts */
+@media (max-width: 768px) {
+  .assignment-submission-content {
+    width: 95%;
+    max-height: 95vh;
+    padding: 16px;
+  }
+  
+  .grade-circle {
+    width: 100px;
+    height: 100px;
+    font-size: 2.5rem;
+  }
+  
+  .grade-label {
+    font-size: 1.1rem;
+  }
+  
+  .submission-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-button,
+  .submit-button,
+  .complete-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
