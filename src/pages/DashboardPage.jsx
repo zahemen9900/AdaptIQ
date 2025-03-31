@@ -7,7 +7,7 @@ import {
   IconClipboard, IconUsers, IconAward, IconBell, IconArrowUpRight,
   IconBrandZoom, IconNotebook, IconClock, IconCheck, IconRefresh,
   IconArrowRight, IconEye, IconActivity, IconBulb, IconTrophy, 
-  IconTargetArrow, IconMessageCircle, IconX, IconPlus
+  IconTargetArrow, IconMessageCircle, IconX, IconPlus, IconSparkles
 } from '@tabler/icons-react';
 import { getAssignments, formatAssignmentDate, sortAssignments } from '../utils/assignmentsUtils';
 import { 
@@ -490,9 +490,9 @@ const DashboardPage = () => {
             <IconCalendar size={24} />
             <span>Schedule</span>
           </Link>
-          <Link to="/dashboard/study-groups" className="nav-item">
-            <IconUsers size={24} />
-            <span>Study Groups</span>
+          <Link to="/dashboard/inspiration" className="nav-item">
+            <IconSparkles size={24} />
+            <span>Inspiration</span>
           </Link>
           <Link to="/dashboard/profile" className="nav-item">
             <IconUser size={24} />

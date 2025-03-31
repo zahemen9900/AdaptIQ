@@ -28,6 +28,7 @@ import LoadingPage from './pages/LoadingPage'
 import CourseLearningPage from './pages/CourseLearningPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import InspirationPage from './pages/InspirationPage'
 import { ThemeProvider } from './context/ThemeContext'
 
 // Create a HomePage component to contain all the sections
@@ -90,6 +91,7 @@ function App() {
         <Route path="/dashboard/course/:courseId" element={<CourseLearningPage />} />
         <Route path="/dashboard/profile" element={<ProfilePage />} />
         <Route path="/dashboard/settings" element={<SettingsPage />} />
+        <Route path="/dashboard/inspiration" element={<InspirationPage />} />
       </Routes>
       {!isAuthPage && <Footer />}
     </ThemeProvider>
