@@ -646,3 +646,186 @@
   background-color: var(--hover-bg, #F9FAFB);
   transform: translateY(-2px);
 }
+
+/* Add styles for the View All Courses link */
+.view-all-link-container {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #eef1f6;
+}
+
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #4a6bfb;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.view-all-link:hover {
+  background-color: rgba(74, 107, 251, 0.1);
+}
+
+.view-all-link svg {
+  transition: transform 0.2s ease;
+}
+
+.view-all-link:hover svg {
+  transform: translateX(3px);
+}
+
+/* Add styles for refreshing animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.refreshing .spin {
+  animation: spin 1s linear infinite;
+}
+
+.secondary-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Goal Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.goal-modal {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.goal-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eef1f6;
+}
+
+.goal-modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.goal-modal-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.goal-modal-content p {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.goal-input-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.goal-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.goal-input:focus {
+  outline: none;
+  border-color: #4a6bfb;
+}
+
+.add-goal-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  background-color: #4a6bfb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-goal-button:hover {
+  background-color: #3a5be0;
+}
+
+.add-goal-button:disabled {
+  background-color: #b0bec5;
+  cursor: not-allowed;
+}
+
+.goals-list-modal {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.no-goals-message {
+  text-align: center;
+  padding: 30px 0;
+  color: #888;
+  font-style: italic;
+}
+
+.goal-modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #eef1f6;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.close-modal-button {
+  padding: 10px 20px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #334155;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-modal-button:hover {
+  background-color: #e2e8f0;
+}

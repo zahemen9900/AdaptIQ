@@ -26,6 +26,7 @@ import SchedulePage from './pages/SchedulePage'
 import AssignmentsPage from './pages/AssignmentsPage'
 import LoadingPage from './pages/LoadingPage'
 import CourseLearningPage from './pages/CourseLearningPage'
+import ProfilePage from './pages/ProfilePage'
 
 // Create a HomePage component to contain all the sections
 const HomePage = () => {
@@ -85,6 +86,7 @@ function App() {
         <Route path="/dashboard/schedule" element={<SchedulePage />} />
         <Route path="/dashboard/assignments" element={<AssignmentsPage />} />
         <Route path="/dashboard/course/:courseId" element={<CourseLearningPage />} />
+        <Route path="/dashboard/profile" element={<ProfilePage />} />
       </Routes>
       {!isAuthPage && <Footer />}
     </>

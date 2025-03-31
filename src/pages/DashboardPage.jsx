@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import './DashboardPage.css';
 import Logo from '../assets/logo-white.png';
@@ -7,7 +7,7 @@ import {
   IconClipboard, IconUsers, IconAward, IconBell, IconArrowUpRight,
   IconBrandZoom, IconNotebook, IconClock, IconCheck, IconRefresh,
   IconArrowRight, IconEye, IconActivity, IconBulb, IconTrophy, 
-  IconTargetArrow, IconMessageCircle
+  IconTargetArrow, IconMessageCircle, IconX, IconPlus
 } from '@tabler/icons-react';
 import { getAssignments, formatAssignmentDate, sortAssignments } from '../utils/assignmentsUtils';
 import { 
@@ -15,7 +15,7 @@ import {
   getAllCoursesProgress, 
   getActivityHistory 
 } from '../utils/progressTracker';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DashboardPage = () => {
   // State for user information
@@ -29,7 +29,13 @@ const DashboardPage = () => {
   });
   const [upcomingAssignments, setUpcomingAssignments] = useState([]);
   const [courseProgress, setCourseProgress] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // State for goals modal
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [newGoalText, setNewGoalText] = useState('');
+  const goalInputRef = useRef(null);
 
   // State for additional dashboard features
   const [recentActivity, setRecentActivity] = useState([]);
@@ -50,6 +56,99 @@ const DashboardPage = () => {
     setTodayGoals(todayGoals.map(goal => 
       goal.id === goalId ? { ...goal, completed: !goal.completed } : goal
     ));
+  };
+
+  // Add a new goal
+  const handleAddGoal = () => {
+    if (newGoalText.trim() === '') return;
+    
+    const newGoal = {
+      id: Date.now(), // Generate unique ID using timestamp
+      text: newGoalText.trim(),
+      completed: false
+    };
+    
+    setTodayGoals([...todayGoals, newGoal]);
+    setNewGoalText('');
+    
+    // Save goals to localStorage
+    try {
+      const storedGoals = JSON.parse(localStorage.getItem('adaptiq-goals') || '[]');
+      localStorage.setItem('adaptiq-goals', JSON.stringify([...storedGoals, newGoal]));
+    } catch (error) {
+      console.error("Error saving goals to localStorage:", error);
+    }
+    
+    // Focus the input field again for adding another goal
+    if (goalInputRef.current) {
+      goalInputRef.current.focus();
+    }
+  };
+  
+  // Handle opening the goal modal
+  const handleOpenGoalModal = () => {
+    setShowGoalModal(true);
+    // Focus the input field after modal opens
+    setTimeout(() => {
+      if (goalInputRef.current) {
+        goalInputRef.current.focus();
+      }
+    }, 100);
+  };
+  
+  // Handle closing the goal modal
+  const handleCloseGoalModal = () => {
+    setShowGoalModal(false);
+    setNewGoalText('');
+  };
+  
+  // Refresh dashboard data
+  const handleRefreshDashboard = async () => {
+    if (refreshing) return; // Prevent multiple refreshes
+    
+    setRefreshing(true);
+    
+    try {
+      // Get user information from local storage
+      const onboardingData = localStorage.getItem('onboardingData');
+      let userData = null;
+      
+      if (onboardingData) {
+        userData = JSON.parse(onboardingData);
+      }
+      
+      // Refresh all dashboard data
+      const courseInfo = await fetchCourseData(userData);
+      setCourseData(courseInfo);
+      
+      // Filter top courses for progress display
+      const topCourses = courseInfo.courses
+        .sort((a, b) => b.progress - a.progress)
+        .slice(0, 4);
+      setCourseProgress(topCourses);
+      
+      // Get upcoming assignments
+      const assignments = await fetchAssignments();
+      setUpcomingAssignments(assignments);
+      
+      // Generate new streak
+      const streak = Math.floor(Math.random() * 30) + 1;
+      setStudyStreakDays(streak);
+      
+      // Show success message (could add a toast notification here)
+      console.log("Dashboard refreshed successfully!");
+    } catch (error) {
+      console.error("Error refreshing dashboard:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
+  // Handle key press in the goal input field
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleAddGoal();
+    }
   };
 
   // Calculate study streak
@@ -488,6 +587,12 @@ const DashboardPage = () => {
                           </div>
                         </div>
                       ))}
+                      <div className="view-all-link-container">
+                        <Link to="/dashboard/courses" className="view-all-link">
+                          <span>View All Courses</span>
+                          <IconArrowRight size={16} />
+                        </Link>
+                      </div>
                     </div>
                   ) : (
                     <div className="empty-state">
@@ -519,7 +624,7 @@ const DashboardPage = () => {
                     ))}
                   </div>
                   <div className="card-footer">
-                    <button className="link-button">
+                    <button className="link-button" onClick={handleRefreshDashboard}>
                       <IconRefresh size={16} />
                       <span>Refresh Goals</span>
                     </button>
@@ -638,16 +743,97 @@ const DashboardPage = () => {
                 <h2>You're all caught up!</h2>
                 <p>You've checked all your notifications and recent activity.</p>
                 <div className="caught-up-actions">
-                  <button className="primary-button">
+                  <button className="primary-button" onClick={handleOpenGoalModal}>
                     <IconTargetArrow size={18} />
                     <span>Set New Goals</span>
                   </button>
-                  <button className="secondary-button">
-                    <IconRefresh size={18} />
-                    <span>Refresh Dashboard</span>
+                  <button 
+                    className={`secondary-button ${refreshing ? 'refreshing' : ''}`} 
+                    onClick={handleRefreshDashboard}
+                    disabled={refreshing}
+                  >
+                    <IconRefresh size={18} className={refreshing ? 'spin' : ''} />
+                    <span>{refreshing ? 'Refreshing...' : 'Refresh Dashboard'}</span>
                   </button>
                 </div>
               </motion.div>
+              
+              {/* Goal Setting Modal */}
+              <AnimatePresence>
+                {showGoalModal && (
+                  <motion.div 
+                    className="modal-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <motion.div 
+                      className="goal-modal"
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.9, opacity: 0 }}
+                    >
+                      <div className="goal-modal-header">
+                        <h2>Set New Goals</h2>
+                        <button className="close-button" onClick={handleCloseGoalModal}>
+                          <IconX size={20} />
+                        </button>
+                      </div>
+                      
+                      <div className="goal-modal-content">
+                        <p>Add goals to track your daily progress. Click on a goal to mark it as completed.</p>
+                        
+                        <div className="goal-input-container">
+                          <input 
+                            type="text" 
+                            className="goal-input"
+                            placeholder="Enter a new goal..."
+                            value={newGoalText}
+                            onChange={(e) => setNewGoalText(e.target.value)}
+                            onKeyDown={handleKeyPress}
+                            ref={goalInputRef}
+                          />
+                          <button 
+                            className="add-goal-button"
+                            onClick={handleAddGoal}
+                            disabled={!newGoalText.trim()}
+                          >
+                            <IconPlus size={20} />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                        
+                        <div className="goals-list-modal">
+                          {todayGoals.length > 0 ? (
+                            todayGoals.map(goal => (
+                              <div 
+                                key={goal.id} 
+                                className={`goal-item ${goal.completed ? 'completed' : ''}`}
+                                onClick={() => toggleGoalCompletion(goal.id)}
+                              >
+                                <div className="goal-checkbox">
+                                  {goal.completed ? <IconCheck size={18} /> : null}
+                                </div>
+                                <span className="goal-text">{goal.text}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="no-goals-message">
+                              <p>You haven't set any goals yet. Add your first goal above!</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="goal-modal-footer">
+                        <button className="close-modal-button" onClick={handleCloseGoalModal}>
+                          Done
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </>
           )}
         </div>
