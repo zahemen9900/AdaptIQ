@@ -21,8 +21,12 @@ import {
   sortAssignments,
   getPriorityInfo,
   filterAssignments,
-  generateAssignmentWithGemini
+  generateAssignmentWithGemini,
+  getRandomTopicForSubject,
+  generateAssignment
 } from '../utils/assignmentsUtils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const AssignmentsPage = () => {
   // State for user info
@@ -36,6 +40,7 @@ const AssignmentsPage = () => {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
   
   // State for calendar view
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -52,66 +57,84 @@ const AssignmentsPage = () => {
 
   // Load user data and assignments
   useEffect(() => {
-    // Get user data
-    const onboardingData = localStorage.getItem('onboardingData');
-    if (onboardingData) {
-      const userData = JSON.parse(onboardingData);
-      if (userData.nickname) setNickname(userData.nickname);
-      
-      // Extract subjects from courses
-      if (userData.courses && userData.courses.length > 0) {
-        const extractedSubjects = userData.courses.map(courseId => {
-          const parts = courseId.split('-');
-          const subjectId = parts[0];
-          
-          // Map from subject IDs to subject names
-          const subjectMap = {
-            'math': 'Mathematics',
-            'algebra': 'Algebra',
-            'geometry': 'Geometry',
-            'calculus': 'Calculus',
-            'science': 'Science',
-            'biology': 'Biology',
-            'chemistry': 'Chemistry',
-            'physics': 'Physics',
-            'history': 'History',
-            'worldHistory': 'World History',
-            'language': 'Language',
-            'english': 'English',
-            'programming': 'Programming',
-            'computerScience': 'Computer Science'
-          };
-          
-          return subjectMap[subjectId] || 'General';
-        });
+    async function loadData() {
+      // Get user data
+      const onboardingData = localStorage.getItem('onboardingData');
+      if (onboardingData) {
+        const userData = JSON.parse(onboardingData);
+        if (userData.nickname) setNickname(userData.nickname);
         
-        // Remove duplicates
-        const uniqueSubjects = [...new Set(extractedSubjects)];
-        setSubjects(uniqueSubjects);
-        
-        // Ensure weekly assignments for each subject
-        const updatedAssignments = ensureWeeklyAssignments(uniqueSubjects);
-        setAssignments(updatedAssignments);
-        setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
+        // Extract subjects from courses
+        if (userData.courses && userData.courses.length > 0) {
+          const extractedSubjects = userData.courses.map(courseId => {
+            const parts = courseId.split('-');
+            const subjectId = parts[0];
+            
+            // Map from subject IDs to subject names
+            const subjectMap = {
+              'math': 'Mathematics',
+              'algebra': 'Algebra',
+              'geometry': 'Geometry',
+              'calculus': 'Calculus',
+              'science': 'Science',
+              'biology': 'Biology',
+              'chemistry': 'Chemistry',
+              'physics': 'Physics',
+              'history': 'History',
+              'worldHistory': 'World History',
+              'language': 'Language',
+              'english': 'English',
+              'programming': 'Programming',
+              'computerScience': 'Computer Science'
+            };
+            
+            return subjectMap[subjectId] || 'General';
+          });
+          
+          // Remove duplicates
+          const uniqueSubjects = [...new Set(extractedSubjects)];
+          setSubjects(uniqueSubjects);
+          
+          // Ensure weekly assignments for each subject (asynchronous)
+          setLoading(true); // Show loading state while generating assignments
+          try {
+            const updatedAssignments = await ensureWeeklyAssignments(uniqueSubjects);
+            setAssignments(updatedAssignments);
+            setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
+          } catch (error) {
+            console.error("Error ensuring weekly assignments:", error);
+          } finally {
+            setLoading(false);
+          }
+        }
       }
-    }
-    
-    // If no subjects were found, use some defaults for demo purposes
-    if (!subjects || subjects.length === 0) {
-      const defaultSubjects = ['Mathematics', 'Physics', 'Chemistry', 'Programming', 'History'];
-      setSubjects(defaultSubjects);
       
-      // Generate default assignments
-      const defaultAssignments = ensureWeeklyAssignments(defaultSubjects);
-      setAssignments(defaultAssignments);
-      setFilteredAssignments(sortAssignments(defaultAssignments, filters.sortBy));
+      // If no subjects were found, use some defaults for demo purposes
+      if (!subjects || subjects.length === 0) {
+        const defaultSubjects = ['Mathematics', 'Physics', 'Chemistry', 'Programming', 'History'];
+        setSubjects(defaultSubjects);
+        
+        // Generate default assignments (asynchronous)
+        setLoading(true);
+        try {
+          const defaultAssignments = await ensureWeeklyAssignments(defaultSubjects);
+          setAssignments(defaultAssignments);
+          setFilteredAssignments(sortAssignments(defaultAssignments, filters.sortBy));
+        } catch (error) {
+          console.error("Error generating default assignments:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+      
+      // Generate calendar dates for the current month
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const dates = generateCalendarDates(year, month);
+      setCalendarDates(dates);
     }
     
-    // Generate calendar dates for the current month
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const dates = generateCalendarDates(year, month);
-    setCalendarDates(dates);
+    loadData();
   }, []);
 
   // Update filtered assignments when filters change
@@ -184,20 +207,74 @@ const AssignmentsPage = () => {
   // Group assignments by date for the calendar view
   const assignmentsByDate = groupAssignmentsByDate(filteredAssignments);
 
-  // Generate a new assignment (to be connected to Gemini API)
+  // Generate a new assignment (using Gemini AI)
   const handleGenerateNewAssignment = async () => {
     if (subjects.length === 0) return;
     
-    // For now, just use the first subject. In a real implementation,
-    // you would let the user select a subject
-    const subject = subjects[0];
+    setLoading(true);
     
-    // This would call the Gemini API in the future
-    const newAssignment = await generateAssignmentWithGemini(subject, 'recent topics');
-    
-    const updatedAssignments = [...assignments, newAssignment];
-    setAssignments(updatedAssignments);
-    saveAssignments(updatedAssignments);
+    try {
+      // Get existing assignments
+      const existingAssignments = getAssignments();
+      
+      // Get current date and date one week from now
+      const now = new Date();
+      const oneWeekLater = new Date(now);
+      oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+      
+      // Find subjects that don't have an assignment due in the next week
+      const subjectsNeedingAssignments = subjects.filter(subject => {
+        const hasAssignmentThisWeek = existingAssignments.some(assignment => {
+          return assignment.subject === subject && 
+                 new Date(assignment.dueDate) <= oneWeekLater &&
+                 new Date(assignment.dueDate) >= now &&
+                 assignment.status !== 'completed';
+        });
+        
+        return !hasAssignmentThisWeek;
+      });
+      
+      if (subjectsNeedingAssignments.length === 0) {
+        // If all subjects have assignments this week, show a message
+        alert("All subjects already have assignments scheduled for this week. New assignments will be available next week.");
+        setLoading(false);
+        return;
+      }
+      
+      // Generate assignment promises for subjects needing assignments
+      const assignmentPromises = subjectsNeedingAssignments.map(subject => {
+        const topic = getRandomTopicForSubject(subject);
+        const assignmentTypes = ['assignment', 'quiz', 'project'];
+        const randomType = assignmentTypes[Math.floor(Math.random() * assignmentTypes.length)];
+        
+        return generateAssignmentWithGemini(subject, topic, randomType)
+          .catch(error => {
+            console.error(`Error generating assignment for ${subject}:`, error);
+            // Fall back to local generation if API fails
+            const dueDate = new Date(now);
+            dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7) + 1);
+            return generateAssignment(subject, dueDate);
+          });
+      });
+      
+      // Wait for all assignment generations to complete
+      const newAssignments = await Promise.all(assignmentPromises);
+      
+      // Add new assignments to the existing ones
+      const updatedAssignments = [...existingAssignments, ...newAssignments];
+      
+      // Update and save assignments
+      const finalAssignments = updatedAssignments.map(updateAssignmentStatus);
+      saveAssignments(finalAssignments);
+      
+      // Update state with new assignments
+      setAssignments(finalAssignments);
+      setFilteredAssignments(sortAssignments(finalAssignments, filters.sortBy));
+    } catch (error) {
+      console.error("Error generating new assignments:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Format month name for display
@@ -403,6 +480,16 @@ const AssignmentsPage = () => {
         
         {/* Assignments Content */}
         <div className="assignments-content">
+          {/* Loading Overlay */}
+          {loading && (
+            <div className="loading-overlay">
+              <div className="loading-spinner-container">
+                <div className="loading-spinner"></div>
+                <p>Generating AI assignments...</p>
+              </div>
+            </div>
+          )}
+          
           {/* List View */}
           {viewMode === 'list' && (
             <div className="assignments-list-view">
@@ -628,7 +715,11 @@ const AssignmentsPage = () => {
                 
                 <div className="details-description">
                   <h4>Description</h4>
-                  <p>{selectedAssignment.description}</p>
+                  <div className="markdown-content">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {selectedAssignment.description}
+                    </ReactMarkdown>
+                  </div>
                 </div>
                 
                 {selectedAssignment.resources && selectedAssignment.resources.length > 0 && (

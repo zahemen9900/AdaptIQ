@@ -1,8 +1,224 @@
 // Assignment utility functions for AdaptIQ
 
 import { getSubjectImageUrl } from './subjectImageUtils';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Mock assignment generation (will be replaced with Gemini API call)
+// Initialize the Google Generative AI with the API key
+// In production, this should be properly handled with environment variables
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
+const genAI = new GoogleGenerativeAI(API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+// Function to generate an assignment using Gemini AI
+export const generateAssignmentWithGemini = async (subject, topic, type = 'assignment') => {
+  try {
+    // Prepare the prompt for Gemini
+    const prompt = prepareGeminiPrompt(subject, topic, type);
+    
+    if (!API_KEY) {
+      console.warn("API key not found, using fallback assignment generation");
+      // Fall back to local generation if no API key
+      const mockDueDate = new Date();
+      mockDueDate.setDate(mockDueDate.getDate() + Math.floor(Math.random() * 7) + 1);
+      return generateAssignment(subject, mockDueDate);
+    }
+    
+    // Call Gemini API
+    const content = await model.generateContent(prompt);
+    const response = content.response.text();
+    
+    // Parse the response to extract relevant information
+    const assignmentData = parseGeminiResponse(response, subject, topic);
+    
+    // Set due date (random day within next week)
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7) + 1);
+    
+    // Generate resources
+    const category = getCategoryForSubject(subject);
+    const resources = generateMockResources(subject, category);
+    
+    // Create and return the assignment object
+    return {
+      id: `assignment-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      title: assignmentData.title,
+      subject: subject,
+      category: category,
+      description: assignmentData.description,
+      dueDate: dueDate.toISOString(),
+      createdDate: new Date().toISOString(),
+      estimatedMinutes: assignmentData.estimatedMinutes,
+      imageUrl: getSubjectImageUrl(subject, category),
+      status: 'pending',
+      priority: calculatePriority(dueDate),
+      resources: resources
+    };
+  } catch (error) {
+    console.error("Error generating assignment with Gemini:", error);
+    // Fall back to local generation
+    const fallbackDate = new Date();
+    fallbackDate.setDate(fallbackDate.getDate() + Math.floor(Math.random() * 7) + 1);
+    return generateAssignment(subject, fallbackDate);
+  }
+};
+
+// Parse Gemini's response to extract title, description, and estimated time
+const parseGeminiResponse = (response, subject, topic) => {
+  let title = `${subject} Assignment: ${topic.charAt(0).toUpperCase() + topic.slice(1)}`;
+  let description = response;
+  let estimatedMinutes = 45;
+
+  // Try to extract a better title from the response
+  const titleMatch = response.match(/^#\s*(.*?)$/m) || 
+                     response.match(/^Title:\s*(.*?)$/m) ||
+                     response.match(/^Assignment:\s*(.*?)$/m);
+  
+  if (titleMatch && titleMatch[1]) {
+    title = titleMatch[1].trim();
+  }
+  
+  // Try to extract estimated time
+  const timeMatch = response.match(/estimated time:?\s*(\d+)[-\s]?(\d*)\s*(minutes|hours|mins|min)/i) ||
+                   response.match(/time required:?\s*(\d+)[-\s]?(\d*)\s*(minutes|hours|mins|min)/i) ||
+                   response.match(/duration:?\s*(\d+)[-\s]?(\d*)\s*(minutes|hours|mins|min)/i);
+  
+  if (timeMatch) {
+    const timeValue = parseInt(timeMatch[1]);
+    const timeUnit = timeMatch[3].toLowerCase();
+    
+    if (timeUnit.includes('hour')) {
+      estimatedMinutes = timeValue * 60;
+    } else {
+      estimatedMinutes = timeValue;
+    }
+    
+    // Keep estimated time reasonable (between 15-120 minutes)
+    estimatedMinutes = Math.max(15, Math.min(120, estimatedMinutes));
+  }
+  
+  return {
+    title,
+    description,
+    estimatedMinutes
+  };
+};
+
+// Prepare prompts for Gemini to generate different types of assignments
+export const prepareGeminiPrompt = (subject, topic, type = 'assignment') => {
+  const prompts = {
+    assignment: `You are AdaptIQ, an intelligent AI assistant specialized in education. Create a detailed assignment for a ${subject} course focused on the topic of "${topic}". 
+    
+Format your response as follows:
+# [Create a compelling title for the assignment]
+
+## Assignment Description
+[Write a 2-3 paragraph description of the assignment, explaining what students need to do]
+
+## Learning Objectives
+- [List 3-5 specific learning objectives]
+
+## Tasks
+1. [First required task with details]
+2. [Second required task with details]
+3. [Additional tasks as needed]
+
+## Evaluation Criteria
+- [Criterion 1]
+- [Criterion 2]
+- [Criterion 3]
+
+## Estimated Time: [Provide an estimated completion time in minutes]
+`,
+    quiz: `You are AdaptIQ, an intelligent AI tutor. Generate a comprehensive quiz for ${subject} on the topic of "${topic}" with a mix of multiple choice and short answer questions.
+
+Format your response as follows:
+# ${subject} Quiz: ${topic}
+
+## Instructions
+[Brief instructions for taking the quiz]
+
+## Questions
+1. [First question]
+   a) [option]
+   b) [option]
+   c) [option]
+   d) [option]
+
+2. [Short answer question]
+
+3. [Additional questions...]
+
+## Estimated Time: [Provide an estimated completion time in minutes]
+`,
+    project: `You are AdaptIQ, an intelligent AI education assistant. Design a project-based assignment for ${subject} focused on "${topic}".
+
+Format your response as follows:
+# ${subject} Project: ${topic}
+
+## Project Overview
+[Write a compelling description of the project, its purpose and relevance]
+
+## Project Requirements
+- [Requirement 1]
+- [Requirement 2]
+- [Requirement 3]
+
+## Milestones
+1. [First milestone with deadline]
+2. [Second milestone with deadline]
+3. [Final deliverable]
+
+## Assessment Criteria
+- [Criterion 1]
+- [Criterion 2]
+- [Criterion 3]
+
+## Estimated Time: [Provide an estimated completion time in minutes]
+`
+  };
+  
+  return prompts[type] || prompts.assignment;
+};
+
+// Get the category for a subject
+const getCategoryForSubject = (subject) => {
+  const categoryMapping = {
+    'Algebra': 'mathematics',
+    'Geometry': 'mathematics',
+    'Calculus': 'mathematics',
+    'Statistics': 'mathematics',
+    'Trigonometry': 'mathematics',
+    'Biology': 'science',
+    'Chemistry': 'science',
+    'Physics': 'science',
+    'Environmental Science': 'science',
+    'Astronomy': 'science',
+    'World History': 'history',
+    'US History': 'history',
+    'European History': 'history',
+    'Ancient Civilizations': 'history',
+    'Modern History': 'history',
+    'Spanish': 'language',
+    'French': 'language',
+    'German': 'language',
+    'Chinese': 'language',
+    'Japanese': 'language',
+    'Programming': 'computer-science',
+    'Web Development': 'computer-science',
+    'Database Systems': 'computer-science',
+    'Artificial Intelligence': 'computer-science',
+    'Cybersecurity': 'computer-science',
+    'Mathematics': 'mathematics',
+    'Science': 'science',
+    'History': 'history',
+    'English': 'language',
+    'Computer Science': 'computer-science'
+  };
+  
+  return categoryMapping[subject] || 'other';
+};
+
+// The existing generateAssignment function will be kept as a fallback
 export const generateAssignment = (subject, dueDate, courseLevel = 'intermediate') => {
   // This function will be replaced with Gemini API integration
   const mockAssignmentTemplates = {
@@ -352,14 +568,18 @@ export const getAssignments = () => {
 };
 
 // Generate assignments for a subject if there are none due in the next week
-export const ensureWeeklyAssignments = (subjects) => {
+export const ensureWeeklyAssignments = async (subjects) => {
+  // Get existing assignments (don't overwrite them)
   let assignments = getAssignments();
   const now = new Date();
   const oneWeekLater = new Date(now);
   oneWeekLater.setDate(oneWeekLater.getDate() + 7);
   
+  // Store promises for all assignment generations
+  const assignmentPromises = [];
+  
   // Check each subject and create an assignment if none exists
-  subjects.forEach(subject => {
+  for (const subject of subjects) {
     const hasAssignmentThisWeek = assignments.some(assignment => {
       return assignment.subject === subject && 
              new Date(assignment.dueDate) <= oneWeekLater &&
@@ -368,15 +588,32 @@ export const ensureWeeklyAssignments = (subjects) => {
     });
     
     if (!hasAssignmentThisWeek) {
-      // Generate a new assignment with a due date within the next week
-      const daysToAdd = Math.floor(Math.random() * 7) + 1;
-      const dueDate = new Date(now);
-      dueDate.setDate(dueDate.getDate() + daysToAdd);
+      // Get topic based on subject
+      const topic = getRandomTopicForSubject(subject);
       
-      const newAssignment = generateAssignment(subject, dueDate);
-      assignments.push(newAssignment);
+      // Generate assignment types randomly
+      const assignmentTypes = ['assignment', 'quiz', 'project'];
+      const randomType = assignmentTypes[Math.floor(Math.random() * assignmentTypes.length)];
+      
+      // Add the promise to our array
+      assignmentPromises.push(
+        generateAssignmentWithGemini(subject, topic, randomType)
+          .catch(error => {
+            console.error(`Error generating assignment for ${subject}:`, error);
+            // Fall back to local generation if API fails
+            const dueDate = new Date(now);
+            dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7) + 1);
+            return generateAssignment(subject, dueDate);
+          })
+      );
     }
-  });
+  }
+  
+  // Wait for all assignment generations to complete
+  const newAssignments = await Promise.all(assignmentPromises);
+  
+  // Add new assignments to the existing ones
+  assignments = [...assignments, ...newAssignments];
   
   // Update and save assignments
   assignments = assignments.map(updateAssignmentStatus);
@@ -385,31 +622,40 @@ export const ensureWeeklyAssignments = (subjects) => {
   return assignments;
 };
 
-// Prepare the integration with Gemini API
-export const prepareGeminiPrompt = (subject, topic, type = 'assignment') => {
-  // This function will construct prompts for the Gemini API when integrated
-  const prompts = {
-    assignment: `Create a detailed assignment for a ${subject} course focused on the topic of ${topic}. Include learning objectives, required tasks, evaluation criteria, and estimated completion time.`,
-    quiz: `Generate a comprehensive quiz for ${subject} on the topic of ${topic} with a mix of multiple choice, short answer, and essay questions. Include an answer key.`,
-    project: `Design a project-based assignment for ${subject} focused on ${topic}. Include project requirements, milestones, deliverables, and assessment criteria.`
+// Export helper function to get a random topic for a subject
+export const getRandomTopicForSubject = (subject) => {
+  const topics = {
+    'Mathematics': ['algebra', 'geometry', 'statistics', 'trigonometry', 'calculus'],
+    'Algebra': ['quadratic equations', 'matrices', 'linear functions', 'logarithms', 'inequalities'],
+    'Geometry': ['triangles', 'circles', 'polygons', 'transformations', 'coordinate geometry'],
+    'Calculus': ['derivatives', 'integrals', 'limits', 'series', 'differential equations'],
+    'Physics': ['mechanics', 'thermodynamics', 'electromagnetism', 'quantum physics', 'optics'],
+    'Chemistry': ['chemical bonding', 'stoichiometry', 'thermochemistry', 'organic compounds', 'acids and bases'],
+    'Biology': ['cell biology', 'genetics', 'ecology', 'human physiology', 'evolution'],
+    'World History': ['ancient civilizations', 'world wars', 'colonialism', 'political systems', 'cultural revolutions'],
+    'History': ['renaissance', 'industrial revolution', 'cold war', 'civil rights movement', 'ancient empires'],
+    'Programming': ['data structures', 'algorithms', 'object-oriented programming', 'web development', 'databases'],
+    'Web Development': ['responsive design', 'frontend frameworks', 'API integration', 'server-side rendering', 'web security'],
+    'Computer Science': ['artificial intelligence', 'machine learning', 'computer networks', 'operating systems', 'computer architecture'],
+    'General Psychology': ['cognitive processes', 'developmental stages', 'psychological disorders', 'research methods', 'social psychology']
   };
   
-  return prompts[type] || prompts.assignment;
+  const defaultTopics = ['fundamental concepts', 'basic principles', 'problem solving', 'theoretical applications', 'practical applications'];
+  
+  // Try to get topics for the exact subject
+  if (topics[subject] && topics[subject].length > 0) {
+    return topics[subject][Math.floor(Math.random() * topics[subject].length)];
+  }
+  
+  // Try to find a similar subject
+  const similarSubject = Object.keys(topics).find(key => 
+    subject.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(subject.toLowerCase())
+  );
+  
+  if (similarSubject && topics[similarSubject].length > 0) {
+    return topics[similarSubject][Math.floor(Math.random() * topics[similarSubject].length)];
+  }
+  
+  // Fall back to default topics
+  return defaultTopics[Math.floor(Math.random() * defaultTopics.length)];
 };
-
-// This function will be implemented when Gemini API is integrated
-export const generateAssignmentWithGemini = async (subject, topic, type = 'assignment') => {
-  // Placeholder for future Gemini API implementation
-  const prompt = prepareGeminiPrompt(subject, topic, type);
-  
-  // Mock API response for now
-  console.log('Gemini API prompt (to be implemented):', prompt);
-  
-  // Return mock data until API is integrated
-  const mockDueDate = new Date();
-  mockDueDate.setDate(mockDueDate.getDate() + 7);
-  
-  return generateAssignment(subject, mockDueDate);
-};
-
-// Export all utility functions for use in the application
