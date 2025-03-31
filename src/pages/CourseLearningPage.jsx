@@ -18,6 +18,8 @@ import {
   getActivityHistory
 } from '../utils/progressTracker';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // Initialize the Google Generative AI with the API key
 // In production, this should be properly handled with environment variables
@@ -407,12 +409,13 @@ const CourseLearningPage = () => {
             </div>
           </div>
         ))}
+
       </div>
     );
   };
 
-  // Generate a chat response using Gemini
-  const generateChatResponse = async (userMessage, course) => {
+  // Generate a chat response using Gemini (streaming version)
+  const generateChatResponse = async (userMessage, course, handleStreamingUpdate) => {
     try {
       if (!API_KEY) {
         console.warn("API key not found, using fallback chat responses");
@@ -442,18 +445,33 @@ const CourseLearningPage = () => {
       
       // Generate content with the system prompt
       const prompt = `${systemPrompt}\n\nStudent question: ${userMessage}\n\nYour helpful response:`;
-      const content = await model.generateContent(prompt);
-      const response = content.response.text();
       
-      return response || `I'm sorry, I'm having trouble generating a response about ${course} right now. Could you rephrase your question?`;
+      // Use streaming API
+      const streamingResult = await model.generateContentStream(prompt);
+      
+      // Initialize empty response string for accumulating chunks
+      let responseText = "";
+      
+      // Process the streaming response
+      for await (const chunk of streamingResult.stream) {
+        const chunkText = chunk.text();
+        responseText += chunkText;
+        
+        // Call the callback function with the accumulated text so far
+        if (handleStreamingUpdate) {
+          handleStreamingUpdate(responseText);
+        }
+      }
+      
+      return responseText;
     } catch (error) {
       console.error("Error generating chat response:", error);
       return `I'm sorry, I'm having trouble connecting to my knowledge system about ${course} right now. Could you try again in a moment?`;
     }
   };
 
-  // Evaluate a quiz answer using Gemini
-  const evaluateQuizAnswer = async (answer, question, course) => {
+  // Evaluate a quiz answer using Gemini (streaming version)
+  const evaluateQuizAnswer = async (answer, question, course, handleStreamingUpdate) => {
     try {
       if (!API_KEY) {
         console.warn("API key not found, using fallback quiz evaluation");
@@ -466,10 +484,25 @@ const CourseLearningPage = () => {
       
       // Generate evaluation
       const prompt = `${systemPrompt}\n\nQuestion: ${question}\n\nStudent's answer: ${answer}\n\nYour educational feedback:`;
-      const content = await model.generateContent(prompt);
-      const response = content.response.text();
       
-      return response || `Thank you for your answer. Your response shows some understanding of the concept. In ${course}, it's important to remember the key principles. Would you like to try another question?`;
+      // Use streaming API
+      const streamingResult = await model.generateContentStream(prompt);
+      
+      // Initialize empty response string for accumulating chunks
+      let responseText = "";
+      
+      // Process the streaming response
+      for await (const chunk of streamingResult.stream) {
+        const chunkText = chunk.text();
+        responseText += chunkText;
+        
+        // Call the callback function with the accumulated text so far
+        if (handleStreamingUpdate) {
+          handleStreamingUpdate(responseText);
+        }
+      }
+      
+      return responseText;
     } catch (error) {
       console.error("Error evaluating quiz answer:", error);
       return `Thank you for your answer. I'm having trouble evaluating it at the moment, but I appreciate your engagement with the material. Would you like to try another question?`;
@@ -501,28 +534,53 @@ const CourseLearningPage = () => {
         }
       }
       
+      // Add a temporary placeholder for the bot's response
+      const tempBotMessageId = Date.now().toString();
+      const tempBotMessage = {
+        id: tempBotMessageId,
+        sender: 'bot',
+        content: '',
+        timestamp: new Date().toISOString(),
+        isStreaming: true
+      };
+      
+      setChatMessages(prevMessages => [...prevMessages, tempBotMessage]);
+      
+      // Create a function to handle streaming updates
+      const handleStreamingUpdate = (text) => {
+        setChatMessages(prevMessages => 
+          prevMessages.map(msg => 
+            msg.id === tempBotMessageId 
+              ? { ...msg, content: text } 
+              : msg
+          )
+        );
+      };
+      
       // Generate response based on the current mode
       let responseContent = '';
       
       if (mode === 'chat') {
-        responseContent = await generateChatResponse(currentMessage, courseName);
+        responseContent = await generateChatResponse(currentMessage, courseName, handleStreamingUpdate);
       } else if (mode === 'quiz') {
-        responseContent = await evaluateQuizAnswer(currentMessage, question, courseName);
+        responseContent = await evaluateQuizAnswer(currentMessage, question, courseName, handleStreamingUpdate);
       }
       
-      const botResponse = {
-        sender: 'bot',
-        content: responseContent,
-        timestamp: new Date().toISOString()
-      };
-      
-      setChatMessages(prevMessages => [...prevMessages, botResponse]);
+      // Update the temporary message with the final content and remove streaming flag
+      setChatMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === tempBotMessageId 
+            ? { ...msg, content: responseContent, isStreaming: false } 
+            : msg
+        )
+      );
       
       // Generate a follow-up question if in quiz mode
       if (mode === 'quiz') {
         setTimeout(async () => {
           const nextQuestion = await generateQuizQuestion(courseName);
           const nextQuestionMessage = {
+            id: Date.now().toString(),
             sender: 'bot',
             content: nextQuestion,
             timestamp: new Date().toISOString()
@@ -1012,7 +1070,11 @@ const CourseLearningPage = () => {
                                   <p>{message.content}</p>
                                 </>
                               ) : (
-                                <p>{message.content}</p>
+                                <div className="markdown-content">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {message.content}
+                                  </ReactMarkdown>
+                                </div>
                               )}
                               <span className="message-time">
                                 {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
