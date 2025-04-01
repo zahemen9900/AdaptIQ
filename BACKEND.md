@@ -488,8 +488,8 @@ Firebase Storage will organize files in the following structure:
 
 AdaptIQ will use Firebase Authentication with the following sign-in methods:
 
-- Email/Password
-- Google Sign-In
+- Email/Password *
+- Google Sign-In *
 - Apple Sign-In (for iOS users)
 - Microsoft Account Sign-In (for educational institutions)
 

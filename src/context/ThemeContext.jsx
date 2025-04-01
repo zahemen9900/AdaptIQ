@@ -1,6 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
-import { auth } from '../utils/firebase';
-import { getUserSettings, saveUserSettings } from '../utils/firebase';
+import { auth } from '../../firebase';
+import { getUserSettings, saveUserSettings } from '../../firebase';
 
 // Create theme context
 export const ThemeContext = createContext();

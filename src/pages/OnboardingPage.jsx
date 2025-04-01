@@ -4,6 +4,7 @@ import './OnboardingPage.css';
 import Logo from '../assets/Logo.png';
 import { IconArrowRight, IconArrowLeft, IconBulb, IconBook, IconCalendar, IconSchool, IconUser } from '@tabler/icons-react';
 import ScheduleGenerator from '../components/ScheduleGenerator/ScheduleGenerator';
+import { auth, updateUserData } from '../../firebase';
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -283,11 +284,13 @@ const OnboardingPage = () => {
     setStep(step - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Onboarding data:', formData);
+    console.log('Onboarding data:', formData); 
+    const response = await updateUserData(auth.currentUser.uid, formData);
+    console.log("response: "+response);
     // Save onboarding data to localStorage
-    localStorage.setItem('onboardingData', JSON.stringify(formData));
+    // localStorage.setItem('onboardingData', JSON.stringify(formData));
     // Navigate to loading page after completing onboarding
     navigate('/loading');
   };

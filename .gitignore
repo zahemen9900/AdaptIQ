@@ -10,7 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+*.local 
+willie'sNote.txt
 
 # Editor directories and files
 .vscode/*

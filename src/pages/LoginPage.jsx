@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 import Logo from "../assets/Logo.png";
 import { IconArrowRight, IconEye, IconEyeOff } from "@tabler/icons-react";
+import { signInWithEmailAndPassword } from "@firebase/auth";
+import { auth, db } from "../../firebase";
+import { doc, getDoc } from "@firebase/firestore";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -35,18 +38,49 @@ const LoginPage = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-    } else {
-      // Here you would typically send the data to your backend for authentication
-      console.log("Login form submitted:", formData);
-      // Navigate to the dashboard after successful login
-      navigate("/dashboard");
+      return; 
+    }  
+    try {
+      const user = await signIn(formData.email, formData.password); 
+      if(user){
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      setErrors('An error occurred during login');
+      console.error('Login error:', error);
     }
-  };
+    };
+  
+  const signIn = async(email,password) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password); 
+      const user = userCredential.user
+      
+      if (user) {
+        
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        
+  
+        if (userSnap.exists()) {
+          console.log("User data:", userSnap.data());
+          return true;
+        } else {
+          console.log("No such user data in Firestore!");
+        }
+      }
+    } catch (error) {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      console.log(errorCode, errorMessage);
+    }
+  }
+
 
   return (
     <div className="login-page">

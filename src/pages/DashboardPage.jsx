@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './DashboardPage.css';
 import Logo from '../assets/logo-white.png';
 import { 
@@ -16,8 +16,11 @@ import {
   getActivityHistory 
 } from '../utils/progressTracker';
 import { motion, AnimatePresence } from 'framer-motion';
+import { signOut } from '@firebase/auth';
+import { auth } from '../../firebase';
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   // State for user information
   const [nickname, setNickname] = useState('');
   const [courseData, setCourseData] = useState({
@@ -465,7 +468,17 @@ const DashboardPage = () => {
       console.error("Error fetching assignments:", error);
       return [];
     }
-  };
+  };  
+
+  const handleSignOut = async() => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+      console.log("User signed out successfully!");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  }
   
   return (
     <div className="dashboard-page">
@@ -511,6 +524,7 @@ const DashboardPage = () => {
           <div className="user-profile">
             <span className="user-name">{nickname || 'Guest'}</span>
             <div className="user-avatar">{nickname ? nickname.substring(0, 2).toUpperCase() : 'G'}</div>
+            <button onClick={handleSignOut}>SignOut</button>
           </div>
         </div>
         

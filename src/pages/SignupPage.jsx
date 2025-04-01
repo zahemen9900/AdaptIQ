@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import "./SignupPage.css";
 import Logo from "../assets/Logo.png";
 import { IconArrowRight, IconEye, IconEyeOff } from "@tabler/icons-react";
+import { createUserWithEmailAndPassword } from "@firebase/auth";
+import { auth, db } from "../../firebase";
+import { doc, setDoc } from "@firebase/firestore";
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -48,13 +51,35 @@ const SignupPage = () => {
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-    } else {
-      // Here you would typically send the data to your backend
-      console.log("Form submitted:", formData);
+      return; 
+    } 
+
+    try{
+      signUp(formData.email, formData.password, formData.name)
       // Navigate to the onboarding page after successful signup
       navigate("/onboarding");
+    }catch(e){
+      console.error("Registration error:", e);
+      setErrors({ form: "Registration failed. Please try again." });
     }
-  };
+  };  
+  
+  const signUp = async(email, password,fullName) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    console.log(user);
+      // Store user details in Firestore
+      const userWithId = doc(db, "users", user.uid); 
+      const docRef = await setDoc(userWithId, {
+          fullName,
+          email,
+          createdAt: new Date(),
+      } ); 
+    } catch (error) {
+      console.error("Signup error: " + error);
+    }
+  }
 
   return (
     <div className="signup-page">

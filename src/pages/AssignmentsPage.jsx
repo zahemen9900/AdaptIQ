@@ -29,6 +29,8 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AssignmentSubmission from '../components/AssignmentSubmission/AssignmentSubmission';
+import { auth, db } from '../../firebase';
+import { doc, getDoc } from '@firebase/firestore';
 
 const AssignmentsPage = () => {
   // State for user info
@@ -65,9 +67,9 @@ const AssignmentsPage = () => {
   useEffect(() => {
     async function loadData() {
       // Get user data
-      const onboardingData = localStorage.getItem('onboardingData');
+      const onboardingData = await fetchUserData(); 
       if (onboardingData) {
-        const userData = JSON.parse(onboardingData);
+        const userData = onboardingData;
         if (userData.nickname) setNickname(userData.nickname);
         
         // Extract subjects from courses
@@ -138,8 +140,25 @@ const AssignmentsPage = () => {
       const month = currentDate.getMonth();
       const dates = generateCalendarDates(year, month);
       setCalendarDates(dates);
-    }
+    } 
+    const fetchUserData = async () => {
+      try {
+        if (!auth.currentUser) return; // Ensure user is signed in
     
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+    
+        if (userSnap.exists()) {
+          return userSnap.data(); // Return the user data
+        } else {
+          console.log("User not found!");
+          return null;
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        return null;
+      }
+    };
     loadData();
   }, []);
 
@@ -336,7 +355,10 @@ const AssignmentsPage = () => {
   // Format month name for display
   const formatMonthName = (date) => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
+  }; 
+
+
+  
 
   return (
     <motion.div
