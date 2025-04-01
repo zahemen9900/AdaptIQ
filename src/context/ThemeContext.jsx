@@ -31,13 +31,17 @@ export const ThemeProvider = ({ children }) => {
     // Add current theme class
     root.classList.add(`theme-${theme}`);
     
-    // Update font size attribute
+    // Update font size classes
     if (settings.fontSize) {
-      root.setAttribute('data-font-size', settings.fontSize);
+      // Remove existing font size classes
+      root.classList.remove('font-small', 'font-medium', 'font-large');
+      // Add new font size class to root
+      root.classList.add(`font-${settings.fontSize}`);
     }
     
     // Save to localStorage for persistence
     localStorage.setItem('theme', theme);
+    localStorage.setItem('fontSize', settings.fontSize);
     
     // If user is authenticated, save to Firebase
     const user = auth.currentUser;

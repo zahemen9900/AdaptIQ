@@ -399,3 +399,126 @@
     margin-right: 8px;
   }
 }
+
+/* Add dark mode styles for courses page */
+.theme-dark .courses-page-content {
+  background-color: var(--content-bg);
+}
+
+.theme-dark .stat-card {
+  background-color: var(--card-bg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .adaptiq-course-card {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.theme-dark .course-difficulty {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.theme-dark .filter-btn {
+  background-color: #334155;
+  color: var(--text-secondary);
+}
+
+.theme-dark .filter-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Dark mode overrides */
+.theme-dark {
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --card-bg: #1e293b;
+  --border-color: #334155;
+  --background-primary: #0f172a;
+}
+
+.theme-dark .stat-card {
+  background-color: var(--card-bg);
+}
+
+.theme-dark .stat-card h3 {
+  color: var(--text-primary);
+}
+
+.theme-dark .stat-value {
+  color: #4a6bfb;
+}
+
+.theme-dark .stat-label {
+  color: var(--text-secondary);
+}
+
+.theme-dark .courses-filter h2 {
+  color: var(--text-primary);
+}
+
+.theme-dark .adaptiq-course-card {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.theme-dark .course-name {
+  color: var(--text-primary);
+}
+
+.theme-dark .course-category {
+  color: var(--text-secondary);
+}
+
+.theme-dark .progress-text {
+  color: var(--text-secondary);
+}
+
+.theme-dark .course-last-accessed {
+  color: var(--text-muted);
+}
+
+.theme-dark .view-btn {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+.theme-dark .view-btn:hover {
+  background-color: #475569;
+}
+
+.theme-dark .courses-loading h2 {
+  color: var(--text-primary);
+}
+
+.theme-dark .courses-loading p {
+  color: var(--text-secondary);
+}
+
+.theme-dark .courses-empty h2 {
+  color: var(--text-primary);
+}
+
+.theme-dark .courses-empty p {
+  color: var(--text-secondary);
+}
+
+.theme-dark .courses-empty svg {
+  color: #475569;
+}
+
+.theme-dark .progress-bar {
+  background-color: #334155;
+}
+
+.theme-dark .circle-bg {
+  stroke: #334155;
+}
+
+.theme-dark .percentage {
+  fill: var(--text-primary);
+}
+
+
