@@ -463,7 +463,7 @@ const InspirationPage = () => {
       <div className="inspiration-content">
         {loading ? (
           <div className="inspiration-loading">
-            <div className="loading-spinner"></div>
+            <div className="inspiration-loading-spinner"></div>
             <p>Gathering inspiration for you...</p>
           </div>
         ) : (

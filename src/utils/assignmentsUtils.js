@@ -201,21 +201,49 @@ const getCategoryForSubject = (subject) => {
     'European History': 'history',
     'Ancient Civilizations': 'history',
     'Modern History': 'history',
-    'Spanish': 'language',
-    'French': 'language',
-    'German': 'language',
-    'Chinese': 'language',
-    'Japanese': 'language',
+    'Spanish': 'foreign',
+    'French': 'foreign',
+    'German': 'foreign',
+    'Chinese': 'foreign',
+    'Japanese': 'foreign',
     'Programming': 'computer-science',
     'Web Development': 'computer-science',
     'Database Systems': 'computer-science',
     'Artificial Intelligence': 'computer-science',
     'Cybersecurity': 'computer-science',
-    'Mathematics': 'mathematics',
-    'Science': 'science',
-    'History': 'history',
-    'English': 'language',
-    'Computer Science': 'computer-science'
+    'Mechanical Engineering': 'engineering',
+    'Electrical Engineering': 'engineering',
+    'Civil Engineering': 'engineering',
+    'Chemical Engineering': 'engineering',
+    'Software Engineering': 'engineering',
+    
+    'Microeconomics': 'economics',
+    'Macroeconomics': 'economics',
+    'International Economics': 'economics',
+    'Business Economics': 'economics',
+    'Financial Economics': 'economics',
+
+    'Clinical Psychology': 'psychology',
+    'Cognitive Psychology': 'psychology',
+    'Developmental Psychology': 'psychology',
+    'Social Psychology': 'psychology',
+    'Abnormal Psychology': 'psychology',
+
+    'Drawing': 'art',
+    'Painting': 'art',
+    'Sculpture': 'art',
+    'Digital Art': 'art',
+
+    'Music Theory': 'music',
+    'Instrumental': 'music',
+    'Vocal': 'music',
+    'Composition': 'music',
+    'Other': 'music',
+
+    'Fitness': 'physical',
+    'Sports': 'physical',
+    'Nutrition': 'physical',
+    'Wellness': 'physical'
   };
   
   return categoryMapping[subject] || 'other';
@@ -243,28 +271,110 @@ export const generateAssignment = (subject, dueDate, courseLevel = 'intermediate
     language: [
       "Write a critical analysis of themes found in the assigned readings on {topic}.",
       "Create a presentation analyzing the author's use of literary devices in {topic}.",
-      "Record a podcast discussing different interpretations of {topic}."
+      "Write an essay discussing different interpretations of {topic}."
     ],
     "computer-science": [
       "Implement an algorithm that solves a problem related to {topic}.",
       "Create a project that demonstrates your understanding of {topic}.",
       "Write a technical paper explaining how {topic} works with practical examples."
+    ],
+    engineering: [
+      "Write a technical report explaining key principles of {topic} and their applications.",
+      "Analyze a case study of a real-world engineering problem related to {topic}.",
+      "Write a research paper discussing the challenges and solutions in {topic}."
+    ],
+    economics: [
+      "Analyze the impact of {topic} on global or local economies with data evidence.",
+      "Write a policy brief explaining key economic theories related to {topic}.",
+      "Create a comparative analysis of different economic models relevant to {topic}."
+    ],
+    psychology: [
+      "Write an essay analyzing psychological aspects of {topic} and its real-world implications.",
+      "Research and write a detailed paper on famous psychological experiments related to {topic}.",
+      "Summarize key psychological theories and concepts associated with {topic}."
+    ],
+    art: [
+      "Write a critical analysis of the artistic techniques used in {topic}.",
+      "Research and write a paper discussing how {topic} has influenced modern art.",
+      "Write an essay comparing different artistic interpretations of {topic}."
+    ],
+    music: [
+      "Write an analysis of a famous piece of music that demonstrates {topic}.",
+      "Compose a detailed analysis of how {topic} is used in a specific musical genre.",
+      "Write a research paper on the historical significance of {topic} in music theory."
+    ],
+    physical: [
+      "Write a detailed research paper on the effects of {topic} on health and wellness.",
+      "Analyze and summarize the impact of {topic} on athletic performance.",
+      "Write a comparative essay on various fitness or nutrition plans related to {topic}."
     ]
   };
+  
+
 
   // Get topic based on subject
   const getRandomTopic = (subject) => {
     const topics = {
-      'Algebra': ['quadratic equations', 'matrices', 'linear functions', 'logarithms'],
-      'Geometry': ['triangles', 'circles', 'polygons', 'transformations'],
-      'Calculus': ['derivatives', 'integrals', 'limits', 'series'],
-      'Physics': ['mechanics', 'thermodynamics', 'electromagnetism', 'quantum physics'],
-      'Chemistry': ['chemical bonding', 'stoichiometry', 'thermochemistry', 'organic compounds'],
-      'Biology': ['cell biology', 'genetics', 'ecology', 'human physiology'],
-      'World History': ['ancient civilizations', 'world wars', 'colonialism', 'political systems'],
-      'Programming': ['data structures', 'algorithms', 'object-oriented programming', 'web development'],
-      'Web Development': ['responsive design', 'frontend frameworks', 'API integration', 'server-side rendering'],
-      'General Psychology': ['cognitive processes', 'developmental stages', 'psychological disorders', 'research methods']
+      'Mathematics': ['algebra', 'geometry', 'statistics', 'trigonometry', 'calculus'],
+      'Algebra': ['quadratic equations', 'matrices', 'linear functions', 'logarithms', 'inequalities'],
+      'Geometry': ['triangles', 'circles', 'polygons', 'transformations', 'coordinate geometry'],
+      'Calculus': ['derivatives', 'integrals', 'limits', 'series', 'differential equations'],
+      'Statistics': ['probability distributions', 'hypothesis testing', 'regression analysis', 'data visualization'],
+      'Trigonometry': ['sine and cosine laws', 'trigonometric identities', 'radian measure', 'periodic functions'],
+      'Science': ['scientific method', 'measurement', 'experimentation', 'data analysis'],
+      'Physics': ['mechanics', 'thermodynamics', 'electromagnetism', 'quantum physics', 'optics', 'fluid dynamics'],
+      'Chemistry': ['chemical bonding', 'stoichiometry', 'thermochemistry', 'organic compounds', 'acids and bases', 'redox reactions'],
+      'Biology': ['cell biology', 'genetics', 'ecology', 'human physiology', 'evolution', 'microbiology'],
+      'Environmental Science': ['ecosystems', 'climate change', 'conservation', 'sustainability', 'pollution'],
+      'Astronomy': ['solar system', 'stars', 'galaxies', 'cosmology', 'space exploration'],
+      'History': ['renaissance', 'industrial revolution', 'cold war', 'civil rights movement', 'ancient empires'],
+      'World History': ['ancient civilizations', 'world wars', 'colonialism', 'political systems', 'cultural revolutions'],
+      'US History': ['american revolution', 'civil war', 'great depression', 'civil rights', 'cold war era'],
+      'European History': ['medieval europe', 'renaissance', 'french revolution', 'world war I', 'world war II'],
+      'Ancient Civilizations': ['mesopotamia', 'egypt', 'greece', 'rome', 'china'],
+      'Modern History': ['industrial revolution', 'world wars', 'cold war', 'globalization', 'information age'],
+      'Language': ['grammar', 'composition', 'literature analysis', 'creative writing', 'rhetoric'],
+      'English': ['literature analysis', 'grammar', 'composition', 'creative writing', 'rhetoric'],
+      'Spanish': ['verb conjugation', 'conversational spanish', 'grammar', 'cultural studies', 'literature'],
+      'French': ['verb tenses', 'vocabulary building', 'conversational french', 'grammar', 'cultural exploration'],
+      'German': ['sentence structure', 'modal verbs', 'grammar', 'vocabulary building', 'cultural context'],
+      'Chinese': ['character writing', 'pronunciation', 'grammar patterns', 'conversational mandarin', 'cultural elements'],
+      'Japanese': ['kana and kanji', 'sentence structure', 'honorifics', 'conversational phrases', 'cultural context'],
+      'Computer Science': ['algorithms', 'data structures', 'programming paradigms', 'computer architecture', 'software engineering'],
+      'Programming': ['data structures', 'algorithms', 'object-oriented programming', 'web development', 'databases', 'functional programming'],
+      'Web Development': ['responsive design', 'frontend frameworks', 'API integration', 'server-side rendering', 'web security', 'performance optimization'],
+      'Database Systems': ['relational databases', 'SQL', 'NoSQL', 'data modeling', 'database optimization'],
+      'Artificial Intelligence': ['machine learning', 'neural networks', 'natural language processing', 'computer vision', 'reinforcement learning'],
+      'Cybersecurity': ['network security', 'cryptography', 'ethical hacking', 'digital forensics', 'security protocols'],
+      'General Psychology': ['cognitive processes', 'developmental stages', 'psychological disorders', 'research methods', 'social psychology'],
+      'Speech & Debate': ['public speaking', 'argumentation', 'persuasive techniques', 'debate formats', 'critical thinking'],
+      'Mechanical Engineering': ['thermodynamics', 'fluid mechanics', 'machine design', 'materials science', 'robotics'],
+      'Electrical Engineering': ['circuit analysis', 'electromagnetism', 'power systems', 'control systems', 'signal processing'],
+      'Civil Engineering': ['structural analysis', 'geo-technical engineering', 'transportation engineering', 'construction materials', 'hydraulics'],
+      'Chemical Engineering': ['reaction engineering', 'process control', 'thermodynamics', 'polymer science', 'biochemical engineering'],
+      'Software Engineering': ['software development life cycle', 'design patterns', 'version control', 'software testing', 'agile methodologies'],
+      'Microeconomics': ['supply and demand', 'market structures', 'consumer behavior', 'game theory', 'price elasticity'],
+      'Macroeconomics': ['GDP and inflation', 'monetary policy', 'fiscal policy', 'economic growth', 'international trade'],
+      'International Economics': ['exchange rates', 'global trade policies', 'balance of payments', 'foreign direct investment', 'comparative advantage'],
+      'Business Economics': ['corporate finance', 'market analysis', 'pricing strategies', 'business cycles', 'economic forecasting'],
+      'Financial Economics': ['risk management', 'investment analysis', 'derivatives', 'portfolio theory', 'behavioral finance'],
+      'Clinical Psychology': ['psychotherapy techniques', 'diagnostic assessment', 'mental health disorders', 'treatment modalities', 'counseling methods'],
+      'Cognitive Psychology': ['memory processes', 'decision making', 'language acquisition', 'perception', 'problem-solving'],
+      'Developmental Psychology': ['lifespan development', 'child psychology', 'adolescent development', 'aging and cognition', 'attachment theory'],
+      'Social Psychology': ['group behavior', 'persuasion techniques', 'attitudes and biases', 'social identity', 'interpersonal relationships'],
+      'Abnormal Psychology': ['mood disorders', 'schizophrenia', 'anxiety disorders', 'personality disorders', 'psychopathology'],
+      'Drawing': ['perspective drawing', 'shading techniques', 'figure drawing', 'composition', 'gesture sketching'],
+      'Painting': ['color theory', 'acrylic techniques', 'watercolor techniques', 'oil painting', 'abstract painting'],
+      'Sculpture': ['clay modeling', 'carving techniques', 'casting methods', '3D composition', 'mixed media sculpture'],
+      'Digital Art': ['graphic design', 'vector illustration', 'digital painting', 'animation basics', 'concept art'],
+      'Music Theory': ['notation and rhythm', 'chord progressions', 'scales and modes', 'harmony', 'ear training'],
+      'Instrumental': ['piano techniques', 'guitar basics', 'orchestration', 'wind instruments', 'percussion studies'],
+      'Vocal': ['breath control', 'pitch and tone', 'vocal warm-ups', 'song interpretation', 'choral singing'],
+      'Fitness': ['strength training', 'cardiovascular health', 'flexibility exercises', 'workout planning', 'injury prevention'],
+      'Sports': ['team sports strategies', 'individual sports techniques', 'sports psychology', 'athletic training', 'game rules'],
+      'Nutrition': ['macronutrients', 'meal planning', 'sports nutrition', 'dietary supplements', 'food science'],
+      'Wellness': ['mental health awareness', 'stress management', 'sleep hygiene', 'mindfulness techniques', 'holistic health'],
+  
     };
     
     return topics[subject] ? 
@@ -289,16 +399,49 @@ export const generateAssignment = (subject, dueDate, courseLevel = 'intermediate
     'European History': 'history',
     'Ancient Civilizations': 'history',
     'Modern History': 'history',
-    'Spanish': 'language',
-    'French': 'language',
-    'German': 'language',
-    'Chinese': 'language',
-    'Japanese': 'language',
+    'Spanish': 'foreign',
+    'French': 'foreign',
+    'German': 'foreign',
+    'Chinese': 'foreign',
+    'Japanese': 'foreign',
     'Programming': 'computer-science',
     'Web Development': 'computer-science',
     'Database Systems': 'computer-science',
     'Artificial Intelligence': 'computer-science',
-    'Cybersecurity': 'computer-science'
+    'Cybersecurity': 'computer-science',
+    'Mechanical Engineering': 'engineering',
+    'Electrical Engineering': 'engineering',
+    'Civil Engineering': 'engineering',
+    'Chemical Engineering': 'engineering',
+    'Software Engineering': 'engineering',
+    
+    'Microeconomics': 'economics',
+    'Macroeconomics': 'economics',
+    'International Economics': 'economics',
+    'Business Economics': 'economics',
+    'Financial Economics': 'economics',
+
+    'Clinical Psychology': 'psychology',
+    'Cognitive Psychology': 'psychology',
+    'Developmental Psychology': 'psychology',
+    'Social Psychology': 'psychology',
+    'Abnormal Psychology': 'psychology',
+
+    'Drawing': 'art',
+    'Painting': 'art',
+    'Sculpture': 'art',
+    'Digital Art': 'art',
+
+    'Music Theory': 'music',
+    'Instrumental': 'music',
+    'Vocal': 'music',
+    'Composition': 'music',
+    'Other': 'music',
+
+    'Fitness': 'physical',
+    'Sports': 'physical',
+    'Nutrition': 'physical',
+    'Wellness': 'physical'
   };
   
   const category = categoryMapping[subject] || 'other';
@@ -632,25 +775,71 @@ export const getRandomTopicForSubject = (subject) => {
     'Algebra': ['quadratic equations', 'matrices', 'linear functions', 'logarithms', 'inequalities'],
     'Geometry': ['triangles', 'circles', 'polygons', 'transformations', 'coordinate geometry'],
     'Calculus': ['derivatives', 'integrals', 'limits', 'series', 'differential equations'],
-    'Physics': ['mechanics', 'thermodynamics', 'electromagnetism', 'quantum physics', 'optics'],
-    'Chemistry': ['chemical bonding', 'stoichiometry', 'thermochemistry', 'organic compounds', 'acids and bases'],
-    'Biology': ['cell biology', 'genetics', 'ecology', 'human physiology', 'evolution'],
-    'World History': ['ancient civilizations', 'world wars', 'colonialism', 'political systems', 'cultural revolutions'],
+    'Statistics': ['probability distributions', 'hypothesis testing', 'regression analysis', 'data visualization'],
+    'Trigonometry': ['sine and cosine laws', 'trigonometric identities', 'radian measure', 'periodic functions'],
+    'Science': ['scientific method', 'measurement', 'experimentation', 'data analysis'],
+    'Physics': ['mechanics', 'thermodynamics', 'electromagnetism', 'quantum physics', 'optics', 'fluid dynamics'],
+    'Chemistry': ['chemical bonding', 'stoichiometry', 'thermochemistry', 'organic compounds', 'acids and bases', 'redox reactions'],
+    'Biology': ['cell biology', 'genetics', 'ecology', 'human physiology', 'evolution', 'microbiology'],
+    'Environmental Science': ['ecosystems', 'climate change', 'conservation', 'sustainability', 'pollution'],
+    'Astronomy': ['solar system', 'stars', 'galaxies', 'cosmology', 'space exploration'],
     'History': ['renaissance', 'industrial revolution', 'cold war', 'civil rights movement', 'ancient empires'],
-    'Programming': ['data structures', 'algorithms', 'object-oriented programming', 'web development', 'databases'],
-    'Web Development': ['responsive design', 'frontend frameworks', 'API integration', 'server-side rendering', 'web security'],
-    'Computer Science': ['artificial intelligence', 'machine learning', 'computer networks', 'operating systems', 'computer architecture'],
-    'General Psychology': ['cognitive processes', 'developmental stages', 'psychological disorders', 'research methods', 'social psychology']
+    'World History': ['ancient civilizations', 'world wars', 'colonialism', 'political systems', 'cultural revolutions'],
+    'US History': ['american revolution', 'civil war', 'great depression', 'civil rights', 'cold war era'],
+    'European History': ['medieval europe', 'renaissance', 'french revolution', 'world war I', 'world war II'],
+    'Ancient Civilizations': ['mesopotamia', 'egypt', 'greece', 'rome', 'china'],
+    'Modern History': ['industrial revolution', 'world wars', 'cold war', 'globalization', 'information age'],
+    'Language': ['grammar', 'composition', 'literature analysis', 'creative writing', 'rhetoric'],
+    'English': ['literature analysis', 'grammar', 'composition', 'creative writing', 'rhetoric'],
+    'Spanish': ['verb conjugation', 'conversational spanish', 'grammar', 'cultural studies', 'literature'],
+    'French': ['verb tenses', 'vocabulary building', 'conversational french', 'grammar', 'cultural exploration'],
+    'German': ['sentence structure', 'modal verbs', 'grammar', 'vocabulary building', 'cultural context'],
+    'Chinese': ['character writing', 'pronunciation', 'grammar patterns', 'conversational mandarin', 'cultural elements'],
+    'Japanese': ['kana and kanji', 'sentence structure', 'honorifics', 'conversational phrases', 'cultural context'],
+    'Computer Science': ['algorithms', 'data structures', 'programming paradigms', 'computer architecture', 'software engineering'],
+    'Programming': ['data structures', 'algorithms', 'object-oriented programming', 'web development', 'databases', 'functional programming'],
+    'Web Development': ['responsive design', 'frontend frameworks', 'API integration', 'server-side rendering', 'web security', 'performance optimization'],
+    'Database Systems': ['relational databases', 'SQL', 'NoSQL', 'data modeling', 'database optimization'],
+    'Artificial Intelligence': ['machine learning', 'neural networks', 'natural language processing', 'computer vision', 'reinforcement learning'],
+    'Cybersecurity': ['network security', 'cryptography', 'ethical hacking', 'digital forensics', 'security protocols'],
+    'General Psychology': ['cognitive processes', 'developmental stages', 'psychological disorders', 'research methods', 'social psychology'],
+    'Speech & Debate': ['public speaking', 'argumentation', 'persuasive techniques', 'debate formats', 'critical thinking'],
+    'Mechanical Engineering': ['thermodynamics', 'fluid mechanics', 'machine design', 'materials science', 'robotics'],
+    'Electrical Engineering': ['circuit analysis', 'electromagnetism', 'power systems', 'control systems', 'signal processing'],
+    'Civil Engineering': ['structural analysis', 'geotechnical engineering', 'transportation engineering', 'construction materials', 'hydraulics'],
+    'Chemical Engineering': ['reaction engineering', 'process control', 'thermodynamics', 'polymer science', 'biochemical engineering'],
+    'Software Engineering': ['software development life cycle', 'design patterns', 'version control', 'software testing', 'agile methodologies'],
+    'Microeconomics': ['supply and demand', 'market structures', 'consumer behavior', 'game theory', 'price elasticity'],
+    'Macroeconomics': ['GDP and inflation', 'monetary policy', 'fiscal policy', 'economic growth', 'international trade'],
+    'International Economics': ['exchange rates', 'global trade policies', 'balance of payments', 'foreign direct investment', 'comparative advantage'],
+    'Business Economics': ['corporate finance', 'market analysis', 'pricing strategies', 'business cycles', 'economic forecasting'],
+    'Financial Economics': ['risk management', 'investment analysis', 'derivatives', 'portfolio theory', 'behavioral finance'],
+    'Clinical Psychology': ['psychotherapy techniques', 'diagnostic assessment', 'mental health disorders', 'treatment modalities', 'counseling methods'],
+    'Cognitive Psychology': ['memory processes', 'decision making', 'language acquisition', 'perception', 'problem-solving'],
+    'Developmental Psychology': ['lifespan development', 'child psychology', 'adolescent development', 'aging and cognition', 'attachment theory'],
+    'Social Psychology': ['group behavior', 'persuasion techniques', 'attitudes and biases', 'social identity', 'interpersonal relationships'],
+    'Abnormal Psychology': ['mood disorders', 'schizophrenia', 'anxiety disorders', 'personality disorders', 'psychopathology'],
+    'Drawing': ['perspective drawing', 'shading techniques', 'figure drawing', 'composition', 'gesture sketching'],
+    'Painting': ['color theory', 'acrylic techniques', 'watercolor techniques', 'oil painting', 'abstract painting'],
+    'Sculpture': ['clay modeling', 'carving techniques', 'casting methods', '3D composition', 'mixed media sculpture'],
+    'Digital Art': ['graphic design', 'vector illustration', 'digital painting', 'animation basics', 'concept art'],
+    'Music Theory': ['notation and rhythm', 'chord progressions', 'scales and modes', 'harmony', 'ear training'],
+    'Instrumental': ['piano techniques', 'guitar basics', 'orchestration', 'wind instruments', 'percussion studies'],
+    'Vocal': ['breath control', 'pitch and tone', 'vocal warm-ups', 'song interpretation', 'choral singing'],
+    'Fitness': ['strength training', 'cardiovascular health', 'flexibility exercises', 'workout planning', 'injury prevention'],
+    'Sports': ['team sports strategies', 'individual sports techniques', 'sports psychology', 'athletic training', 'game rules'],
+    'Nutrition': ['macronutrients', 'meal planning', 'sports nutrition', 'dietary supplements', 'food science'],
+    'Wellness': ['mental health awareness', 'stress management', 'sleep hygiene', 'mindfulness techniques', 'holistic health'],
+
+    
   };
-  
-  const defaultTopics = ['fundamental concepts', 'basic principles', 'problem solving', 'theoretical applications', 'practical applications'];
   
   // Try to get topics for the exact subject
   if (topics[subject] && topics[subject].length > 0) {
     return topics[subject][Math.floor(Math.random() * topics[subject].length)];
   }
   
-  // Try to find a similar subject
+  // Try to find a similar subject if exact match not found
   const similarSubject = Object.keys(topics).find(key => 
     subject.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(subject.toLowerCase())
   );
@@ -660,5 +849,6 @@ export const getRandomTopicForSubject = (subject) => {
   }
   
   // Fall back to default topics
+  const defaultTopics = ['fundamental concepts', 'basic principles', 'problem solving', 'theoretical applications', 'practical applications'];
   return defaultTopics[Math.floor(Math.random() * defaultTopics.length)];
 };
