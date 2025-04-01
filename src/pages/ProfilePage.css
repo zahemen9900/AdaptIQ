@@ -1,4 +1,23 @@
 /* ProfilePage.css */
+
+/* Add dark mode variables at the top */
+.theme-dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+  --text-muted: #cbd5e1;
+  --border-color: #475569;
+  --card-shadow: rgba(0, 0, 0, 0.4);
+  --hover-bg: rgba(74, 107, 251, 0.15);
+  --accent-color: #60a5fa;
+  --accent-hover: #3b82f6;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+}
+
 .profile-header {
   display: flex;
   justify-content: space-between;
@@ -778,4 +797,565 @@
   .badges-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Update existing styles with dark mode variants */
+.theme-dark .profile-overview,
+.theme-dark .profile-content,
+.theme-dark .profile-loading {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.theme-dark .profile-name {
+  color: var(--text-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .profile-username {
+  color: var(--text-secondary);
+}
+
+.theme-dark .profile-bio {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.theme-dark .profile-meta-item {
+  color: var(--text-muted);
+  background-color: var(--bg-tertiary);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.theme-dark .profile-subjects h3 {
+  color: var(--text-primary);
+}
+
+/* Form elements in dark mode */
+.theme-dark .form-group label {
+  color: var(--text-secondary);
+}
+
+.theme-dark .form-group input,
+.theme-dark .form-group textarea,
+.theme-dark .form-group select {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  padding: 12px;
+}
+
+.theme-dark .form-group input:focus,
+.theme-dark .form-group textarea:focus,
+.theme-dark .form-group select:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+/* Tabs in dark mode */
+.theme-dark .profile-tabs {
+  border-bottom-color: var(--border-color);
+}
+
+.theme-dark .profile-tab {
+  color: var(--text-secondary);
+}
+
+.theme-dark .profile-tab:hover {
+  color: var(--text-primary);
+}
+
+/* Stats cards in dark mode */
+.theme-dark .profile-stat-card {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .profile-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .stat-content h3 {
+  color: var(--text-primary);
+  font-size: 1.75rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .stat-content p {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Subject progress in dark mode */
+.theme-dark .subject-progress-header h4 {
+  color: var(--text-primary);
+}
+
+.theme-dark .subject-progress-bar {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .subject-progress-fill {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Achievement cards in dark mode */
+.theme-dark .achievement-card {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .achievement-details h4 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.theme-dark .achievement-details p {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.theme-dark .achievement-date,
+.theme-dark .achievement-locked {
+  color: var(--text-muted);
+}
+
+/* Activity timeline in dark mode */
+.theme-dark .activity-timeline::before {
+  background: linear-gradient(
+    to bottom,
+    var(--accent-color) 0%,
+    var(--border-color) 100%
+  );
+}
+
+.theme-dark .activity-marker {
+  background-color: var(--bg-secondary);
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 0 4px var(--bg-primary);
+}
+
+.theme-dark .activity-content {
+  background-color: var(--bg-tertiary);
+}
+
+.theme-dark .activity-header h4 {
+  color: var(--text-primary);
+}
+
+.theme-dark .activity-date {
+  color: var(--text-muted);
+}
+
+.theme-dark .activity-content p {
+  color: var(--text-secondary);
+}
+
+/* Badge cards in dark mode */
+.theme-dark .badge-card {
+  background: linear-gradient(
+    145deg,
+    var(--bg-tertiary) 0%,
+    var(--bg-secondary) 100%
+  );
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .badge-details h4 {
+  color: var(--text-primary);
+}
+
+.theme-dark .badge-details p {
+  color: var(--text-secondary);
+}
+
+.theme-dark .badge-info {
+  background-color: var(--bg-tertiary);
+}
+
+.theme-dark .badge-info p {
+  color: var(--text-secondary);
+}
+
+/* Buttons in dark mode */
+.theme-dark .edit-profile-button,
+.theme-dark .cancel-edit-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  font-weight: 500;
+}
+
+.theme-dark .edit-profile-button:hover,
+.theme-dark .cancel-edit-button:hover {
+  background-color: var(--bg-primary);
+  border-color: var(--accent-color);
+}
+
+.theme-dark .save-profile-button {
+  background-color: var(--accent-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 10px 16px;
+  font-weight: 500;
+}
+
+.theme-dark .save-profile-button:hover {
+  background-color: var(--accent-hover);
+}
+
+.theme-dark .download-activity-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+.theme-dark .download-activity-button:hover {
+  background-color: var(--bg-primary);
+}
+
+/* Loading state in dark mode */
+.theme-dark .loading-spinner {
+  border-color: rgba(74, 107, 251, 0.2);
+  border-top-color: #4a6bfb;
+}
+
+.theme-dark .profile-loading p {
+  color: var(--text-secondary);
+}
+
+/* Activity section dark mode improvements */
+.theme-dark .activity-content {
+  background-color: var(--bg-secondary);
+}
+
+.theme-dark .activity-content h3 {
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+}
+
+.theme-dark .activity-timeline::before {
+  background: linear-gradient(
+    to bottom,
+    var(--accent-color) 0%,
+    var(--bg-tertiary) 100%
+  );
+  opacity: 0.6;
+}
+
+.theme-dark .activity-item {
+  position: relative;
+}
+
+.theme-dark .activity-marker {
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 0 4px var(--bg-secondary);
+  color: var(--accent-color);
+}
+
+.theme-dark .activity-content {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-dark .activity-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  background-color: var(--bg-primary);
+}
+
+.theme-dark .activity-header {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.theme-dark .activity-header h4 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.theme-dark .activity-date {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.theme-dark .activity-content p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Activity type indicators */
+.theme-dark .activity-marker[data-type="course-progress"] {
+  background-color: rgba(74, 107, 251, 0.2);
+  border-color: #4a6bfb;
+}
+
+.theme-dark .activity-marker[data-type="assignment"] {
+  background-color: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+}
+
+.theme-dark .activity-marker[data-type="assessment"] {
+  background-color: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+}
+
+.theme-dark .activity-marker[data-type="study-session"] {
+  background-color: rgba(139, 92, 246, 0.2);
+  border-color: #8b5cf6;
+}
+
+/* Download button improvements */
+.theme-dark .activity-download {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.theme-dark .download-activity-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.theme-dark .download-activity-button:hover {
+  background-color: var(--bg-primary);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Empty state styling */
+.theme-dark .activity-empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.theme-dark .activity-empty-state svg {
+  color: var(--text-muted);
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+/* Activity group date headers */
+.theme-dark .activity-date-group {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 1.5rem 0 1rem;
+  padding-left: 2rem;
+}
+
+/* Hover effects for interactive elements */
+.theme-dark .activity-item {
+  transition: transform 0.2s ease;
+}
+
+.theme-dark .activity-item:hover .activity-marker {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 6px var(--bg-secondary);
+}
+
+.theme-dark .activity-item:hover .activity-content {
+  border-color: var(--accent-color);
+}
+
+/* Enhanced badge styles for dark mode */
+.theme-dark .badges-content {
+  background-color: var(--bg-secondary);
+}
+
+.theme-dark .badges-content h3 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.theme-dark .badge-card {
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    var(--bg-tertiary) 0%,
+    var(--bg-primary) 100%
+  );
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.theme-dark .badge-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border-color: var(--accent-color);
+}
+
+.theme-dark .badge-card.locked {
+  opacity: 0.7;
+  background: linear-gradient(
+    145deg,
+    var(--bg-secondary) 0%,
+    var(--bg-primary) 100%
+  );
+}
+
+.theme-dark .badge-level {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.theme-dark .badge-level.gold {
+  background: linear-gradient(45deg, #f59e0b, #fbbf24);
+  color: #000;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+.theme-dark .badge-level.silver {
+  background: linear-gradient(45deg, #94a3b8, #e2e8f0);
+  color: #1e293b;
+  box-shadow: 0 2px 4px rgba(148, 163, 184, 0.3);
+}
+
+.theme-dark .badge-level.bronze {
+  background: linear-gradient(45deg, #b45309, #d97706);
+  color: white;
+  box-shadow: 0 2px 4px rgba(180, 83, 9, 0.3);
+}
+
+.theme-dark .badge-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  padding: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .badge-details {
+  text-align: center;
+}
+
+.theme-dark .badge-details h4 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.theme-dark .badge-details p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.theme-dark .badge-locked {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+  display: block;
+  margin-top: 0.5rem;
+}
+
+.theme-dark .badge-info {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.theme-dark .badge-info p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Badge hover effects */
+.theme-dark .badge-card:hover .badge-icon {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+.theme-dark .badge-card.locked:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Badge animations */
+@keyframes badgeShine {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.theme-dark .badge-card:not(.locked) .badge-icon {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-dark .badge-card:not(.locked) .badge-icon::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  transform: rotate(45deg);
+  animation: badgeShine 3s infinite linear;
 }

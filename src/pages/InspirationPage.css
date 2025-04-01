@@ -1,3 +1,180 @@
+/* Add dark mode variables */
+:root {
+  --bg-primary: #f7f7f9;
+  --bg-secondary: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --border-color: #e2e8f0;
+  --card-shadow: rgba(0, 0, 0, 0.08);
+  --hover-bg: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark theme colors */
+.theme-dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --card-shadow: rgba(0, 0, 0, 0.2);
+  --hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* Dark mode styles */
+.theme-dark .inspiration-page {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.theme-dark .inspiration-title h1 {
+  color: var(--text-primary);
+}
+
+.theme-dark .quote-card,
+.theme-dark .post-card,
+.theme-dark .sidebar-card {
+  background-color: var(--bg-secondary);
+  box-shadow: 0 2px 10px var(--card-shadow);
+}
+
+.theme-dark .quote-icon {
+  color: #60a5fa;
+}
+
+.theme-dark .quote-card blockquote {
+  color: var(--text-primary);
+}
+
+.theme-dark .quote-card blockquote footer {
+  color: var(--text-secondary);
+}
+
+.theme-dark .quote-footer,
+.theme-dark .post-footer {
+  border-top-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+.theme-dark .post-header h3 {
+  color: var(--text-primary);
+}
+
+.theme-dark .post-meta {
+  color: var(--text-secondary);
+}
+
+.theme-dark .post-content {
+  color: var(--text-primary);
+}
+
+.theme-dark .post-author {
+  color: var(--text-muted);
+}
+
+.theme-dark .like-button {
+  color: var(--text-muted);
+}
+
+.theme-dark .like-button:hover {
+  background-color: var(--hover-bg);
+}
+
+.theme-dark .like-button.liked {
+  color: #ef4444;
+}
+
+.theme-dark .sidebar-card h3 {
+  color: var(--text-primary);
+}
+
+.theme-dark .sidebar-card p {
+  color: var(--text-secondary);
+}
+
+.theme-dark .featured-button {
+  color: #60a5fa;
+}
+
+.theme-dark .featured-button:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Dark mode post card type indicators */
+.theme-dark .post-card.fact {
+  border-left-color: #8b5cf6;
+}
+
+.theme-dark .post-card.tip {
+  border-left-color: #10b981;
+}
+
+.theme-dark .post-card.question {
+  border-left-color: #f59e0b;
+}
+
+.theme-dark .post-card.application {
+  border-left-color: #06b6d4;
+}
+
+/* Dark mode loading state */
+.theme-dark .inspiration-loading {
+  color: var(--text-primary);
+}
+
+.theme-dark .loading-spinner {
+  border-color: var(--border-color);
+  border-top-color: #60a5fa;
+}
+
+/* Dark mode return button */
+.theme-dark .return-button {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .return-button:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Dark mode refresh button */
+.theme-dark .refresh-button {
+  background-color: #4f46e5;
+}
+
+.theme-dark .refresh-button:hover {
+  background-color: #4338ca;
+}
+
+/* Dark mode markdown content */
+.theme-dark .post-content code {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.theme-dark .post-content pre {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .post-content blockquote {
+  border-left-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+/* Dark mode animations and transitions */
+.theme-dark .post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--card-shadow);
+}
+
+.theme-dark .quote-card:hover {
+  box-shadow: 0 4px 12px var(--card-shadow);
+}
+
+
 .inspiration-page {
   display: flex;
   flex-direction: column;
