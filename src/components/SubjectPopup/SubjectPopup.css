@@ -25,6 +25,12 @@
   flex-direction: column;
 }
 
+/* Add dark theme support for subject popup */
+.dark-theme .subject-popup {
+  background-color: #1a202c;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
 .subject-popup-header {
   padding: 1.5rem;
   border-bottom: 1px solid #eee;
@@ -33,11 +39,21 @@
   align-items: center;
 }
 
+/* Add dark theme support for popup header border */
+.dark-theme .subject-popup-header {
+  border-bottom: 1px solid #2d3748;
+}
+
 .subject-popup-header h2 {
   margin: 0;
   color: #041137;
   font-size: 1.5rem;
   font-weight: 600;
+}
+
+/* Add dark theme support for popup header text */
+.dark-theme .subject-popup-header h2 {
+  color: #e2e8f0;
 }
 
 .close-button {
@@ -61,6 +77,12 @@
   color: #041137;
 }
 
+/* Add dark theme support for close button hover */
+.dark-theme .close-button:hover {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
 .subject-popup-content {
   padding: 1.5rem;
   flex-grow: 1;
@@ -70,6 +92,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Add dark theme support for popup content text */
+.dark-theme .subject-popup-content {
+  color: #a0aec0;
 }
 
 .subject-image-container {

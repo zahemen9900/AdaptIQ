@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './SubjectPopup.css';
+import { useTheme } from '../../context/ThemeContext';
 
 // Import subject image utility
 import { getSubjectImageUrl } from '../../utils/subjectImageUtils';
 
 const SubjectPopup = ({ subject, onClose }) => {
+  // Get dark mode state from theme context
+  const { isDarkMode } = useTheme();
+  
   // Subject category mapping
   const subjectCategories = {
     // Mathematics subjects
@@ -86,7 +90,6 @@ const SubjectPopup = ({ subject, onClose }) => {
   };
   
   // This mapping is now handled by subjectImageUtils.js
-  
   // Subject descriptions for standard subjects
   const subjectDescriptions = {
     'Algebra': 'A branch of mathematics that deals with symbols and the rules for manipulating these symbols, serving as the foundation for advanced mathematics.',
@@ -164,8 +167,8 @@ const SubjectPopup = ({ subject, onClose }) => {
   const subjectImage = getSubjectImageUrl(subject, category);
 
   return (
-    <div className="subject-popup-overlay" onClick={onClose}>
-      <div className="subject-popup" onClick={(e) => e.stopPropagation()}>
+    <div className={`subject-popup-overlay ${isDarkMode ? 'dark-theme' : ''}`} onClick={onClose}>
+      <div className={`subject-popup ${isDarkMode ? 'dark-theme' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="subject-popup-header">
           <h2>{subject}</h2>
           <button className="close-button" onClick={onClose}>×</button>

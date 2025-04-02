@@ -7,6 +7,7 @@ import SubjectPopup from '../components/SubjectPopup/SubjectPopup';
 import { exportScheduleToPDF, prepareScheduleForFirebase, saveScheduleToFirebase } from '../utils/scheduleExporter';
 import { exportScheduleToODF } from '../utils/odfExporter';
 import { generateOptimizedSchedule } from '../utils/scheduleAlgorithm';
+import { useTheme } from '../context/ThemeContext'; // Import the useTheme hook
 
 const SchedulePage = () => {
   const [schedule, setSchedule] = useState(null);
@@ -341,8 +342,11 @@ const SchedulePage = () => {
     toggleExportOptions();
   };
 
+  // Added useTheme hook to get the current theme state
+  const { isDarkMode } = useTheme();
+
   return (
-    <div className="dashboard-page">
+    <div className={`dashboard-page ${isDarkMode ? 'dark-theme' : ''}`}>
       <div className="dashboard-sidebar">
         <div className="sidebar-header">
           <img src={Logo} alt="AdaptIQ Logo" className="dashboard-logo" />

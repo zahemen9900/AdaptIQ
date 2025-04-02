@@ -30,49 +30,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AssignmentSubmission from '../components/AssignmentSubmission/AssignmentSubmission';
 
-// Confirmation Modal Component
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
-  if (!isOpen) return null;
-  
-  return (
-    <motion.div
-      className="modal-backdrop"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div 
-        className="confirmation-modal"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      >
-        <div className="modal-header">
-          <IconAlertCircle size={24} className="warning-icon" />
-          <h3>{title}</h3>
-          <button className="close-modal-button" onClick={onClose}>
-            <IconX size={20} />
-          </button>
-        </div>
-        
-        <div className="modal-content">
-          <p>{message}</p>
-        </div>
-        
-        <div className="modal-actions">
-          <button className="modal-button secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="modal-button primary" onClick={onConfirm}>
-            Confirm
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
 const AssignmentsPage = () => {
   // State for user info
   const [nickname, setNickname] = useState('');
@@ -86,9 +43,6 @@ const AssignmentsPage = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [loading, setLoading] = useState(false); // Loading state
-  
-  // New state for confirmation modal
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   
   // New state for assignment submission
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
@@ -272,58 +226,49 @@ const AssignmentsPage = () => {
 
   // Generate a new assignment (using Gemini AI)
   const handleGenerateNewAssignment = async () => {
+    if (subjects.length === 0) return;
+    
     setLoading(true);
-    setShowConfirmModal(false); // Close confirmation modal
     
     try {
-      // Get schedule data from localStorage to extract actual course subjects
-      const scheduleData = localStorage.getItem('userSchedule');
-      let scheduleSubjects = [];
+      // Get existing assignments
+      const existingAssignments = getAssignments();
       
-      if (scheduleData) {
-        const schedule = JSON.parse(scheduleData);
-        // Extract unique subjects from the schedule
-        const uniqueSubjects = new Set();
-        
-        // Iterate through each day in the schedule
-        Object.keys(schedule).forEach(day => {
-          schedule[day].forEach(session => {
-            if (session.course) {
-              uniqueSubjects.add(session.course);
-            }
-          });
+      // Get current date and date one week from now
+      const now = new Date();
+      const oneWeekLater = new Date(now);
+      oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+      
+      // Find subjects that don't have an assignment due in the next week
+      const subjectsNeedingAssignments = subjects.filter(subject => {
+        const hasAssignmentThisWeek = existingAssignments.some(assignment => {
+          return assignment.subject === subject && 
+                 new Date(assignment.dueDate) <= oneWeekLater &&
+                 new Date(assignment.dueDate) >= now &&
+                 assignment.status !== 'completed';
         });
         
-        scheduleSubjects = Array.from(uniqueSubjects);
-      }
+        return !hasAssignmentThisWeek;
+      });
       
-      // Use schedule subjects if available, otherwise use the subjects from state
-      const subjectsToUse = scheduleSubjects.length > 0 ? scheduleSubjects : subjects;
-      
-      if (subjectsToUse.length === 0) {
-        console.warn("No subjects found for generating assignments");
+      if (subjectsNeedingAssignments.length === 0) {
+        // If all subjects have assignments this week, show a message
+        alert("All subjects already have assignments scheduled for this week. New assignments will be available next week.");
         setLoading(false);
         return;
       }
       
-      console.log("Generating assignments for subjects:", subjectsToUse);
-      
-      // Immediately update the UI to show empty assignments list while generating
-      setAssignments([]);
-      setFilteredAssignments([]);
-
-      // Create new assignments for all subjects from the schedule
-      const assignmentPromises = subjectsToUse.map(subject => {
+      // Generate assignment promises for subjects needing assignments
+      const assignmentPromises = subjectsNeedingAssignments.map(subject => {
         const topic = getRandomTopicForSubject(subject);
         const assignmentTypes = ['assignment', 'quiz', 'project'];
         const randomType = assignmentTypes[Math.floor(Math.random() * assignmentTypes.length)];
         
-        // Generate an assignment with due date between 1-7 days from now
         return generateAssignmentWithGemini(subject, topic, randomType)
           .catch(error => {
             console.error(`Error generating assignment for ${subject}:`, error);
             // Fall back to local generation if API fails
-            const dueDate = new Date();
+            const dueDate = new Date(now);
             dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7) + 1);
             return generateAssignment(subject, dueDate);
           });
@@ -332,8 +277,11 @@ const AssignmentsPage = () => {
       // Wait for all assignment generations to complete
       const newAssignments = await Promise.all(assignmentPromises);
       
-      // Update and save assignments - completely replacing old assignments
-      const finalAssignments = newAssignments.map(updateAssignmentStatus);
+      // Add new assignments to the existing ones
+      const updatedAssignments = [...existingAssignments, ...newAssignments];
+      
+      // Update and save assignments
+      const finalAssignments = updatedAssignments.map(updateAssignmentStatus);
       saveAssignments(finalAssignments);
       
       // Update state with new assignments
@@ -477,7 +425,7 @@ const AssignmentsPage = () => {
               
               <button 
                 className="new-assignment-button"
-                onClick={() => setShowConfirmModal(true)}
+                onClick={handleGenerateNewAssignment}
               >
                 <IconPlus size={20} />
                 <span>New</span>
@@ -962,15 +910,6 @@ const AssignmentsPage = () => {
             />
           )}
         </AnimatePresence>
-        
-        {/* Confirmation Modal */}
-        <ConfirmationModal
-          isOpen={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
-          onConfirm={handleGenerateNewAssignment}
-          title="Generate New Assignments"
-          message="This will generate new assignments for subjects that don't have any due in the next week. Do you want to proceed?"
-        />
       </div>
     </motion.div>
   );
