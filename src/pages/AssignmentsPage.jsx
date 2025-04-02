@@ -116,6 +116,8 @@ const AssignmentsPage = () => {
       const onboardingData = await fetchUserData(); 
       if (onboardingData) {
         const userData = onboardingData;
+        console.log("nickname: ",userData.nickname);
+        console.log("userData: ",userData);
         if (userData.nickname) setNickname(userData.nickname);
         
         // Extract subjects from courses

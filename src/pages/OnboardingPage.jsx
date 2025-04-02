@@ -290,7 +290,7 @@ const OnboardingPage = () => {
     const response = await updateUserData(auth.currentUser.uid, formData);
     console.log("response: "+response);
     // Save onboarding data to localStorage
-    // localStorage.setItem('onboardingData', JSON.stringify(formData));
+    localStorage.setItem('onboardingData', JSON.stringify(formData));
     // Navigate to loading page after completing onboarding
     navigate('/loading');
   };
