@@ -1009,3 +1009,152 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Confirmation Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmation-modal {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  width: 90%;
+  max-width: 480px;
+  overflow: hidden;
+}
+
+.dark-theme .confirmation-modal {
+  background-color: #1a202c;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #eef1f6;
+}
+
+.dark-theme .modal-header {
+  border-bottom-color: #2d3748;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  margin-left: 12px;
+  flex-grow: 1;
+  color: #334155;
+}
+
+.dark-theme .modal-header h3 {
+  color: #e2e8f0;
+}
+
+.warning-icon {
+  color: #f59f00;
+}
+
+.close-modal-button {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dark-theme .close-modal-button {
+  color: #a0aec0;
+}
+
+.close-modal-button:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.dark-theme .close-modal-button:hover {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.modal-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.dark-theme .modal-content p {
+  color: #a0aec0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #eef1f6;
+  gap: 12px;
+}
+
+.dark-theme .modal-actions {
+  border-top-color: #2d3748;
+}
+
+.modal-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  border: none;
+}
+
+.modal-button.secondary {
+  background-color: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.dark-theme .modal-button.secondary {
+  border-color: #2d3748;
+  color: #a0aec0;
+}
+
+.modal-button.primary {
+  background-color: #3182ce;
+  color: white;
+}
+
+.modal-button.secondary:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.dark-theme .modal-button.secondary:hover {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.modal-button.primary:hover {
+  background-color: #2b6cb0;
+}
