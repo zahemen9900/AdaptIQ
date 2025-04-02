@@ -1010,314 +1010,151 @@
   cursor: not-allowed;
 }
 
-/* Add dark mode styles for assignments page */
-/* Add dark mode variables */
-.theme-dark {
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --border-color: #334155;
-  --hover-bg: #334155;
-}
-
-/* Update dark mode styles */
-.theme-dark .assignments-header h1 {
-  color: var(--text-primary);
-}
-
-.theme-dark .search-input {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-}
-
-.theme-dark .filter-button,
-.theme-dark .new-assignment-button {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-  color: var(--text-secondary);
-}
-
-.theme-dark .filter-menu {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-}
-
-.theme-dark .filter-group label {
-  color: var(--text-secondary);
-}
-
-.theme-dark .filter-option {
-  background-color: var(--bg-primary);
-  border-color: var(--border-color);
-  color: var(--text-secondary);
-}
-
-.theme-dark .assignments-content {
-  background-color: var(--bg-primary);
-}
-
-.theme-dark .assignment-header h3 {
-  color: var(--text-primary);
-}
-
-.theme-dark .assignment-description {
-  color: var(--text-secondary);
-}
-
-.theme-dark .assignment-subject,
-.theme-dark .assignment-due-date,
-.theme-dark .assignment-time {
-  color: var(--text-muted);
-}
-
-.theme-dark .view-details-button {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-  color: var(--text-secondary);
-}
-
-.theme-dark .calendar-header h2 {
-  color: var(--text-primary);
-}
-
-.theme-dark .weekday {
-  color: var(--text-secondary);
-}
-
-.theme-dark .day-number {
-  color: var(--text-secondary);
-}
-
-.theme-dark .assignment-title {
-  color: var(--text-primary);
-}
-
-.theme-dark .details-header h2 {
-  color: var(--text-primary);
-}
-
-.theme-dark .details-content h3 {
-  color: var(--text-primary);
-}
-
-.theme-dark .meta-item {
-  color: var(--text-secondary);
-}
-
-.theme-dark .details-description h4,
-.theme-dark .details-resources h4,
-.theme-dark .details-status h4 {
-  color: var(--text-primary);
-}
-
-.theme-dark .details-description p {
-  color: var(--text-secondary);
-}
-
-.theme-dark .resource-item {
-  background-color: var(--bg-primary);
-}
-
-.theme-dark .resource-content h5 {
-  color: var(--text-primary);
-}
-
-.theme-dark .status-option {
-  background-color: var(--bg-primary);
-  border-color: var(--border-color);
-}
-
-.theme-dark .status-option span:not(.status-icon) {
-  color: var(--text-secondary);
-}
-
-.theme-dark .details-action-button.secondary {
-  background-color: var(--bg-primary);
-  border-color: var(--border-color);
-  color: var(--text-secondary);
-}
-
-.theme-dark .markdown-content {
-  color: var(--text-primary);
-}
-
-.theme-dark .markdown-content code {
-  background-color: var(--bg-primary);
-}
-
-.theme-dark .markdown-content pre {
-  background-color: var(--bg-primary);
-}
-
-.theme-dark .markdown-content blockquote {
-  color: var(--text-secondary);
-  border-left-color: var(--border-color);
-}
-
-.theme-dark .loading-spinner-container {
-  background-color: var(--bg-secondary);
-}
-
-.theme-dark .loading-spinner-container p {
-  color: var(--text-primary);
-}
-
-/* Enhanced dark mode variables */
-.theme-dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #e2e8f0;
-  --text-muted: #94a3b8;
-  --border-color: #334155;
-  --hover-bg: rgba(74, 107, 251, 0.1);
-  --accent-color: #4a6bfb;
-  --accent-hover: #3b82f6;
-  --card-shadow: rgba(0, 0, 0, 0.25);
-  --today-bg: rgba(74, 107, 251, 0.15);
-}
-
-/* Enhanced calendar dark mode styles */
-.theme-dark .calendar-view {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px var(--card-shadow);
-}
-
-.theme-dark .calendar-header {
-  background-color: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 1.25rem;
-}
-
-.theme-dark .calendar-header h2 {
-  color: var(--text-primary);
-  font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.theme-dark .month-nav-button {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
-}
-
-.theme-dark .month-nav-button:hover {
-  background-color: var(--accent-color);
-  border-color: var(--accent-color);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
-.theme-dark .calendar-weekdays {
-  background-color: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 1rem 0;
-}
-
-.theme-dark .weekday {
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.theme-dark .calendar-day {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
-}
-
-.theme-dark .calendar-day:hover {
-  background-color: var(--bg-tertiary);
-}
-
-.theme-dark .calendar-day.other-month {
-  background-color: var(--bg-primary);
-}
-
-.theme-dark .calendar-day.today {
-  background-color: var(--today-bg);
-  border: 1px solid var(--accent-color);
-}
-
-.theme-dark .day-number {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.theme-dark .calendar-day.other-month .day-number {
-  color: var(--text-muted);
-}
-
-.theme-dark .calendar-day.today .day-number {
-  background-color: var(--accent-color);
-  color: white;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
+/* Confirmation Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
 }
 
-.theme-dark .day-assignment {
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
+.confirmation-modal {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  width: 90%;
+  max-width: 480px;
+  overflow: hidden;
+}
+
+.dark-theme .confirmation-modal {
+  background-color: #1a202c;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #eef1f6;
+}
+
+.dark-theme .modal-header {
+  border-bottom-color: #2d3748;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  margin-left: 12px;
+  flex-grow: 1;
+  color: #334155;
+}
+
+.dark-theme .modal-header h3 {
+  color: #e2e8f0;
+}
+
+.warning-icon {
+  color: #f59f00;
+}
+
+.close-modal-button {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dark-theme .close-modal-button {
+  color: #a0aec0;
+}
+
+.close-modal-button:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.dark-theme .close-modal-button:hover {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.modal-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.dark-theme .modal-content p {
+  color: #a0aec0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #eef1f6;
+  gap: 12px;
+}
+
+.dark-theme .modal-actions {
+  border-top-color: #2d3748;
+}
+
+.modal-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 100px;
+  border: none;
 }
 
-.theme-dark .day-assignment:hover {
-  background-color: var(--hover-bg);
-  border-color: var(--accent-color);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px var(--card-shadow);
+.modal-button.secondary {
+  background-color: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
 }
 
-.theme-dark .assignment-title {
-  color: var(--text-secondary);
-  font-weight: 500;
+.dark-theme .modal-button.secondary {
+  border-color: #2d3748;
+  color: #a0aec0;
 }
 
-.theme-dark .more-assignments {
-  color: var(--accent-color);
-  font-weight: 500;
-  padding: 0.3rem;
-  border-radius: 4px;
-  background-color: var(--hover-bg);
+.modal-button.primary {
+  background-color: #3182ce;
+  color: white;
 }
 
-.theme-dark .calendar-day.has-assignments::after {
-  background-color: var(--accent-color);
-  box-shadow: 0 0 4px var(--accent-color);
+.modal-button.secondary:hover {
+  background-color: #f1f5f9;
+  color: #334155;
 }
 
-.theme-dark .day-alert {
-  color: #fbbf24;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.dark-theme .modal-button.secondary:hover {
+  background-color: #2d3748;
+  color: #e2e8f0;
 }
 
-.theme-dark .day-alert.overdue {
-  color: #ef4444;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* Assignment status indicators */
-.theme-dark .day-assignment.status-completed {
-  background-color: rgba(16, 185, 129, 0.1);
-  border-color: #10b981;
-}
-
-.theme-dark .day-assignment.status-overdue {
-  background-color: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
+.modal-button.primary:hover {
+  background-color: #2b6cb0;
 }
