@@ -577,7 +577,6 @@ const DashboardPage = () => {
             <div className="user-avatar">{nickname ? nickname.substring(0, 2).toUpperCase() : 'G'}</div>
             <button className="sign-out-button" onClick={handleSignOutClick}>
               <IconLogout size={18} />
-              <span>Sign Out</span>
             </button>
           </div>
         </div>

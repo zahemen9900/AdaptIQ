@@ -1020,43 +1020,129 @@
   border-color: var(--border-color);
 }
 
-/* Sign Out Button Styles */
+/* Dark theme Goal Setting Modal Button Fixes */
+.theme-dark .goal-input,
+.dark-theme .goal-input {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.theme-dark .close-modal-button,
+.dark-theme .close-modal-button {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.theme-dark .add-goal-button:disabled,
+.dark-theme .add-goal-button:disabled {
+  background-color: #424a57;
+  color: #8b96a6;
+}
+
+/* Fix for the course tag in Recommended section */
+.theme-dark .suggested-course,
+.dark-theme .suggested-course {
+  background-color: var(--bg-primary, #1a1e2a);
+  color: var(--text-secondary, #a0aec0);
+  border: 1px solid var(--border-color, #2d3748);
+}
+
+/* Fix for goal section buttons in dark mode */
+.theme-dark .link-button,
+.dark-theme .link-button {
+  color: var(--primary-color, #4c6ef5);
+}
+
+.theme-dark .link-button:hover,
+.dark-theme .link-button:hover {
+  background-color: rgba(76, 110, 245, 0.15);
+}
+
+/* Fix for the "Set New Goals" and "Refresh Dashboard" buttons in dark mode */
+.theme-dark .caught-up-section,
+.dark-theme .caught-up-section {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .primary-button,
+.dark-theme .primary-button {
+  background-color: var(--primary-color, #4c6ef5);
+}
+
+.theme-dark .primary-button:hover,
+.dark-theme .primary-button:hover {
+  background-color: #3b5bdb;
+}
+
+.theme-dark .secondary-button,
+.dark-theme .secondary-button {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.theme-dark .secondary-button:hover,
+.dark-theme .secondary-button:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Fix for the goal-checkbox in dark mode */
+.theme-dark .goal-checkbox,
+.dark-theme .goal-checkbox {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+/* Sign Out Button Styles - Updated to be smaller with just icon */
 .sign-out-button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
-  background-color: #f8f9fa;
-  color: #495057;
-  font-size: 0.9rem;
-  font-weight: 500;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-primary, #f8f9fa);
+  color: var(--text-secondary, #6B7280);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   margin-left: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid var(--border-color, #e2e8f0);
 }
 
 .sign-out-button:hover {
-  background-color: #f1f3f5;
-  color: #212529;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  background-color: var(--hover-bg, #f1f3f5);
+  color: var(--primary-color, #4a6bfb);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
 .sign-out-button:active {
-  transform: translateY(1px);
+  transform: translateY(0);
+}
+
+.sign-out-button svg {
+  transition: transform 0.3s ease;
+  font-size: 18px;
 }
 
 /* Dark theme support */
+.theme-dark .sign-out-button,
 .dark-theme .sign-out-button {
-  background-color: #343a40;
-  color: #e9ecef;
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-secondary, #1e293b);
+  color: var(--text-secondary, #cbd5e1);
+  border-color: var(--border-color, #334155);
 }
 
+.theme-dark .sign-out-button:hover,
 .dark-theme .sign-out-button:hover {
-  background-color: #495057;
-  color: #fff;
+  background-color: var(--hover-bg, rgba(255, 255, 255, 0.05));
+  color: var(--primary-color, #4c6ef5);
 }
 
 /* Modal Backdrop and Modal Styles (if not already defined) */
