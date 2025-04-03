@@ -2,12 +2,29 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './SchedulePage.css';
 import Logo from '../assets/logo-white.png';
-import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEdit, IconCheck, IconDragDrop, IconDownload, IconRefresh, IconFileText, IconFile, IconSparkles } from '@tabler/icons-react';
+import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconEdit, IconCheck, IconDragDrop, IconDownload, IconRefresh, IconFileText, IconFile, IconSparkles, IconAlertCircle } from '@tabler/icons-react';
 import SubjectPopup from '../components/SubjectPopup/SubjectPopup';
-import { exportScheduleToPDF, prepareScheduleForFirebase, saveScheduleToFirebase } from '../utils/scheduleExporter';
+import { exportScheduleToPDF } from '../utils/scheduleExporter';
 import { exportScheduleToODF } from '../utils/odfExporter';
 import { generateOptimizedSchedule } from '../utils/scheduleAlgorithm';
-import { useTheme } from '../context/ThemeContext'; // Import the useTheme hook
+import { useTheme } from '../context/ThemeContext';
+import { auth, getUserLearningPreferences, getUserSchedule, saveUserSchedule, getUserData } from '../../firebase';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Toast notification component
+const Toast = ({ message, type, onClose }) => (
+  <motion.div 
+    className={`toast-notification ${type}`}
+    initial={{ opacity: 0, y: -50 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -50 }}
+  >
+    {type === 'error' && <IconAlertCircle size={20} />}
+    {type === 'success' && <IconCheck size={20} />}
+    <span className="toast-message">{message}</span>
+    <button className="toast-close" onClick={onClose}>×</button>
+  </motion.div>
+);
 
 const SchedulePage = () => {
   const [schedule, setSchedule] = useState(null);
@@ -19,32 +36,109 @@ const SchedulePage = () => {
   const [nickname, setNickname] = useState('');
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  // Added useTheme hook to get the current theme state
+  const { isDarkMode } = useTheme();
+
+  // Show toast notification
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 5000); // Hide after 5 seconds
+  };
 
   useEffect(() => {
-    // Load user data and schedule from localStorage
-    const onboardingData = localStorage.getItem('onboardingData');
-    if (onboardingData) {
-      const userData = JSON.parse(onboardingData);
-      if (userData.nickname) setNickname(userData.nickname);
-      
-      // Check if we already have a saved schedule
-      const savedSchedule = localStorage.getItem('userSchedule');
-      if (savedSchedule) {
-        setSchedule(JSON.parse(savedSchedule));
-        setLoading(false);
-      } else {
-        // Generate a new schedule if none exists
-        setTimeout(() => {
-          const generatedSchedule = generateOptimizedSchedule(userData);
-          setSchedule(generatedSchedule);
-          localStorage.setItem('userSchedule', JSON.stringify(generatedSchedule));
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        
+        if (!auth.currentUser) {
+          showToast('User not authenticated. Please log in.', 'error');
           setLoading(false);
-        }, 2000); // Simulate loading time
+          return;
+        }
+        
+        const userId = auth.currentUser.uid;
+        
+        // Get user data to retrieve nickname
+        const userDataResponse = await getUserData(userId);
+        
+        if (userDataResponse.success && userDataResponse.userData) {
+          // Set nickname from Firebase user data
+          if (userDataResponse.userData.nickname) {
+            setNickname(userDataResponse.userData.nickname);
+          } else {
+            console.log("No nickname found in user data");
+          }
+        } else {
+          console.error("Failed to get user data:", userDataResponse.error);
+        }
+        
+        // Try to get existing schedule from Firebase first
+        const scheduleResponse = await getUserSchedule(userId);
+        
+        if (scheduleResponse.success) {
+          console.log('Loaded schedule from Firebase:', scheduleResponse.schedule);
+          setSchedule(scheduleResponse.schedule);
+          setLoading(false);
+          
+          // If we have a lastUpdated timestamp, show when the schedule was last updated
+          if (scheduleResponse.lastUpdated) {
+            const lastUpdatedDate = new Date(scheduleResponse.lastUpdated);
+            console.log(`Schedule last updated: ${lastUpdatedDate.toLocaleString()}`);
+          }
+        } else {
+          console.log('No existing schedule found, generating new schedule');
+          
+          // Get user preferences from Firebase to generate schedule
+          const prefsResponse = await getUserLearningPreferences(userId);
+          
+          if (prefsResponse.success) {
+            const userData = prefsResponse.preferences;
+            // Also set nickname from preferences if available
+            if (userData.nickname && !nickname) {
+              setNickname(userData.nickname);
+            }
+            
+            // Generate a new schedule
+            setTimeout(() => {
+              const generatedSchedule = generateOptimizedSchedule(userData);
+              setSchedule(generatedSchedule);
+              
+              // Save the generated schedule to Firebase
+              saveUserSchedule(userId, generatedSchedule)
+                .then(response => {
+                  if (response.success) {
+                    console.log('Schedule saved to Firebase');
+                  } else {
+                    console.error('Failed to save schedule to Firebase:', response.error);
+                    showToast('Failed to save schedule to Firebase', 'error');
+                  }
+                })
+                .catch(error => {
+                  console.error('Error saving schedule to Firebase:', error);
+                  showToast('Error saving schedule to Firebase', 'error');
+                });
+                
+              setLoading(false);
+            }, 2000); // Simulate loading time
+          } else {
+            // If we can't get user preferences, show error
+            console.error('Failed to load user preferences:', prefsResponse.error);
+            showToast('Failed to load your learning preferences', 'error');
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing schedule page:', error);
+        showToast('An error occurred while loading your schedule', 'error');
+        setLoading(false);
       }
-    } else {
-      // If no user data, redirect to onboarding or show empty state
-      setLoading(false);
-    }
+    };
+    
+    fetchUserData();
   }, []);
 
   // Helper function to parse course IDs and return proper display labels
@@ -164,7 +258,7 @@ const SchedulePage = () => {
   };
 
   // Handle drop
-  const handleDrop = (e, day, timeIndex) => {
+  const handleDrop = async (e, day, timeIndex) => {
     e.preventDefault();
     
     if (!draggedItem) return;
@@ -193,9 +287,24 @@ const SchedulePage = () => {
       // Add to new position
       newSchedule[day].splice(timeIndex, 0, itemToMove);
       
-      // Update schedule
+      // Update local state
       setSchedule(newSchedule);
-      localStorage.setItem('userSchedule', JSON.stringify(newSchedule));
+      
+      // Save to Firebase
+      try {
+        if (auth.currentUser) {
+          const userId = auth.currentUser.uid;
+          const saveResponse = await saveUserSchedule(userId, newSchedule);
+          
+          if (!saveResponse.success) {
+            console.error('Failed to save updated schedule to Firebase:', saveResponse.error);
+            showToast('Failed to update schedule in cloud', 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Error saving updated schedule to Firebase:', error);
+        showToast('Error saving schedule to cloud', 'error');
+      }
     }
     
     // Reset drag state
@@ -207,6 +316,29 @@ const SchedulePage = () => {
   // Toggle edit mode
   const toggleEditMode = () => {
     setEditMode(!editMode);
+    
+    if (editMode) {
+      // When exiting edit mode, ensure schedule is saved to Firebase
+      try {
+        if (auth.currentUser && schedule) {
+          const userId = auth.currentUser.uid;
+          saveUserSchedule(userId, schedule)
+            .then(response => {
+              if (response.success) {
+                showToast('Schedule saved successfully', 'success');
+              } else {
+                showToast('Failed to save schedule changes', 'error');
+              }
+            })
+            .catch(error => {
+              console.error('Error saving schedule:', error);
+              showToast('Error saving schedule changes', 'error');
+            });
+        }
+      } catch (error) {
+        console.error('Error saving schedule when exiting edit mode:', error);
+      }
+    }
   };
   
   // Handle subject click to show popup
@@ -224,18 +356,53 @@ const SchedulePage = () => {
   };
 
   // Regenerate schedule
-  const regenerateSchedule = () => {
-    setLoading(true);
-    const onboardingData = localStorage.getItem('onboardingData');
-    if (onboardingData) {
-      const userData = JSON.parse(onboardingData);
-      setTimeout(() => {
-        const generatedSchedule = generateOptimizedSchedule(userData);
-        setSchedule(generatedSchedule);
-        localStorage.setItem('userSchedule', JSON.stringify(generatedSchedule));
+  const regenerateSchedule = async () => {
+    try {
+      setLoading(true);
+      
+      if (!auth.currentUser) {
+        showToast('User not authenticated. Please log in.', 'error');
         setLoading(false);
-      }, 2000); // Simulate loading time
-    } else {
+        return;
+      }
+      
+      const userId = auth.currentUser.uid;
+      
+      // Get user preferences from Firebase
+      const prefsResponse = await getUserLearningPreferences(userId);
+      
+      if (prefsResponse.success) {
+        const userData = prefsResponse.preferences;
+        
+        setTimeout(() => {
+          // Generate new schedule
+          const generatedSchedule = generateOptimizedSchedule(userData);
+          setSchedule(generatedSchedule);
+          
+          // Save to Firebase
+          saveUserSchedule(userId, generatedSchedule)
+            .then(response => {
+              if (response.success) {
+                showToast('New schedule generated and saved', 'success');
+              } else {
+                showToast('Schedule generated but not saved to cloud', 'error');
+              }
+              setLoading(false);
+            })
+            .catch(error => {
+              console.error('Error saving regenerated schedule:', error);
+              showToast('Error saving schedule to cloud', 'error');
+              setLoading(false);
+            });
+        }, 2000); // Simulate loading time
+      } else {
+        console.error('Failed to load user preferences for regenerating schedule:', prefsResponse.error);
+        showToast('Failed to load your learning preferences', 'error');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error regenerating schedule:', error);
+      showToast('An error occurred while regenerating schedule', 'error');
       setLoading(false);
     }
   };
@@ -249,16 +416,23 @@ const SchedulePage = () => {
   };
 
   // Export schedule as PDF
-  const exportScheduleAsPDF = () => {
+  const exportScheduleAsPDF = async () => {
     if (!schedule) return;
     
     try {
-      // Get user name from localStorage
-      const onboardingData = localStorage.getItem('onboardingData');
-      const userData = onboardingData ? JSON.parse(onboardingData) : {};
-      const userName = userData.nickname || 'Student';
+      // Get user name
+      let userName = nickname || 'Student';
       
-      // Generate PDF with proper error handling
+      // If we don't have nickname in state, try to get from Firebase
+      if (!nickname && auth.currentUser) {
+        const userId = auth.currentUser.uid;
+        const prefsResponse = await getUserLearningPreferences(userId);
+        if (prefsResponse.success && prefsResponse.preferences.nickname) {
+          userName = prefsResponse.preferences.nickname;
+        }
+      }
+      
+      // Generate PDF
       console.log('Generating PDF for', userName);
       const pdfBlob = exportScheduleToPDF(schedule, userName);
       
@@ -266,49 +440,47 @@ const SchedulePage = () => {
         throw new Error('Failed to generate PDF: No blob returned');
       }
       
-      console.log('PDF blob generated successfully:', pdfBlob);
-      
       // Create download link
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `AdaptIQ_Schedule_${userName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       
-      console.log('Download link created:', link.href);
-      
-      // Append to document, click, and clean up
+      // Trigger download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Clean up object URL
+      // Clean up
       setTimeout(() => {
         URL.revokeObjectURL(url);
-      }, 1000); // Increased timeout for better reliability
-      
-      // Prepare and save to Firebase (placeholder for future implementation)
-      const firebaseSchedule = prepareScheduleForFirebase(schedule);
-      saveScheduleToFirebase(firebaseSchedule, 'user123');
+      }, 1000);
       
       // Hide export options after export
       setShowExportOptions(false);
-      
-      console.log('PDF export completed successfully');
+      showToast('Schedule exported as PDF', 'success');
     } catch (error) {
       console.error('Error exporting schedule as PDF:', error);
-      alert(`There was an error exporting your schedule as PDF: ${error.message}. Please try again.`);
+      showToast('Error exporting PDF: ' + error.message, 'error');
     }
   };
   
   // Export schedule as ODF
-  const exportScheduleAsODF = () => {
+  const exportScheduleAsODF = async () => {
     if (!schedule) return;
     
     try {
-      // Get user name from localStorage
-      const onboardingData = localStorage.getItem('onboardingData');
-      const userData = onboardingData ? JSON.parse(onboardingData) : {};
-      const userName = userData.nickname || 'Student';
+      // Get user name
+      let userName = nickname || 'Student';
+      
+      // If we don't have nickname in state, try to get from Firebase
+      if (!nickname && auth.currentUser) {
+        const userId = auth.currentUser.uid;
+        const prefsResponse = await getUserLearningPreferences(userId);
+        if (prefsResponse.success && prefsResponse.preferences.nickname) {
+          userName = prefsResponse.preferences.nickname;
+        }
+      }
       
       // Generate ODF
       const odfBlob = exportScheduleToODF(schedule, userName);
@@ -318,22 +490,21 @@ const SchedulePage = () => {
       const link = document.createElement('a');
       link.href = url;
       link.download = `AdaptIQ_Schedule_${userName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.odt`;
+      
+      // Trigger download
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       
       // Clean up
-      document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      // Prepare and save to Firebase (placeholder for future implementation)
-      const firebaseSchedule = prepareScheduleForFirebase(schedule);
-      saveScheduleToFirebase(firebaseSchedule, 'user123');
-      
-      // Hide export options after export
+      // Hide export options
       setShowExportOptions(false);
+      showToast('Schedule exported as ODF', 'success');
     } catch (error) {
       console.error('Error exporting schedule as ODF:', error);
-      alert('There was an error exporting your schedule as ODF. Please try again.');
+      showToast('Error exporting ODF: ' + error.message, 'error');
     }
   };
   
@@ -342,11 +513,46 @@ const SchedulePage = () => {
     toggleExportOptions();
   };
 
-  // Added useTheme hook to get the current theme state
-  const { isDarkMode } = useTheme();
+  // Sort days of the week in correct order
+  const sortDaysByWeekOrder = (schedule) => {
+    if (!schedule) return null;
+
+    const dayOrder = {
+      'Monday': 1,
+      'Tuesday': 2,
+      'Wednesday': 3,
+      'Thursday': 4,
+      'Friday': 5,
+      'Saturday': 6,
+      'Sunday': 7
+    };
+
+    // Create a new ordered schedule object
+    const orderedSchedule = {};
+    
+    // Add days in correct order
+    Object.keys(schedule)
+      .sort((a, b) => dayOrder[a] - dayOrder[b])
+      .forEach(day => {
+        orderedSchedule[day] = schedule[day];
+      });
+
+    return orderedSchedule;
+  };
 
   return (
     <div className={`dashboard-page ${isDarkMode ? 'dark-theme' : ''}`}>
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast.show && (
+          <Toast 
+            message={toast.message} 
+            type={toast.type} 
+            onClose={() => setToast({ show: false, message: '', type: 'success' })} 
+          />
+        )}
+      </AnimatePresence>
+    
       <div className="dashboard-sidebar">
         <div className="sidebar-header">
           <img src={Logo} alt="AdaptIQ Logo" className="dashboard-logo" />
@@ -453,7 +659,7 @@ const SchedulePage = () => {
           </div>
         ) : schedule ? (
           <div className="schedule-calendar">
-            {Object.keys(schedule).map(day => (
+            {Object.keys(sortDaysByWeekOrder(schedule) || {}).map(day => (
               <div key={day} className="calendar-day">
                 <div className="day-header">{day}</div>
                 <div 

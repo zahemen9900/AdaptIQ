@@ -4,16 +4,14 @@ import './AssignmentsPage.css';
 import Logo from '../assets/logo-white.png';
 import { 
   IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, 
-  IconClipboard, IconUsers, IconFilter, IconSearch, IconChevronLeft, 
+  IconClipboard, IconListDetails, IconFilter, IconSearch, IconChevronLeft, 
   IconChevronRight, IconCheck, IconPlus, IconArrowUpRight, IconX,
-  IconListDetails, IconLayoutGrid, IconAlertCircle, IconAdjustments,
-  IconUpload, IconFileUpload, IconSparkles
+  IconLayoutGrid, IconAlertCircle, IconSparkles
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   getAssignments, 
   saveAssignments, 
-  ensureWeeklyAssignments, 
   updateAssignmentStatus,
   groupAssignmentsByDate,
   generateCalendarDates,
@@ -22,9 +20,13 @@ import {
   sortAssignments,
   getPriorityInfo,
   filterAssignments,
-  generateAssignmentWithGemini,
-  getRandomTopicForSubject,
-  generateAssignment
+  fetchUserSubjects,
+  selectSubjectsForAssignments,
+  generateAssignmentsForSubjects,
+  ensureUserHasAssignments,
+  updateSingleAssignment,
+  getAllAssignments,
+  getCurrentWeekId
 } from '../utils/assignmentsUtils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -79,6 +81,7 @@ const AssignmentsPage = () => {
   // State for user info
   const [nickname, setNickname] = useState('');
   const [subjects, setSubjects] = useState([]);
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
   
   // State for assignments and view settings
   const [assignments, setAssignments] = useState([]);
@@ -87,7 +90,7 @@ const AssignmentsPage = () => {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [loading, setLoading] = useState(false); // Loading state
+  const [loading, setLoading] = useState(true); // Start with loading state active
   
   // New state for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -99,6 +102,7 @@ const AssignmentsPage = () => {
   // State for calendar view
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDates, setCalendarDates] = useState([]);
+  const [weekId, setWeekId] = useState(getCurrentWeekId());
   
   // State for filters
   const [filters, setFilters] = useState({
@@ -109,106 +113,70 @@ const AssignmentsPage = () => {
     sortBy: 'dueDate'
   });
 
-  // Load user data and assignments
+  // Fetch user data and load or generate assignments
   useEffect(() => {
-    async function loadData() {
-      // Get user data
-      const onboardingData = await fetchUserData(); 
-      if (onboardingData) {
-        const userData = onboardingData;
-        console.log("nickname: ",userData.nickname);
-        console.log("userData: ",userData);
-        if (userData.nickname) setNickname(userData.nickname);
-        
-        // Extract subjects from courses
-        if (userData.courses && userData.courses.length > 0) {
-          const extractedSubjects = userData.courses.map(courseId => {
-            const parts = courseId.split('-');
-            const subjectId = parts[0];
-            
-            // Map from subject IDs to subject names
-            const subjectMap = {
-              'math': 'Mathematics',
-              'algebra': 'Algebra',
-              'geometry': 'Geometry',
-              'calculus': 'Calculus',
-              'science': 'Science',
-              'biology': 'Biology',
-              'chemistry': 'Chemistry',
-              'physics': 'Physics',
-              'history': 'History',
-              'worldHistory': 'World History',
-              'language': 'Language',
-              'english': 'English',
-              'programming': 'Programming',
-              'computerScience': 'Computer Science'
-            };
-            
-            return subjectMap[subjectId] || 'General';
-          });
-          
-          // Remove duplicates
-          const uniqueSubjects = [...new Set(extractedSubjects)];
-          setSubjects(uniqueSubjects);
-          
-          // Ensure weekly assignments for each subject (asynchronous)
-          setLoading(true); // Show loading state while generating assignments
-          try {
-            const updatedAssignments = await ensureWeeklyAssignments(uniqueSubjects);
-            setAssignments(updatedAssignments);
-            setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
-          } catch (error) {
-            console.error("Error ensuring weekly assignments:", error);
-          } finally {
-            setLoading(false);
-          }
-        }
-      }
-      
-      // If no subjects were found, use some defaults for demo purposes
-      if (!subjects || subjects.length === 0) {
-        const defaultSubjects = ['Mathematics', 'Physics', 'Chemistry', 'Programming', 'History'];
-        setSubjects(defaultSubjects);
-        
-        // Generate default assignments (asynchronous)
-        setLoading(true);
-        try {
-          const defaultAssignments = await ensureWeeklyAssignments(defaultSubjects);
-          setAssignments(defaultAssignments);
-          setFilteredAssignments(sortAssignments(defaultAssignments, filters.sortBy));
-        } catch (error) {
-          console.error("Error generating default assignments:", error);
-        } finally {
-          setLoading(false);
-        }
-      }
-      
-      // Generate calendar dates for the current month
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const dates = generateCalendarDates(year, month);
-      setCalendarDates(dates);
-    } 
-    const fetchUserData = async () => {
+    async function initializeAssignmentsPage() {
       try {
-        if (!auth.currentUser) return; // Ensure user is signed in
-    
-        const userRef = doc(db, "users", auth.currentUser.uid);
-        const userSnap = await getDoc(userRef);
-    
-        if (userSnap.exists()) {
-          return userSnap.data(); // Return the user data
-        } else {
-          console.log("User not found!");
-          return null;
+        setLoading(true);
+        
+        // Fetch user data from Firebase
+        const userData = await fetchUserData();
+        if (userData) {
+          if (userData.nickname) setNickname(userData.nickname);
         }
+        
+        // Fetch user subjects from Firebase
+        const userSubjectsData = await fetchUserSubjects();
+        // Extract the subjects array from the returned object
+        const userSubjects = userSubjectsData.subjects || [];
+        setSubjects(userSubjects);
+        
+        // Select up to 4 random subjects if more than 4 exist, otherwise use all
+        const subjectsForAssignments = selectSubjectsForAssignments(userSubjects);
+        setSelectedSubjects(subjectsForAssignments);
+        
+        // Ensure user has assignments due within the next week
+        // This will either fetch existing assignments or generate new ones if needed
+        const currentAssignments = await ensureUserHasAssignments();
+        if (currentAssignments && currentAssignments.length > 0) {
+          setAssignments(currentAssignments);
+          setFilteredAssignments(sortAssignments(currentAssignments, filters.sortBy));
+        }
+        
+        // Generate calendar dates for current month
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const dates = generateCalendarDates(year, month);
+        setCalendarDates(dates);
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error initializing assignments page:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    initializeAssignmentsPage();
+  }, []);
+
+  // Helper function to fetch user data from Firebase
+  const fetchUserData = async () => {
+    try {
+      if (!auth.currentUser) return null;
+      
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        return userSnap.data();
+      } else {
+        console.warn("User document not found");
         return null;
       }
-    };
-    loadData();
-  }, []);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      return null;
+    }
+  };
 
   // Update filtered assignments when filters change
   useEffect(() => {
@@ -228,8 +196,8 @@ const AssignmentsPage = () => {
   }, [currentDate]);
 
   // Handle assignment status update
-  const handleStatusChange = (assignmentId, newStatus) => {
-    // If the assignment is being marked as completed, we'll show the submission form instead
+  const handleStatusChange = async (assignmentId, newStatus) => {
+    // If the assignment is being marked as completed, show the submission form
     if (newStatus === 'completed') {
       const assignment = assignments.find(a => a.id === assignmentId);
       if (assignment) {
@@ -242,13 +210,26 @@ const AssignmentsPage = () => {
     // For other status changes, update directly
     const updatedAssignments = assignments.map(assignment => {
       if (assignment.id === assignmentId) {
-        return { ...assignment, status: newStatus };
+        return { 
+          ...assignment, 
+          status: newStatus,
+          // Update priority if needed
+          priority: newStatus === 'overdue' ? 5 : assignment.priority
+        };
       }
       return assignment;
     });
     
+    // Update state
     setAssignments(updatedAssignments);
-    saveAssignments(updatedAssignments);
+    
+    // Find the updated assignment
+    const updatedAssignment = updatedAssignments.find(a => a.id === assignmentId);
+    
+    if (updatedAssignment) {
+      // Update in Firebase
+      await updateSingleAssignment(updatedAssignment);
+    }
     
     // If viewing assignment details, update the selected assignment
     if (selectedAssignment && selectedAssignment.id === assignmentId) {
@@ -291,75 +272,40 @@ const AssignmentsPage = () => {
   // Group assignments by date for the calendar view
   const assignmentsByDate = groupAssignmentsByDate(filteredAssignments);
 
-  // Generate a new assignment (using Gemini AI)
-  const handleGenerateNewAssignment = async () => {
+  // Generate new assignments
+  const handleGenerateNewAssignments = async () => {
     setLoading(true);
     setShowConfirmModal(false); // Close confirmation modal
     
     try {
-      // Get schedule data from localStorage to extract actual course subjects
-      const scheduleData = localStorage.getItem('userSchedule');
-      let scheduleSubjects = [];
-      
-      if (scheduleData) {
-        const schedule = JSON.parse(scheduleData);
-        // Extract unique subjects from the schedule
-        const uniqueSubjects = new Set();
-        
-        // Iterate through each day in the schedule
-        Object.keys(schedule).forEach(day => {
-          schedule[day].forEach(session => {
-            if (session.course) {
-              uniqueSubjects.add(session.course);
-            }
-          });
-        });
-        
-        scheduleSubjects = Array.from(uniqueSubjects);
-      }
-      
-      // Use schedule subjects if available, otherwise use the subjects from state
-      const subjectsToUse = scheduleSubjects.length > 0 ? scheduleSubjects : subjects;
+      // Get subjects from state
+      const subjectsToUse = selectedSubjects.length > 0 ? selectedSubjects : subjects;
       
       if (subjectsToUse.length === 0) {
-        console.warn("No subjects found for generating assignments");
+        console.warn("No subjects available for generating assignments");
+        
+        // If no subjects are available, set empty assignments list
+        setAssignments([]);
+        setFilteredAssignments([]);
         setLoading(false);
         return;
       }
       
       console.log("Generating assignments for subjects:", subjectsToUse);
       
-      // Immediately update the UI to show empty assignments list while generating
-      setAssignments([]);
-      setFilteredAssignments([]);
-
-      // Create new assignments for all subjects from the schedule
-      const assignmentPromises = subjectsToUse.map(subject => {
-        const topic = getRandomTopicForSubject(subject);
-        const assignmentTypes = ['assignment', 'quiz', 'project'];
-        const randomType = assignmentTypes[Math.floor(Math.random() * assignmentTypes.length)];
-        
-        // Generate an assignment with due date between 1-7 days from now
-        return generateAssignmentWithGemini(subject, topic, randomType)
-          .catch(error => {
-            console.error(`Error generating assignment for ${subject}:`, error);
-            // Fall back to local generation if API fails
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7) + 1);
-            return generateAssignment(subject, dueDate);
-          });
-      });
+      // Generate assignments for selected subjects (one per subject)
+      const newAssignments = await generateAssignmentsForSubjects(subjectsToUse);
       
-      // Wait for all assignment generations to complete
-      const newAssignments = await Promise.all(assignmentPromises);
+      // Save assignments to Firebase
+      const saved = await saveAssignments(newAssignments);
       
-      // Update and save assignments - completely replacing old assignments
-      const finalAssignments = newAssignments.map(updateAssignmentStatus);
-      saveAssignments(finalAssignments);
-      
-      // Update state with new assignments
-      setAssignments(finalAssignments);
-      setFilteredAssignments(sortAssignments(finalAssignments, filters.sortBy));
+      if (saved) {
+        // Update state with the new assignments
+        setAssignments(newAssignments);
+        setFilteredAssignments(sortAssignments(newAssignments, filters.sortBy));
+      } else {
+        console.error("Failed to save new assignments to Firebase");
+      }
     } catch (error) {
       console.error("Error generating new assignments:", error);
     } finally {
@@ -368,51 +314,89 @@ const AssignmentsPage = () => {
   };
 
   // Handle assignment submission
-  const handleAssignmentSubmit = (submissionData) => {
-    // Update the assignment with submission data and change status to completed
-    const updatedAssignments = assignments.map(assignment => {
-      if (assignment.id === submissionData.assignmentId) {
-        return { 
-          ...assignment, 
-          status: 'completed',
-          submission: {
-            content: submissionData.submissionContent,
-            feedback: submissionData.feedback,
-            grade: submissionData.grade,
-            submittedAt: submissionData.submittedAt
-          }
-        };
-      }
-      return assignment;
-    });
-    
-    // Update state and save to localStorage
-    setAssignments(updatedAssignments);
-    saveAssignments(updatedAssignments);
-    
-    // Update filtered assignments
-    const filtered = filterAssignments(updatedAssignments, filters);
-    const sorted = sortAssignments(filtered, filters.sortBy);
-    setFilteredAssignments(sorted);
-    
-    // Close the submission form
-    setShowSubmissionForm(false);
-    setSubmissionAssignment(null);
-    
-    // If the same assignment was open in the details panel, update it
-    if (selectedAssignment && selectedAssignment.id === submissionData.assignmentId) {
+  const handleAssignmentSubmit = async (submissionData) => {
+    try {
+      // Update the assignment with submission data and change status to completed
+      const updatedAssignments = assignments.map(assignment => {
+        if (assignment.id === submissionData.assignmentId) {
+          return { 
+            ...assignment, 
+            status: 'completed',
+            completedDate: new Date().toISOString(),
+            submission: {
+              content: submissionData.submissionContent,
+              feedback: submissionData.feedback,
+              grade: submissionData.grade,
+              submittedAt: submissionData.submittedAt
+            }
+          };
+        }
+        return assignment;
+      });
+      
+      // Find the updated assignment
       const updatedAssignment = updatedAssignments.find(a => a.id === submissionData.assignmentId);
-      setSelectedAssignment(updatedAssignment);
+      
+      if (updatedAssignment) {
+        // Update the assignment in Firebase
+        await updateSingleAssignment(updatedAssignment);
+        
+        // Update state
+        setAssignments(updatedAssignments);
+        
+        // Update filtered assignments
+        const filtered = filterAssignments(updatedAssignments, filters);
+        const sorted = sortAssignments(filtered, filters.sortBy);
+        setFilteredAssignments(sorted);
+      }
+      
+      // Close the submission form
+      setShowSubmissionForm(false);
+      setSubmissionAssignment(null);
+      
+      // If the same assignment was open in the details panel, update it
+      if (selectedAssignment && selectedAssignment.id === submissionData.assignmentId) {
+        const updatedAssignment = updatedAssignments.find(a => a.id === submissionData.assignmentId);
+        setSelectedAssignment(updatedAssignment);
+      }
+    } catch (error) {
+      console.error("Error handling assignment submission:", error);
     }
   };
 
   // Format month name for display
   const formatMonthName = (date) => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  }; 
+  };
 
-
-  
+  // Handle week change for viewing assignments from different weeks
+  const handleWeekChange = async (increment) => {
+    // Calculate new week ID
+    const date = new Date();
+    date.setDate(date.getDate() + (7 * increment)); // Move forward/backward by weeks
+    const newWeekId = getCurrentWeekId(date);
+    
+    setLoading(true);
+    try {
+      // Set new week ID
+      setWeekId(newWeekId);
+      
+      // Load assignments for the new week
+      const weekAssignments = await getAssignments(newWeekId);
+      
+      if (weekAssignments && weekAssignments.length > 0) {
+        setAssignments(weekAssignments);
+        setFilteredAssignments(sortAssignments(weekAssignments, filters.sortBy));
+      } else {
+        setAssignments([]);
+        setFilteredAssignments([]);
+      }
+    } catch (error) {
+      console.error("Error changing week:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -514,6 +498,21 @@ const AssignmentsPage = () => {
             </div>
           </div>
         </div>
+        
+        {/* Week Navigation (shown in list view) */}
+        {viewMode === 'list' && (
+          <div className="week-navigation">
+            <button className="week-nav-button" onClick={() => handleWeekChange(-1)}>
+              <IconChevronLeft size={20} />
+              <span>Previous Week</span>
+            </button>
+            <span className="current-week-label">Current Week</span>
+            <button className="week-nav-button" onClick={() => handleWeekChange(1)}>
+              <span>Next Week</span>
+              <IconChevronRight size={20} />
+            </button>
+          </div>
+        )}
         
         {/* Filter Menu */}
         <AnimatePresence>
@@ -617,7 +616,7 @@ const AssignmentsPage = () => {
             <div className="loading-overlay">
               <div className="loading-spinner-container">
                 <div className="loading-spinner"></div>
-                <p>Generating AI assignments...</p>
+                <p>Loading assignments...</p>
               </div>
             </div>
           )}
@@ -712,7 +711,7 @@ const AssignmentsPage = () => {
                   <IconClipboard size={48} />
                   <h3>No assignments found</h3>
                   <p>Try adjusting your filters or create a new assignment.</p>
-                  <button className="create-assignment-button" onClick={handleGenerateNewAssignment}>
+                  <button className="create-assignment-button" onClick={() => setShowConfirmModal(true)}>
                     <IconPlus size={20} />
                     <span>Create Assignment</span>
                   </button>
@@ -991,9 +990,9 @@ const AssignmentsPage = () => {
         <ConfirmationModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
-          onConfirm={handleGenerateNewAssignment}
+          onConfirm={handleGenerateNewAssignments}
           title="Generate New Assignments"
-          message="This will generate new assignments for subjects that don't have any due in the next week. Do you want to proceed?"
+          message="This will generate new assignments for your selected subjects. Do you want to proceed?"
         />
       </div>
     </motion.div>
@@ -1019,6 +1018,15 @@ const IconNotebook = ({ size }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
     <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+  </svg>
+);
+
+const IconFileUpload = ({ size }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <path d="M12 18v-6"></path>
+    <path d="M8 15l4-4 4 4"></path>
   </svg>
 );
 

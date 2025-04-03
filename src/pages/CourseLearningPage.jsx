@@ -1390,7 +1390,7 @@ const CourseLearningPage = () => {
                             className="send-button" 
                             onClick={handleSendMessage}
                             disabled={!currentMessage.trim()}
-                            whileHover={{ scale: 1.1, backgroundColor: "#007bff" }}
+                            whileHover={{ scale: 1.05, backgroundColor: "#007bff" }}
                             whileTap={{ scale: 0.95 }}
                           >
                             <IconSend size={20} />
@@ -1449,7 +1449,7 @@ const CourseLearningPage = () => {
                         className="resources-container"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3 }}
+                        transition={{ duration: 0.2 }}
                       >
                         <motion.div 
                           className="resources-filter"
