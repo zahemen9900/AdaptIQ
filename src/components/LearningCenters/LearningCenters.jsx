@@ -20,7 +20,7 @@ const LearningCenters = () => {
         <button className="signup-button">SIGN UP FOR THE LATEST NEWS</button>
       </div>
      <div className='learning-centers-pic-container'>
-      <img className='learning-centers-pic' src="/src/assets/learningCenters-pic.png" alt="Learning Center" />
+      <img className='learning-centers-pic' src="/src/assets/AdaptIQ-bg.png" alt="Learning Center" />
      </div>
     </section>
   );

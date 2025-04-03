@@ -43,18 +43,18 @@
   background-color: #e5e7eb;
 }
 .learning-centers-pic-container {
-  margin: 0;
+  margin: 30px 0 0 0;
   padding: 0;
   display: block;
   width: 100vw;
   position: relative;
   left: 50%;
   transform: translateX(-50%);
-  height: auto;
+  height: 500px;
 }
 .learning-centers-pic {
   width: 100%;
-  height: auto;
+  height: 500px;
   object-fit: cover;
   display: block;
 }
