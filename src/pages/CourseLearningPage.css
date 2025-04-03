@@ -2157,3 +2157,148 @@
     box-shadow: -4px 0 12px var(--card-shadow);
   }
 }
+
+/* History Panel Header and Clear Button */
+.history-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.history-panel-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.clear-history-header-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background-color: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-history-header-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode styling for clear history button */
+.theme-dark .clear-history-header-button {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #e2e8f0;
+}
+
+.theme-dark .clear-history-header-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Confirmation Modal */
+.clear-history-confirm-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  width: 85%;
+  max-width: 320px;
+  z-index: 1000;
+}
+
+.theme-dark .clear-history-confirm-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+}
+
+.confirm-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.confirm-modal-content h4 {
+  margin: 10px 0;
+  color: #333;
+}
+
+.theme-dark .confirm-modal-content h4 {
+  color: var(--text-primary);
+}
+
+.confirm-modal-content p {
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.theme-dark .confirm-modal-content p {
+  color: var(--text-secondary);
+}
+
+.confirm-modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.confirm-cancel-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  color: #333;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirm-cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.theme-dark .confirm-cancel-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.theme-dark .confirm-cancel-button:hover {
+  background-color: var(--bg-elevated);
+}
+
+.confirm-delete-button {
+  padding: 8px 16px;
+  background-color: #333;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirm-delete-button:hover {
+  background-color: #555;
+}
+
+.theme-dark .confirm-delete-button {
+  background-color: #333;
+  color: white;
+}
+
+.theme-dark .confirm-delete-button:hover {
+  background-color: #444;
+}

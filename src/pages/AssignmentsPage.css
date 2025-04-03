@@ -1158,3 +1158,370 @@
 .modal-button.primary:hover {
   background-color: #2b6cb0;
 }
+
+/* Past Assignments Modal Styles */
+.past-assignments-button {
+  display: flex;
+  align-items: center;
+  background-color: var(--secondary-color, #f0f0f0);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  color: var(--text-color, #333);
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  gap: 6px;
+}
+
+.past-assignments-button:hover {
+  background-color: var(--hover-bg, #e0e0e0);
+}
+
+.past-assignments-modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 90vh;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.past-assignments-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.past-assignments-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.past-assignments-content {
+  display: flex;
+  height: 70vh;
+}
+
+.past-assignments-list {
+  width: 35%;
+  padding: 16px;
+  border-right: 1px solid #eee;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.past-assignment-item {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #eee;
+}
+
+.past-assignment-item:hover {
+  background-color: #f9f9f9;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.past-assignment-item.active {
+  background-color: #f0f7ff;
+  border-color: #4a6bfb;
+}
+
+.past-assignment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.past-assignment-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.assignment-badge {
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-badge {
+  background-color: #4caf50;
+  color: white;
+}
+
+.past-assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-item.grade {
+  margin-left: auto;
+}
+
+.grade-pill {
+  background-color: #4a6bfb;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.past-assignment-details {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.past-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.past-details-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #333;
+}
+
+.past-details-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.details-section {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  background-color: #fafafa;
+}
+
+.details-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.submission-date {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.grade-display {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.grade-value {
+  font-weight: 600;
+  color: #4a6bfb;
+}
+
+.no-past-assignments,
+.no-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #666;
+  font-style: italic;
+}
+
+.no-selection {
+  height: 100%;
+}
+
+/* Enhanced markdown content styling for past assignments */
+.markdown-content {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.markdown-content p {
+  margin-bottom: 1rem;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.markdown-content code {
+  background-color: #f5f5f5;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 5px;
+  overflow-x: auto;
+  margin: 0.5rem 0 1rem;
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #e0e0e0;
+  padding-left: 1rem;
+  margin-left: 0;
+  color: #666;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.markdown-content table th,
+.markdown-content table td {
+  border: 1px solid #e0e0e0;
+  padding: 0.5rem;
+}
+
+.markdown-content table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+/* Dark mode styles for past assignments modal */
+.theme-dark .past-assignments-modal {
+  background-color: var(--bg-secondary);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .past-assignments-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-dark .past-assignments-header h2 {
+  color: var(--text-primary);
+}
+
+.theme-dark .past-assignments-list {
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-dark .past-assignment-item {
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .past-assignment-item:hover {
+  background-color: var(--bg-elevated);
+}
+
+.theme-dark .past-assignment-item.active {
+  background-color: rgba(74, 107, 251, 0.15);
+  border-color: var(--accent-color);
+}
+
+.theme-dark .past-assignment-header h3 {
+  color: var(--text-primary);
+}
+
+.theme-dark .past-assignment-meta {
+  color: var(--text-secondary);
+}
+
+.theme-dark .past-details-header h3 {
+  color: var(--text-primary);
+}
+
+.theme-dark .details-section {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .details-section h4 {
+  color: var(--text-primary);
+}
+
+.theme-dark .submission-date {
+  color: var(--text-secondary);
+}
+
+.theme-dark .grade-display {
+  color: var(--text-secondary);
+}
+
+.theme-dark .no-past-assignments,
+.theme-dark .no-selection {
+  color: var(--text-muted);
+}
+
+/* Dark theme markdown content */
+.theme-dark .markdown-content code {
+  background-color: var(--bg-elevated);
+}
+
+.theme-dark .markdown-content pre {
+  background-color: var(--bg-elevated);
+}
+
+.theme-dark .markdown-content blockquote {
+  border-left-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.theme-dark .markdown-content table th,
+.theme-dark .markdown-content table td {
+  border-color: var(--border-color);
+}
+
+.theme-dark .markdown-content table th {
+  background-color: var(--bg-elevated);
+}
