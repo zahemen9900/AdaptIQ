@@ -23,10 +23,7 @@ import {
   fetchUserSubjects,
   selectSubjectsForAssignments,
   generateAssignmentsForSubjects,
-  ensureUserHasAssignments,
-  updateSingleAssignment,
-  getAllAssignments,
-  getCurrentWeekId
+  ensureUserHasAssignments
 } from '../utils/assignmentsUtils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -102,7 +99,6 @@ const AssignmentsPage = () => {
   // State for calendar view
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDates, setCalendarDates] = useState([]);
-  const [weekId, setWeekId] = useState(getCurrentWeekId());
   
   // State for filters
   const [filters, setFilters] = useState({
@@ -126,22 +122,38 @@ const AssignmentsPage = () => {
         }
         
         // Fetch user subjects from Firebase
-        const userSubjectsData = await fetchUserSubjects();
-        // Extract the subjects array from the returned object
-        const userSubjects = userSubjectsData.subjects || [];
+        const userSubjects = await fetchUserSubjects();
         setSubjects(userSubjects);
         
         // Select up to 4 random subjects if more than 4 exist, otherwise use all
         const subjectsForAssignments = selectSubjectsForAssignments(userSubjects);
         setSelectedSubjects(subjectsForAssignments);
         
-        // Ensure user has assignments due within the next week
-        // This will either fetch existing assignments or generate new ones if needed
-        const currentAssignments = await ensureUserHasAssignments();
-        if (currentAssignments && currentAssignments.length > 0) {
-          setAssignments(currentAssignments);
-          setFilteredAssignments(sortAssignments(currentAssignments, filters.sortBy));
+        // Check if there are existing assignments in storage
+        const existingAssignments = getAssignments();
+        
+        if (existingAssignments && existingAssignments.length > 0) {
+          // Use existing assignments, but update their status based on due dates
+          const updatedAssignments = existingAssignments.map(updateAssignmentStatus);
+          setAssignments(updatedAssignments);
+          setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
+        } else {
+          // Generate new assignments for selected subjects
+          const newAssignments = await generateAssignmentsForSubjects(subjectsForAssignments);
+          setAssignments(newAssignments);
+          setFilteredAssignments(sortAssignments(newAssignments, filters.sortBy));
+          
+          // Save the newly generated assignments
+          saveAssignments(newAssignments);
         }
+        
+        // Ensure user has assignments due within the next week
+        ensureUserHasAssignments().then(updatedAssignments => {
+          if (updatedAssignments && updatedAssignments.length > 0) {
+            setAssignments(updatedAssignments);
+            setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
+          }
+        });
         
         // Generate calendar dates for current month
         const year = currentDate.getFullYear();
@@ -196,7 +208,7 @@ const AssignmentsPage = () => {
   }, [currentDate]);
 
   // Handle assignment status update
-  const handleStatusChange = async (assignmentId, newStatus) => {
+  const handleStatusChange = (assignmentId, newStatus) => {
     // If the assignment is being marked as completed, show the submission form
     if (newStatus === 'completed') {
       const assignment = assignments.find(a => a.id === assignmentId);
@@ -210,26 +222,13 @@ const AssignmentsPage = () => {
     // For other status changes, update directly
     const updatedAssignments = assignments.map(assignment => {
       if (assignment.id === assignmentId) {
-        return { 
-          ...assignment, 
-          status: newStatus,
-          // Update priority if needed
-          priority: newStatus === 'overdue' ? 5 : assignment.priority
-        };
+        return { ...assignment, status: newStatus };
       }
       return assignment;
     });
     
-    // Update state
     setAssignments(updatedAssignments);
-    
-    // Find the updated assignment
-    const updatedAssignment = updatedAssignments.find(a => a.id === assignmentId);
-    
-    if (updatedAssignment) {
-      // Update in Firebase
-      await updateSingleAssignment(updatedAssignment);
-    }
+    saveAssignments(updatedAssignments);
     
     // If viewing assignment details, update the selected assignment
     if (selectedAssignment && selectedAssignment.id === assignmentId) {
@@ -296,16 +295,10 @@ const AssignmentsPage = () => {
       // Generate assignments for selected subjects (one per subject)
       const newAssignments = await generateAssignmentsForSubjects(subjectsToUse);
       
-      // Save assignments to Firebase
-      const saved = await saveAssignments(newAssignments);
-      
-      if (saved) {
-        // Update state with the new assignments
-        setAssignments(newAssignments);
-        setFilteredAssignments(sortAssignments(newAssignments, filters.sortBy));
-      } else {
-        console.error("Failed to save new assignments to Firebase");
-      }
+      // Save and update assignments in state
+      saveAssignments(newAssignments);
+      setAssignments(newAssignments);
+      setFilteredAssignments(sortAssignments(newAssignments, filters.sortBy));
     } catch (error) {
       console.error("Error generating new assignments:", error);
     } finally {
@@ -314,88 +307,47 @@ const AssignmentsPage = () => {
   };
 
   // Handle assignment submission
-  const handleAssignmentSubmit = async (submissionData) => {
-    try {
-      // Update the assignment with submission data and change status to completed
-      const updatedAssignments = assignments.map(assignment => {
-        if (assignment.id === submissionData.assignmentId) {
-          return { 
-            ...assignment, 
-            status: 'completed',
-            completedDate: new Date().toISOString(),
-            submission: {
-              content: submissionData.submissionContent,
-              feedback: submissionData.feedback,
-              grade: submissionData.grade,
-              submittedAt: submissionData.submittedAt
-            }
-          };
-        }
-        return assignment;
-      });
-      
-      // Find the updated assignment
+  const handleAssignmentSubmit = (submissionData) => {
+    // Update the assignment with submission data and change status to completed
+    const updatedAssignments = assignments.map(assignment => {
+      if (assignment.id === submissionData.assignmentId) {
+        return { 
+          ...assignment, 
+          status: 'completed',
+          submission: {
+            content: submissionData.submissionContent,
+            feedback: submissionData.feedback,
+            grade: submissionData.grade,
+            submittedAt: submissionData.submittedAt
+          }
+        };
+      }
+      return assignment;
+    });
+    
+    // Update state and save to localStorage
+    setAssignments(updatedAssignments);
+    saveAssignments(updatedAssignments);
+    
+    // Update filtered assignments
+    const filtered = filterAssignments(updatedAssignments, filters);
+    const sorted = sortAssignments(filtered, filters.sortBy);
+    setFilteredAssignments(sorted);
+    
+    // Close the submission form
+    setShowSubmissionForm(false);
+    setSubmissionAssignment(null);
+    
+    // If the same assignment was open in the details panel, update it
+    if (selectedAssignment && selectedAssignment.id === submissionData.assignmentId) {
       const updatedAssignment = updatedAssignments.find(a => a.id === submissionData.assignmentId);
-      
-      if (updatedAssignment) {
-        // Update the assignment in Firebase
-        await updateSingleAssignment(updatedAssignment);
-        
-        // Update state
-        setAssignments(updatedAssignments);
-        
-        // Update filtered assignments
-        const filtered = filterAssignments(updatedAssignments, filters);
-        const sorted = sortAssignments(filtered, filters.sortBy);
-        setFilteredAssignments(sorted);
-      }
-      
-      // Close the submission form
-      setShowSubmissionForm(false);
-      setSubmissionAssignment(null);
-      
-      // If the same assignment was open in the details panel, update it
-      if (selectedAssignment && selectedAssignment.id === submissionData.assignmentId) {
-        const updatedAssignment = updatedAssignments.find(a => a.id === submissionData.assignmentId);
-        setSelectedAssignment(updatedAssignment);
-      }
-    } catch (error) {
-      console.error("Error handling assignment submission:", error);
+      setSelectedAssignment(updatedAssignment);
     }
   };
 
   // Format month name for display
   const formatMonthName = (date) => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
-
-  // Handle week change for viewing assignments from different weeks
-  const handleWeekChange = async (increment) => {
-    // Calculate new week ID
-    const date = new Date();
-    date.setDate(date.getDate() + (7 * increment)); // Move forward/backward by weeks
-    const newWeekId = getCurrentWeekId(date);
-    
-    setLoading(true);
-    try {
-      // Set new week ID
-      setWeekId(newWeekId);
-      
-      // Load assignments for the new week
-      const weekAssignments = await getAssignments(newWeekId);
-      
-      if (weekAssignments && weekAssignments.length > 0) {
-        setAssignments(weekAssignments);
-        setFilteredAssignments(sortAssignments(weekAssignments, filters.sortBy));
-      } else {
-        setAssignments([]);
-        setFilteredAssignments([]);
-      }
-    } catch (error) {
-      console.error("Error changing week:", error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -499,21 +451,6 @@ const AssignmentsPage = () => {
           </div>
         </div>
         
-        {/* Week Navigation (shown in list view) */}
-        {viewMode === 'list' && (
-          <div className="week-navigation">
-            <button className="week-nav-button" onClick={() => handleWeekChange(-1)}>
-              <IconChevronLeft size={20} />
-              <span>Previous Week</span>
-            </button>
-            <span className="current-week-label">Current Week</span>
-            <button className="week-nav-button" onClick={() => handleWeekChange(1)}>
-              <span>Next Week</span>
-              <IconChevronRight size={20} />
-            </button>
-          </div>
-        )}
-        
         {/* Filter Menu */}
         <AnimatePresence>
           {showFilterMenu && (
@@ -616,7 +553,7 @@ const AssignmentsPage = () => {
             <div className="loading-overlay">
               <div className="loading-spinner-container">
                 <div className="loading-spinner"></div>
-                <p>Loading assignments...</p>
+                <p>Generating AI assignments...</p>
               </div>
             </div>
           )}
@@ -711,7 +648,7 @@ const AssignmentsPage = () => {
                   <IconClipboard size={48} />
                   <h3>No assignments found</h3>
                   <p>Try adjusting your filters or create a new assignment.</p>
-                  <button className="create-assignment-button" onClick={() => setShowConfirmModal(true)}>
+                  <button className="create-assignment-button" onClick={handleGenerateNewAssignments}>
                     <IconPlus size={20} />
                     <span>Create Assignment</span>
                   </button>

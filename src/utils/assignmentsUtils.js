@@ -1,14 +1,6 @@
 // Assignment utility functions for AdaptIQ
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { 
-  auth, 
-  db, 
-  saveUserAssignments, 
-  getUserAssignments,
-  updateAssignment, 
-  getAllUserAssignments,
-  getCurrentWeekId
-} from '../../firebase';
+import { auth, db } from '../../firebase';
 import { doc, getDoc } from '@firebase/firestore';
 import { getSubjectImageUrl } from './subjectImageUtils';
 
@@ -253,7 +245,7 @@ export const fetchUserSubjects = async () => {
   try {
     if (!auth.currentUser) {
       console.warn("No user signed in");
-      return { subjects: [], selectedCourses: {} };
+      return [];
     }
 
     const userRef = doc(db, "users", auth.currentUser.uid);
@@ -261,18 +253,14 @@ export const fetchUserSubjects = async () => {
     
     if (!userSnap.exists()) {
       console.warn("User document not found");
-      return { subjects: [], selectedCourses: {} };
+      return [];
     }
 
     const userData = userSnap.data();
     
-    // Get both subjects and specific courses
-    const selectedSubjects = [];
-    const selectedCourses = {};
-    
     // First try to get subjects directly if available
     if (userData.subjects && userData.subjects.length > 0) {
-      userData.subjects.forEach(subjectId => {
+      const subjectLabels = userData.subjects.map(subjectId => {
         const subjectMap = {
           'math': 'Mathematics',
           'science': 'Science',
@@ -287,109 +275,56 @@ export const fetchUserSubjects = async () => {
           'psychology': 'Psychology',
           'engineering': 'Engineering'
         };
-        const subjectName = subjectMap[subjectId] || subjectId;
-        selectedSubjects.push(subjectName);
-        
-        // Initialize the selected courses for this subject
-        if (!selectedCourses[subjectName]) {
-          selectedCourses[subjectName] = [];
-        }
+        return subjectMap[subjectId] || subjectId;
       });
+      return subjectLabels;
     }
 
-    // Get specific courses the user has selected
+    // If no subjects directly, try to extract from courses
     if (userData.courses && userData.courses.length > 0) {
+      const subjectSet = new Set();
+      
       userData.courses.forEach(courseId => {
         const parts = courseId.split('-');
-        if (parts.length >= 2) {
-          const subjectId = parts[0];
-          const courseId = parts[1];
-          
-          // Map subject IDs to full subject names
-          const subjectMap = {
-            'math': 'Mathematics',
-            'science': 'Science',
-            'history': 'History',
-            'language': 'Language Arts',
-            'foreign': 'Foreign Languages',
-            'computer': 'Computer Science',
-            'art': 'Art & Design',
-            'music': 'Music',
-            'physical': 'Physical Education',
-            'economics': 'Economics',
-            'psychology': 'Psychology',
-            'engineering': 'Engineering'
-          };
-          
-          // Map course IDs to full course names
-          const courseMap = {
-            // Math courses
-            'algebra': 'Algebra',
-            'geometry': 'Geometry',
-            'calculus': 'Calculus',
-            'statistics': 'Statistics',
-            'trigonometry': 'Trigonometry',
-            
-            // Science courses
-            'biology': 'Biology',
-            'chemistry': 'Chemistry',
-            'physics': 'Physics',
-            'environmental': 'Environmental Science',
-            'astronomy': 'Astronomy',
-            
-            // History courses
-            'world': 'World History',
-            'us': 'US History',
-            'european': 'European History',
-            'ancient': 'Ancient Civilizations',
-            'modern': 'Modern History',
-            
-            // Computer science courses
-            'programming': 'Programming',
-            'webdev': 'Web Development',
-            'database': 'Database Systems',
-            'ai': 'Artificial Intelligence',
-            'cybersecurity': 'Cybersecurity',
-            
-            // Engineering courses
-            'mechanical': 'Mechanical Engineering',
-            'electrical': 'Electrical Engineering',
-            'civil': 'Civil Engineering',
-            'chemical': 'Chemical Engineering',
-            'software': 'Software Engineering',
-            
-            // Other courses
-            'other': 'Other'
-          };
-          
-          const subjectName = subjectMap[subjectId] || subjectId;
-          
-          // Make sure this subject is in the selectedCourses map
-          if (!selectedCourses[subjectName]) {
-            selectedCourses[subjectName] = [];
-          }
-          
-          // Add the specific course to our list if it's a known course
-          if (courseMap[courseId]) {
-            selectedCourses[subjectName].push(courseMap[courseId]);
-          }
-          
-          // If user has custom courses, add them too
-          if (courseId === 'other' && userData.customCourses && userData.customCourses[subjectId]) {
-            selectedCourses[subjectName].push(userData.customCourses[subjectId]);
-          }
-        }
+        const subjectId = parts[0];
+        
+        const subjectMap = {
+          'math': 'Mathematics',
+          'algebra': 'Algebra',
+          'geometry': 'Geometry', 
+          'calculus': 'Calculus',
+          'science': 'Science',
+          'biology': 'Biology',
+          'chemistry': 'Chemistry',
+          'physics': 'Physics',
+          'history': 'History',
+          'worldHistory': 'World History',
+          'language': 'Language Arts',
+          'english': 'English',
+          'programming': 'Programming',
+          'computerScience': 'Computer Science',
+          'foreign': 'Foreign Languages',
+          'spanish': 'Spanish',
+          'french': 'French',
+          'art': 'Art & Design',
+          'music': 'Music',
+          'physical': 'Physical Education',
+          'economics': 'Economics',
+          'psychology': 'Psychology',
+          'engineering': 'Engineering'
+        };
+        
+        subjectSet.add(subjectMap[subjectId] || 'General');
       });
+      
+      return Array.from(subjectSet);
     }
 
-    // Return both subjects and the mapping of selected courses
-    return {
-      subjects: selectedSubjects,
-      selectedCourses: selectedCourses
-    };
+    // If no subjects or courses, return empty array
+    return [];
   } catch (error) {
     console.error("Error fetching user subjects:", error);
-    return { subjects: [], selectedCourses: {} };
+    return [];
   }
 };
 
@@ -815,113 +750,29 @@ export const filterAssignments = (assignments, filters) => {
   });
 };
 
-// Save assignments to Firebase
-export const saveAssignments = async (assignments) => {
+// Save assignments to local storage (will be replaced with Firebase)
+export const saveAssignments = (assignments) => {
   try {
-    if (!auth.currentUser) {
-      console.error("No user authenticated");
-      return false;
-    }
-    
-    const userId = auth.currentUser.uid;
-    const weekId = getCurrentWeekId();
-    
-    const response = await saveUserAssignments(userId, assignments, weekId);
-    
-    if (response.success) {
-      console.log(`Assignments saved to Firebase: ${response.message}`);
-      return true;
-    } else {
-      console.error("Error saving assignments to Firebase:", response.error);
-      return false;
-    }
+    localStorage.setItem('userAssignments', JSON.stringify(assignments));
+    return true;
   } catch (error) {
     console.error("Error saving assignments:", error);
     return false;
   }
 };
 
-// Get assignments from Firebase
-export const getAssignments = async (weekId = null) => {
+// Get assignments from local storage (will be replaced with Firebase)
+export const getAssignments = () => {
   try {
-    if (!auth.currentUser) {
-      console.error("No user authenticated");
-      return [];
+    const assignmentsData = localStorage.getItem('userAssignments');
+    if (assignmentsData) {
+      const assignments = JSON.parse(assignmentsData);
+      return assignments.map(updateAssignmentStatus);
     }
-    
-    const userId = auth.currentUser.uid;
-    
-    // If no weekId is provided, use current week
-    const currentWeekId = weekId || getCurrentWeekId();
-    const response = await getUserAssignments(userId, currentWeekId);
-    
-    if (response.success) {
-      return response.assignments.map(updateAssignmentStatus);
-    } else {
-      console.error("Error retrieving assignments from Firebase:", response.error);
-      return [];
-    }
+    return [];
   } catch (error) {
     console.error("Error retrieving assignments:", error);
     return [];
-  }
-};
-
-// Get all assignments for a user across all weeks
-export const getAllAssignments = async () => {
-  try {
-    if (!auth.currentUser) {
-      console.error("No user authenticated");
-      return [];
-    }
-    
-    const userId = auth.currentUser.uid;
-    const response = await getAllUserAssignments(userId);
-    
-    if (response.success) {
-      return response.assignments.map(updateAssignmentStatus);
-    } else {
-      console.error("Error retrieving all assignments:", response.error);
-      return [];
-    }
-  } catch (error) {
-    console.error("Error retrieving all assignments:", error);
-    return [];
-  }
-};
-
-// Update a single assignment in Firebase
-export const updateSingleAssignment = async (assignment) => {
-  try {
-    if (!auth.currentUser || !assignment || !assignment.firestoreId) {
-      console.error("Cannot update assignment: Missing user, assignment, or Firebase ID");
-      return false;
-    }
-    
-    const userId = auth.currentUser.uid;
-    const assignmentId = assignment.firestoreId;
-    
-    // Extract only the fields that can be updated
-    const updates = {
-      status: assignment.status,
-      completedDate: assignment.completedDate,
-      submission: assignment.submission,
-      feedback: assignment.feedback,
-      grade: assignment.grade,
-      priority: assignment.priority
-    };
-    
-    const response = await updateAssignment(userId, assignmentId, updates);
-    
-    if (response.success) {
-      return true;
-    } else {
-      console.error("Error updating assignment in Firebase:", response.error);
-      return false;
-    }
-  } catch (error) {
-    console.error("Error updating assignment:", error);
-    return false;
   }
 };
 
@@ -942,12 +793,8 @@ export const generateUserAssignments = async () => {
     // 3. Generate assignments for selected subjects
     const assignments = await generateAssignmentsForSubjects(selectedSubjects);
     
-    // 4. Save assignments to Firebase
-    const saved = await saveAssignments(assignments);
-    
-    if (!saved) {
-      console.error("Failed to save generated assignments to Firebase");
-    }
+    // 4. Save assignments
+    saveAssignments(assignments);
     
     return assignments;
   } catch (error) {
@@ -958,386 +805,63 @@ export const generateUserAssignments = async () => {
 
 // Ensure user has assignments - check if there are assignments due within a week
 export const ensureUserHasAssignments = async () => {
-  try {
-    // Get current week ID
-    const weekId = getCurrentWeekId();
-    
-    // Get existing assignments for the current week
-    const existingAssignments = await getAssignments(weekId);
-    
-    // If there are no assignments for this week, generate new ones
-    if (!existingAssignments || existingAssignments.length === 0) {
-      console.log("No assignments found for current week, generating new ones");
-      return await generateUserAssignments();
-    }
-    
-    return existingAssignments;
-  } catch (error) {
-    console.error("Error ensuring user has assignments:", error);
-    return [];
+  // Get existing assignments
+  const existingAssignments = getAssignments();
+  
+  // Check if there are assignments due within the next week
+  const now = new Date();
+  const nextWeek = new Date(now);
+  nextWeek.setDate(now.getDate() + 7);
+  
+  const hasUpcomingAssignments = existingAssignments.some(assignment => {
+    const dueDate = new Date(assignment.dueDate);
+    return dueDate > now && dueDate <= nextWeek && assignment.status !== 'completed';
+  });
+  
+  // If there are no assignments due within the next week, generate new ones
+  if (!hasUpcomingAssignments || existingAssignments.length === 0) {
+    return await generateUserAssignments();
   }
+  
+  return existingAssignments;
 };
 
 // Export helper function to get a random topic for a subject
 export const getRandomTopicForSubject = (subject) => {
-  // Get user's selected courses
-  let userSelectedCourses = {};
-  let userCustomSubjects = {};
-  let userCustomCourses = {};
-  
-  try {
-    // Try to get the selected courses from localStorage (temporary solution)
-    const onboardingData = localStorage.getItem('onboardingData');
-    if (onboardingData) {
-      const userData = JSON.parse(onboardingData);
-      
-      // Build a mapping of subjects to selected courses
-      userSelectedCourses = {};
-      
-      if (userData.courses && userData.courses.length > 0) {
-        userData.courses.forEach(courseId => {
-          const parts = courseId.split('-');
-          if (parts.length >= 2) {
-            const subjectId = parts[0];
-            const courseId = parts[1];
-            
-            // Map subject IDs to full subject names
-            const subjectMap = {
-              'math': 'Mathematics',
-              'science': 'Science',
-              'history': 'History',
-              'language': 'Language Arts',
-              'foreign': 'Foreign Languages',
-              'computer': 'Computer Science',
-              'art': 'Art & Design',
-              'music': 'Music',
-              'physical': 'Physical Education',
-              'economics': 'Economics',
-              'psychology': 'Psychology',
-              'engineering': 'Engineering'
-            };
-            
-            // Map course IDs to full course names
-            const courseMap = {
-              // Math courses
-              'algebra': 'Algebra',
-              'geometry': 'Geometry',
-              'calculus': 'Calculus',
-              'statistics': 'Statistics',
-              'trigonometry': 'Trigonometry',
-              
-              // Science courses
-              'biology': 'Biology',
-              'chemistry': 'Chemistry',
-              'physics': 'Physics',
-              'environmental': 'Environmental Science',
-              'astronomy': 'Astronomy',
-              
-              // History courses
-              'world': 'World History',
-              'us': 'US History',
-              'european': 'European History',
-              'ancient': 'Ancient Civilizations',
-              'modern': 'Modern History',
-              
-              // Computer science courses
-              'programming': 'Programming',
-              'webdev': 'Web Development',
-              'database': 'Database Systems',
-              'ai': 'Artificial Intelligence',
-              'cybersecurity': 'Cybersecurity',
-              
-              // Engineering courses
-              'mechanical': 'Mechanical Engineering',
-              'electrical': 'Electrical Engineering',
-              'civil': 'Civil Engineering',
-              'chemical': 'Chemical Engineering',
-              'software': 'Software Engineering',
-              
-              // Other courses
-              'other': 'Other'
-            };
-            
-            const subjectName = subjectMap[subjectId] || subjectId;
-            const courseName = courseMap[courseId] || courseId;
-            
-            if (!userSelectedCourses[subjectName]) {
-              userSelectedCourses[subjectName] = [];
-            }
-            
-            userSelectedCourses[subjectName].push(courseName);
-            
-            // If user has custom courses, add them too
-            if (courseId === 'other' && userData.customCourses && userData.customCourses[subjectId]) {
-              userSelectedCourses[subjectName].push(userData.customCourses[subjectId]);
-              userCustomCourses[subjectName] = userData.customCourses[subjectId];
-            }
-          }
-        });
-      }
-      
-      // Handle custom subject if present
-      if (userData.subjects && userData.subjects.includes('other') && userData.customSubject) {
-        const customSubjectName = userData.customSubject;
-        userCustomSubjects[customSubjectName] = true;
-        
-        // If user has a custom course for the custom subject
-        if (userData.customCourses && userData.customCourses['other']) {
-          if (!userSelectedCourses[customSubjectName]) {
-            userSelectedCourses[customSubjectName] = [];
-          }
-          userSelectedCourses[customSubjectName].push(userData.customCourses['other']);
-          userCustomCourses[customSubjectName] = userData.customCourses['other'];
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Error getting user's selected courses:", error);
-  }
-
   const subjectTopics = {
-    // Generic subject topics
     'Mathematics': ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Probability', 'Number Theory', 'Discrete Mathematics', 'Linear Algebra'],
+    'Algebra': ['Equations', 'Inequalities', 'Functions', 'Polynomials', 'Radical Expressions', 'Rational Expressions', 'Systems of Equations'],
+    'Geometry': ['Triangles', 'Circles', 'Polygons', 'Coordinate Geometry', 'Transformations', 'Surface Area and Volume', 'Proofs'],
+    'Calculus': ['Limits', 'Derivatives', 'Integrals', 'Differential Equations', 'Vector Calculus', 'Series'],
+    'Statistics': ['Probability', 'Data Analysis', 'Hypothesis Testing', 'Regression Analysis', 'Statistical Inference', 'Sampling'],
     'Science': ['Scientific Method', 'Laboratory Techniques', 'Research Methodology', 'Experimental Design', 'Data Collection'],
+    'Biology': ['Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Anatomy', 'Physiology', 'Botany', 'Zoology'],
+    'Chemistry': ['Periodic Table', 'Chemical Bonding', 'Stoichiometry', 'Acids and Bases', 'Thermodynamics', 'Organic Chemistry'],
+    'Physics': ['Mechanics', 'Electricity', 'Magnetism', 'Thermodynamics', 'Optics', 'Quantum Mechanics', 'Relativity'],
     'History': ['Ancient Civilizations', 'Middle Ages', 'Renaissance', 'Industrial Revolution', 'World Wars', 'Cold War', 'Modern History'],
+    'World History': ['Ancient Greece', 'Roman Empire', 'Chinese Dynasties', 'Colonialism', 'World Wars', 'Cold War', 'Globalization'],
+    'US History': ['Colonial Period', 'American Revolution', 'Civil War', 'Great Depression', 'Civil Rights Movement', 'Cold War', 'Post 9/11'],
     'Language Arts': ['Literature Analysis', 'Creative Writing', 'Grammar', 'Rhetoric', 'Poetry', 'Non-fiction', 'Drama'],
+    'English': ['Literature Analysis', 'Grammar', 'Composition', 'Rhetoric', 'Poetry', 'Drama', 'Novels'],
     'Foreign Languages': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'Cultural Studies', 'Translation'],
+    'Spanish': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'Hispanic Culture', 'Spanish History'],
+    'French': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'French Culture', 'French History'],
+    'German': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'German Culture', 'German History'],
     'Computer Science': ['Programming', 'Algorithms', 'Data Structures', 'Databases', 'Web Development', 'Networking', 'Cybersecurity'],
+    'Programming': ['Object-Oriented Design', 'Functional Programming', 'Web Development', 'Mobile Apps', 'Algorithms', 'API Design'],
     'Art & Design': ['Drawing', 'Painting', 'Sculpture', 'Photography', 'Digital Art', 'Art History', 'Color Theory'],
     'Music': ['Music Theory', 'Music History', 'Composition', 'Performance', 'Instrumental Techniques', 'Musical Analysis'],
     'Physical Education': ['Fitness', 'Sports', 'Nutrition', 'Exercise Science', 'Health', 'Wellness'],
     'Economics': ['Microeconomics', 'Macroeconomics', 'International Trade', 'Economic Policy', 'Market Analysis', 'Financial Systems'],
     'Psychology': ['Cognitive Psychology', 'Developmental Psychology', 'Social Psychology', 'Clinical Psychology', 'Abnormal Psychology', 'Neuroscience'],
-    'Engineering': ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Chemical Engineering', 'Software Engineering', 'Materials Science'],
-    
-    // Math specific courses
-    'Algebra': ['Linear Equations', 'Quadratic Equations', 'Polynomials', 'Functions', 'Inequalities', 'Systems of Equations', 'Matrices', 'Logarithms'],
-    'Geometry': ['Triangles', 'Circles', 'Polygons', 'Coordinate Geometry', 'Transformations', 'Surface Area', 'Volume', 'Geometric Proofs'],
-    'Calculus': ['Limits', 'Derivatives', 'Integrals', 'Sequences', 'Series', 'Vector Calculus', 'Differential Equations', 'Applications'],
-    'Statistics': ['Data Analysis', 'Probability', 'Distributions', 'Hypothesis Testing', 'Regression', 'Correlation', 'ANOVA', 'Sampling Methods'],
-    'Trigonometry': ['Trigonometric Functions', 'Identities', 'Equations', 'Unit Circle', 'Radians', 'Law of Sines', 'Law of Cosines', 'Polar Coordinates'],
-    
-    // Science specific courses
-    'Biology': ['Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Anatomy', 'Physiology', 'Botany', 'Zoology', 'Microbiology'],
-    'Chemistry': ['Atomic Structure', 'Periodic Table', 'Chemical Bonding', 'Stoichiometry', 'Acids and Bases', 'Thermochemistry', 'Organic Chemistry'],
-    'Physics': ['Mechanics', 'Electricity', 'Magnetism', 'Thermodynamics', 'Optics', 'Quantum Mechanics', 'Relativity', 'Wave Phenomena'],
-    'Environmental Science': ['Ecosystems', 'Climate Change', 'Pollution', 'Conservation', 'Natural Resources', 'Sustainability', 'Biodiversity'],
-    'Astronomy': ['Solar System', 'Stars', 'Galaxies', 'Cosmology', 'Telescopes', 'Space Exploration', 'Celestial Mechanics', 'Black Holes'],
-    
-    // History specific courses
-    'World History': ['Ancient Civilizations', 'Middle Ages', 'Renaissance', 'Age of Exploration', 'Industrial Revolution', 'World Wars', 'Cold War', 'Globalization'],
-    'US History': ['Colonial America', 'American Revolution', 'Civil War', 'Reconstruction', 'Great Depression', 'Civil Rights Movement', 'Cold War', 'Modern America'],
-    'European History': ['Ancient Greece and Rome', 'Medieval Europe', 'Renaissance', 'Enlightenment', 'French Revolution', 'Industrial Revolution', 'World Wars', 'European Union'],
-    'Ancient Civilizations': ['Mesopotamia', 'Egypt', 'Greece', 'Rome', 'China', 'India', 'Maya', 'Inca', 'Aztec'],
-    'Modern History': ['World War I', 'Interwar Period', 'World War II', 'Cold War', 'Decolonization', 'Globalization', 'Information Age', 'Contemporary Issues'],
-    
-    // Computer Science specific courses
-    'Programming': ['Fundamentals', 'Data Types', 'Control Structures', 'Functions', 'Object-Oriented Programming', 'Algorithms', 'Problem Solving', 'Debugging'],
-    'Web Development': ['HTML', 'CSS', 'JavaScript', 'DOM Manipulation', 'Front-end Frameworks', 'Backend Development', 'APIs', 'Responsive Design'],
-    'Database Systems': ['Relational Databases', 'SQL', 'NoSQL', 'Database Design', 'Normalization', 'Transactions', 'Indexing', 'Query Optimization'],
-    'Artificial Intelligence': ['Machine Learning', 'Neural Networks', 'Natural Language Processing', 'Computer Vision', 'Expert Systems', 'Robotics', 'Ethics in AI'],
-    'Cybersecurity': ['Network Security', 'Encryption', 'Authentication', 'Vulnerability Assessment', 'Ethical Hacking', 'Security Policies', 'Digital Forensics'],
-    
-    // Engineering specific courses
-    'Mechanical Engineering': ['Statics', 'Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Materials Science', 'Machine Design', 'Heat Transfer', 'Manufacturing Processes'],
-    'Electrical Engineering': ['Circuit Analysis', 'Digital Logic', 'Electronics', 'Signal Processing', 'Control Systems', 'Power Systems', 'Electromagnetics'],
-    'Civil Engineering': ['Structural Analysis', 'Geotechnical Engineering', 'Transportation Engineering', 'Environmental Engineering', 'Hydraulics', 'Construction Management'],
-    'Chemical Engineering': ['Mass Transfer', 'Heat Transfer', 'Fluid Mechanics', 'Thermodynamics', 'Reaction Kinetics', 'Process Control', 'Plant Design'],
-    'Software Engineering': ['Software Development Life Cycle', 'Requirements Engineering', 'Software Design', 'Testing', 'Maintenance', 'Project Management', 'DevOps'],
-    
-    // Language specific courses
-    'Spanish': ['Grammar', 'Vocabulary', 'Conversation', 'Reading Comprehension', 'Hispanic Literature', 'Spanish Culture', 'Spanish History'],
-    'French': ['Grammar', 'Vocabulary', 'Conversation', 'Reading Comprehension', 'French Literature', 'French Culture', 'French History'],
-    'German': ['Grammar', 'Vocabulary', 'Conversation', 'Reading Comprehension', 'German Literature', 'German Culture', 'German History'],
-    'Chinese': ['Characters', 'Pronunciation', 'Grammar', 'Vocabulary', 'Conversation', 'Chinese Culture', 'Chinese History'],
-    'Japanese': ['Hiragana/Katakana', 'Kanji', 'Grammar', 'Vocabulary', 'Conversation', 'Japanese Culture', 'Japanese History'],
-    
-    // Economics specific courses
-    'Microeconomics': ['Supply and Demand', 'Consumer Theory', 'Producer Theory', 'Market Structures', 'Game Theory', 'Market Failures', 'Resource Allocation'],
-    'Macroeconomics': ['National Income', 'Economic Growth', 'Inflation', 'Unemployment', 'Monetary Policy', 'Fiscal Policy', 'International Trade'],
-    'International Economics': ['Trade Theory', 'Trade Policy', 'Exchange Rates', 'Balance of Payments', 'Economic Integration', 'Global Finance'],
-    'Business Economics': ['Market Analysis', 'Pricing Strategies', 'Competitive Strategy', 'Risk Management', 'Decision Making', 'Economic Forecasting'],
-    'Financial Economics': ['Asset Pricing', 'Portfolio Theory', 'Corporate Finance', 'Financial Markets', 'Options and Futures', 'Financial Risk Management'],
-    
-    // Psychology specific courses
-    'Clinical Psychology': ['Psychological Assessment', 'Psychotherapy', 'Mental Disorders', 'Treatment Planning', 'Ethical Issues', 'Evidence-Based Practice'],
-    'Cognitive Psychology': ['Perception', 'Attention', 'Memory', 'Language', 'Problem Solving', 'Decision Making', 'Cognitive Neuroscience'],
-    'Developmental Psychology': ['Child Development', 'Adolescence', 'Adulthood', 'Aging', 'Cognitive Development', 'Social Development', 'Moral Development'],
-    'Social Psychology': ['Social Cognition', 'Attitudes', 'Group Behavior', 'Interpersonal Relations', 'Conformity', 'Obedience', 'Persuasion'],
-    'Abnormal Psychology': ['Classification of Disorders', 'Anxiety Disorders', 'Mood Disorders', 'Personality Disorders', 'Schizophrenia', 'Treatment Approaches']
+    'Engineering': ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Chemical Engineering', 'Software Engineering', 'Materials Science']
   };
   
-  // IMPROVED CUSTOM SUBJECT HANDLING: Check if this is a custom subject
-  if (userCustomSubjects[subject]) {
-    // For custom subjects, use the associated custom course topics or create appropriate ones
-    if (userCustomCourses[subject]) {
-      // Generate relevant topics based on the custom course name
-      const customCourseName = userCustomCourses[subject];
-      const customTopics = generateTopicsForCustomCourse(customCourseName);
-      const randomIndex = Math.floor(Math.random() * customTopics.length);
-      return customTopics[randomIndex];
-    } else {
-      // For custom subjects without specific courses, use general educational topics
-      const generalTopics = ['Fundamentals', 'Key Concepts', 'Advanced Topics', 'Research Methods', 'Applications', 'History and Development', 'Current Trends', 'Case Studies'];
-      const randomIndex = Math.floor(Math.random() * generalTopics.length);
-      return generalTopics[randomIndex];
-    }
-  }
+  // Get topics for the subject, or use a default list if no specific topics are defined
+  const topics = subjectTopics[subject] || 
+                ['Fundamentals', 'Advanced Concepts', 'Applied Methods', 'Current Research', 'Historical Development', 'Problem Solving'];
   
-  // Check if this is a category subject (like Engineering) and user has selected specific courses within that category
-  if (subject === 'Engineering' && userSelectedCourses.Engineering && userSelectedCourses.Engineering.length > 0) {
-    // Only use topics from the specific engineering courses the user selected
-    let availableTopics = [];
-    
-    // Collect topics only from the selected engineering courses
-    userSelectedCourses.Engineering.forEach(course => {
-      if (subjectTopics[course]) {
-        availableTopics = availableTopics.concat(subjectTopics[course]);
-      }
-    });
-    
-    // If we found topics for the selected courses, use those
-    if (availableTopics.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableTopics.length);
-      return availableTopics[randomIndex];
-    }
-  }
-  
-  // Apply the same logic for other subject categories
-  for (const [categoryName, courses] of Object.entries(userSelectedCourses)) {
-    if (subject === categoryName && courses.length > 0) {
-      let availableTopics = [];
-      
-      courses.forEach(course => {
-        // Handle custom courses specially
-        if (course === userCustomCourses[categoryName]) {
-          const customTopics = generateTopicsForCustomCourse(course);
-          availableTopics = availableTopics.concat(customTopics);
-        } else if (subjectTopics[course]) {
-          availableTopics = availableTopics.concat(subjectTopics[course]);
-        }
-      });
-      
-      if (availableTopics.length > 0) {
-        const randomIndex = Math.floor(Math.random() * availableTopics.length);
-        return availableTopics[randomIndex];
-      }
-    }
-  }
-  
-  // First check if we have specific topics for this exact subject
-  if (subjectTopics[subject]) {
-    const topics = subjectTopics[subject];
-    const randomIndex = Math.floor(Math.random() * topics.length);
-    return topics[randomIndex];
-  }
-  
-  // If this is an engineering subject but not one of our specific engineering courses
-  if (subject.includes('Engineering')) {
-    // Get only the appropriate engineering topics
-    let engineeringType = '';
-    
-    if (subject.includes('Mechanical')) {
-      engineeringType = 'Mechanical Engineering';
-    } else if (subject.includes('Electrical')) {
-      engineeringType = 'Electrical Engineering';
-    } else if (subject.includes('Civil')) {
-      engineeringType = 'Civil Engineering';
-    } else if (subject.includes('Chemical')) {
-      engineeringType = 'Chemical Engineering';
-    } else if (subject.includes('Software')) {
-      engineeringType = 'Software Engineering';
-    } else {
-      // Default to general Engineering topics
-      engineeringType = 'Engineering';
-    }
-    
-    // Use the appropriate topics list
-    const topics = subjectTopics[engineeringType] || subjectTopics['Engineering'];
-    const randomIndex = Math.floor(Math.random() * topics.length);
-    return topics[randomIndex];
-  }
-  
-  // For any other subject, use a generic list
-  const defaultTopics = ['Fundamentals', 'Advanced Concepts', 'Applied Methods', 'Current Research', 'Historical Development', 'Problem Solving', 'Case Studies', 'Theoretical Approaches'];
-  const randomIndex = Math.floor(Math.random() * defaultTopics.length);
-  return defaultTopics[randomIndex];
+  // Randomly select a topic
+  const randomIndex = Math.floor(Math.random() * topics.length);
+  return topics[randomIndex];
 };
-
-// Helper function to generate relevant topics for a custom course
-function generateTopicsForCustomCourse(courseName) {
-  // Default topics that work for any subject
-  const defaultTopics = ['Fundamentals', 'Key Concepts', 'Advanced Topics', 'Research Methods', 'Historical Development', 'Current Trends'];
-  
-  // Keywords to look for in the course name to generate more specific topics
-  const keywords = {
-    // Technical fields
-    'programming': ['Algorithms', 'Data Structures', 'Software Design', 'Development Methodologies', 'Debugging Techniques'],
-    'coding': ['Syntax', 'Best Practices', 'Code Architecture', 'Testing', 'Frameworks'],
-    'software': ['Development Life Cycle', 'Requirements', 'Design Patterns', 'Quality Assurance', 'Maintenance'],
-    'web': ['Front-end', 'Back-end', 'User Experience', 'Responsive Design', 'Web Services'],
-    'data': ['Data Analysis', 'Data Visualization', 'Data Cleaning', 'Big Data', 'Statistical Methods'],
-    'design': ['User Interface', 'User Experience', 'Visual Elements', 'Prototyping', 'Design Thinking'],
-    'engineering': ['Problem Solving', 'Analysis', 'Technical Specifications', 'Quality Control', 'Systems Thinking'],
-    
-    // Science fields
-    'biology': ['Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Physiology'],
-    'chemistry': ['Atomic Structure', 'Reactions', 'Compounds', 'Laboratory Techniques', 'Chemical Properties'],
-    'physics': ['Mechanics', 'Electromagnetism', 'Thermodynamics', 'Quantum Physics', 'Relativity'],
-    
-    // Business fields
-    'business': ['Strategy', 'Operations', 'Marketing', 'Finance', 'Organizational Behavior'],
-    'management': ['Leadership', 'Team Building', 'Decision Making', 'Project Management', 'Conflict Resolution'],
-    'marketing': ['Market Analysis', 'Consumer Behavior', 'Digital Marketing', 'Brand Management', 'Marketing Strategies'],
-    'finance': ['Financial Analysis', 'Investment', 'Risk Management', 'Financial Planning', 'Market Trends'],
-    
-    // Arts & Humanities
-    'art': ['Techniques', 'Art History', 'Composition', 'Color Theory', 'Art Criticism'],
-    'music': ['Music Theory', 'Performance', 'Composition', 'Music History', 'Instrumental Techniques'],
-    'literature': ['Literary Analysis', 'Creative Writing', 'Literary Genres', 'Critical Theory', 'Cultural Context'],
-    'history': ['Historical Analysis', 'Primary Sources', 'Causation', 'Historical Context', 'Historiography'],
-    'philosophy': ['Logic', 'Ethics', 'Metaphysics', 'Epistemology', 'Philosophical Arguments'],
-    
-    // Languages
-    'language': ['Grammar', 'Vocabulary', 'Conversation', 'Writing', 'Cultural Context'],
-    'spanish': ['Spanish Grammar', 'Vocabulary Building', 'Conversational Spanish', 'Hispanic Culture', 'Reading Comprehension'],
-    'french': ['French Grammar', 'Vocabulary Building', 'Conversational French', 'French Culture', 'Reading Comprehension'],
-    'german': ['German Grammar', 'Vocabulary Building', 'Conversational German', 'German Culture', 'Reading Comprehension'],
-    'chinese': ['Chinese Characters', 'Pronunciation', 'Grammar Patterns', 'Chinese Culture', 'Conversational Skills'],
-    'japanese': ['Japanese Writing Systems', 'Grammar Structures', 'Vocabulary', 'Japanese Culture', 'Conversational Skills']
-  };
-  
-  // Check if the course name contains any of our keywords and add specific topics
-  const courseLower = courseName.toLowerCase();
-  let specificTopics = [];
-  
-  for (const [keyword, topics] of Object.entries(keywords)) {
-    if (courseLower.includes(keyword)) {
-      specificTopics = specificTopics.concat(topics);
-    }
-  }
-  
-  // If we found specific topics, return those plus some default ones
-  if (specificTopics.length > 0) {
-    // Add course name to some of the topics to make them more specific
-    const customizedTopics = specificTopics.map((topic, index) => 
-      index % 2 === 0 ? `${topic} in ${courseName}` : topic
-    );
-    
-    // Return a mix of customized specific topics and default topics
-    return [...customizedTopics, ...defaultTopics];
-  }
-  
-  // If no specific topics found, generate generic ones based on the course name
-  return [
-    `Introduction to ${courseName}`,
-    `${courseName} Fundamentals`,
-    `Advanced ${courseName}`,
-    `${courseName} Theory`,
-    `Applied ${courseName}`,
-    `${courseName} Analysis`,
-    `Current Trends in ${courseName}`,
-    `${courseName} Research Methods`,
-    ...defaultTopics
-  ];
-}

@@ -1,21 +1,43 @@
 # AdaptIQ Backend Firebase Implementation
 
-This document outlines the Firebase database structure and implementation guidelines for the AdaptIQ learning platform.
+This document outlines the Firebase database structure and implementation for the AdaptIQ learning platform.
 
 ## Overview
 
-AdaptIQ uses Firebase as its backend solution with the following services:
+AdaptIQ currently uses Firebase as its backend solution with the following services:
 
 - **Firebase Authentication**: For user management and authentication
 - **Cloud Firestore**: For NoSQL database storage of user data and learning content
-- **Firebase Storage**: For storing user-uploaded files such as images
-- **Firebase Analytics**: For tracking user behavior and application performance
-- **Firebase Cloud Functions**: For server-side logic and API integrations
 - **Firebase Hosting**: For deployment of the web application
+
+## Current Implementation
+
+The project currently has the following Firebase functionality implemented:
+
+### User Management
+- Email/password authentication with Firebase Auth
+- User data storage in Firestore with onboarding preferences
+- User settings and profile information management
+
+### Learning Progress Tracking
+- Course progress tracking with percentage completion
+- Activity history recording for learning sessions
+- Learning mode usage statistics
+
+### Course Learning Experience
+- Storage of chat history with AI tutors
+- Progress updates when completing learning activities
+- Personalized learning preferences by subject
+
+### Assignment Management
+- Create and store course-specific assignments
+- Track assignment status (pending, in-progress, completed)
+- Store due dates and priority levels
+- Assignment completion tracking
 
 ## Database Structure
 
-The Cloud Firestore database will use the following collection and document structure:
+The Cloud Firestore database uses the following collection and document structure:
 
 ### Users Collection
 
@@ -24,881 +46,157 @@ The Cloud Firestore database will use the following collection and document stru
 
 ```javascript
 {
-  uid: "string", // Firebase Authentication UID
-  email: "string",
-  displayName: "string",
-  photoURL: "string", // URL to profile image
-  createdAt: Timestamp,
-  lastLogin: Timestamp,
-  role: "string", // "student", "parent", "admin"
+  // User profile information
+  nickname: "string",
+  dateOfBirth: "string", // Optional ISO date string
+  goals: "string",
   
-  // User preferences from onboarding
-  preferences: {
-    learningStyle: "string", // "visual", "auditory", "reading", "kinesthetic"
-    studyEnvironment: "string",
-    preferredTime: "string",
-    gradeLevel: "string",
-    schedulingStyle: "string", // "casual", "focused"
-    studyDuration: number, // in minutes
-    breakFrequency: number,
-    goals: "string"
+  // User settings and preferences from onboarding
+  learningStyle: "string", // "visual", "auditory", "reading", "kinesthetic"
+  studyEnvironment: "string",
+  preferredTime: "string",
+  subjects: ["string"], // Array of subject IDs
+  gradeLevel: "string",
+  courses: ["string"], // Array of course IDs (format: "subject-course")
+  customCourses: { // Custom courses mapped by subject
+    "subjectId": "courseName"
   },
-  
-  // Available days for studying
   availableDays: ["string"], // Array of day names
+  studyDuration: "string", // Duration in minutes
+  breakFrequency: "string", // Break frequency in minutes
+  schedulingStyle: "string", // "casual" or "focused"
   
-  // Dashboard statistics
-  dashboardStats: {
-    activeCourses: number,
-    totalCourses: number,
-    overallProgress: number, // 0-100 percentage
-    studyStreak: number, // consecutive days of study activity
-    lastStudyDate: Timestamp,
-    totalStudyTime: number, // in minutes
-    todayStudyTime: number, // in minutes
-  },
-  
-  // Today's goals
-  dailyGoals: [
-    {
-      id: "string",
-      text: "string",
-      completed: boolean,
-      createdAt: Timestamp,
-      completedAt: Timestamp
-    }
-  ],
-  
-  // Recent activity tracking
-  recentActivity: [
-    {
-      id: "string",
-      type: "string", // "chat", "quiz", "progress-update", "assignment"
-      name: "string", // activity name
-      date: Timestamp,
-      courseId: "string", // reference to course if applicable
-      details: {
-        // Type-specific details
-        // For progress updates
-        newProgress: number, // if type is "progress-update"
-        // For quiz activities
-        quizScore: number, // if type is "quiz"
-        // For assignments
-        assignmentId: "string" // if type is "assignment"
+  // User schedule data
+  schedule: {
+    // Schedule data organized by day
+    monday: [
+      {
+        course: "string",
+        startTime: "string",
+        endTime: "string",
+        duration: "number"
       }
-    }
-  ],
-  
-  // Metadata for app functionality
-  settings: {
-    notifications: boolean,
-    darkMode: boolean,
-    emailNotifications: boolean
-  }
-}
-```
-
-### User Courses Subcollection
-
-**Collection**: `users/{uid}/courses`  
-**Document ID**: `{courseId}` (Generated ID or slug)
-
-```javascript
-{
-  courseId: "string",
-  name: "string",
-  category: "string", // "mathematics", "science", etc.
-  subject: "string", // "math", "physics", etc.
-  subjectDetail: "string", // "algebra", "geometry", etc.
-  enrolledAt: Timestamp,
-  lastAccessed: Timestamp,
-  isCustom: boolean,
-  customDetails: {
-    description: "string",
-    difficulty: "string" // "easy", "medium", "hard"
+    ],
+    // ... other days
   },
-  
-  // Progress tracking
-  progress: number, // 0-100 percentage
-  lastProgressUpdate: Timestamp,
-  progressHistory: [
-    {
-      date: Timestamp,
-      value: number // progress value at this date
-    }
-  ],
-  completedActivities: [
-    {
-      activityId: "string",
-      type: "string", // "quiz", "chat", "resource"
-      completedAt: Timestamp,
-      score: number // for quizzes
-    }
-  ],
-  
-  // Quiz scores for this course
-  quizScores: [
-    {
-      quizId: "string",
-      score: number,
-      maxScore: number,
-      completedAt: Timestamp
-    }
-  ],
-  
-  // Course metadata
-  lastActivityType: "string",
-  totalTimeSpent: number, // in minutes
-  averageSessionDuration: number, // in minutes
-  // Suggested topics based on progress
-  suggestedTopics: [
-    {
-      id: "string",
-      title: "string",
-      description: "string",
-      moduleId: "string", // reference to course module
-      difficulty: "string" // "easy", "medium", "hard"
-    }
-  ]
+  scheduleLastUpdated: "string" // ISO date string
 }
 ```
 
-### User Schedule Subcollection
+### Assignments Collection
 
-**Collection**: `users/{uid}/schedule`  
-**Document ID**: `{dayId}_{timeSlotId}` (e.g., "monday_morning")
-
-```javascript
-{
-  dayId: "string", // day of the week
-  timeSlotId: "string", // "morning", "afternoon", "evening"
-  timeSlot: {
-    start: "string", // "09:00"
-    end: "string" // "10:30"
-  },
-  courseId: "string", // reference to course
-  courseName: "string",
-  duration: number, // in minutes
-  activityType: "string", // "study", "practice", "review"
-  difficulty: "string", // "easy", "medium", "hard"
-  isCompleted: boolean,
-  completedAt: Timestamp,
-  notes: "string"
-}
-```
-
-### User Assignments Subcollection
-
-**Collection**: `users/{uid}/assignments`  
-**Document ID**: `{assignmentId}` (Generated UUID)
+**Collection**: `assignments`  
+**Document ID**: Auto-generated
 
 ```javascript
 {
-  assignmentId: "string", // unique identifier
-  title: "string", // assignment title
-  subject: "string", // subject name
-  category: "string", // "mathematics", "science", etc.
-  description: "string", // detailed instructions
-  courseId: "string", // reference to course
-  dueDate: Timestamp, // deadline
-  createdDate: Timestamp, // when assignment was generated
-  estimatedMinutes: number, // estimated completion time
-  imageUrl: "string", // subject-related image
+  title: "string",
+  description: "string", 
+  course: "string",
+  subject: "string",
+  dueDate: "string", // ISO date string
   status: "string", // "pending", "in-progress", "completed", "overdue"
-  priority: number, // 0-5 scale with 5 being highest priority
-  completedDate: Timestamp, // when assignment was marked complete
-  // Generated content information (for AI-generated assignments)
-  generationInfo: {
-    generatedBy: "string", // "system", "gemini", "teacher"
-    generationPrompt: "string", // prompt used for generation
-    modelVersion: "string", // AI model version if applicable
-    generationDate: Timestamp
-  },
-  
-  // Related resources
-  resources: [
-    {
-      resourceId: "string",
-      title: "string",
-      type: "string", // "reading", "video", "practice"
-      url: "string",
-      label: "string"
-    }
-  ],
-  
-  // Submission data
-  submission: {
-    submittedAt: Timestamp,
-    content: "string", // text submission
-    fileUrls: ["string"], // array of uploaded file URLs
-    feedback: "string", // teacher/AI feedback
-    grade: number, // if graded
-    isGraded: boolean
-  }
+  priority: "string", // "low", "medium", "high"
+  userId: "string", // User ID reference
+  createdAt: "string", // ISO date string
+  lastUpdated: "string", // ISO date string
 }
 ```
 
-### User Events Subcollection
+### Course Progress Collection
 
-**Collection**: `users/{uid}/events`  
-**Document ID**: `{eventId}` (Generated UUID)
-
-```javascript
-{
-  eventId: "string",
-  title: "string",
-  type: "string", // "study", "quiz", "meeting", "assignment", "other"
-  date: Timestamp,
-  endDate: Timestamp, // for events with duration
-  courseId: "string", // reference to course if applicable
-  description: "string",
-  location: "string", // physical or virtual location
-  isCompleted: boolean,
-  completedAt: Timestamp,
-  isRecurring: boolean,
-  recurringPattern: {
-    frequency: "string", // "daily", "weekly", "monthly"
-    interval: number, // e.g., every 2 weeks
-    endDate: Timestamp
-  },
-  reminderTime: number, // minutes before event to send reminder
-  color: "string" // for UI display
-}
-```
-
-### User Activities Subcollection
-
-**Collection**: `users/{uid}/activities`  
-**Document ID**: `{activityId}` (Generated UUID)
+**Collection**: `courseProgress`  
+**Document ID**: Auto-generated
 
 ```javascript
 {
-  activityId: "string",
-  type: "string", // "chat", "quiz", "resource", "assignment"
-  courseId: "string", // reference to course
+  userId: "string", // User ID reference
   courseName: "string",
-  timestamp: Timestamp,
-  duration: number, // in minutes
-  // For chat activities
-  chatData: {
-    messages: [
-      {
-        role: "string", // "user" or "system"
-        content: "string",
-        timestamp: Timestamp,
-        hasImage: boolean,
-        imageURL: "string" // if hasImage is true
-      }
-    ]
-  },
-  
-  // For quiz activities
-  quizData: {
-    score: number,
-    maxScore: number,
-    questions: [
-      {
-        question: "string",
-        userAnswer: "string",
-        correctAnswer: "string",
-        isCorrect: boolean
-      }
-    ]
-  },
-  
-  // For resource activities
-  resourceData: {
-    resourceId: "string",
-    resourceType: "string", // "textbook", "video", "exercise", etc.
-    timeSpent: number, // in minutes
-    completionPercentage: number
-  },
-  
-  // For assignment activities
-  assignmentData: {
-    assignmentId: "string", // reference to the assignment
-    status: "string", // "started", "submitted", "completed"
-    timeSpent: number, // in minutes
-    submissionDate: Timestamp
-  }
+  progress: "number", // Percentage (0-100)
+  lastUpdated: "string", // ISO date string
 }
 ```
 
-### Courses Collection (Global)
+### Activity History Collection
 
-**Collection**: `courses`  
-**Document ID**: `{courseId}` (Generated ID or slug)
+**Collection**: `activityHistory`  
+**Document ID**: Auto-generated
 
 ```javascript
 {
-  courseId: "string",
-  name: "string",
-  subject: "string",
-  subjectDetail: "string",
-  category: "string",
-  description: "string",
-  difficulty: "string", // "easy", "medium", "hard"
-  imageURL: "string",
-  isPublic: boolean,
-  createdAt: Timestamp,
-  updatedAt: Timestamp,
-  
-  // Course content structure
-  contentModules: [
-    {
-      moduleId: "string",
-      title: "string",
-      description: "string",
-      order: number
-    }
-  ]
+  userId: "string", // User ID reference
+  courseName: "string",
+  type: "string", // "chat", "quiz", "resources"
+  name: "string", // Description of the activity
+  date: "string", // ISO date string
+  score: "number", // Optional score for quiz activities
+  duration: "number" // Optional duration in minutes
 }
 ```
 
-### Course Modules Subcollection
+### Chat History Collection
 
-**Collection**: `courses/{courseId}/modules`  
-**Document ID**: `{moduleId}` (Generated ID)
+**Collection**: `chatHistory`  
+**Document ID**: Auto-generated
 
 ```javascript
 {
-  moduleId: "string",
-  title: "string",
-  description: "string",
-  order: number,
-  
-  // Module content
-  resources: [
-    {
-      resourceId: "string",
-      type: "string", // "textbook", "video", "exercise", etc.
-      title: "string",
-      description: "string",
-      url: "string",
-      fileType: "string", // "pdf", "mp4", etc.
-      isExternal: boolean
-    }
-  ],
-  
-  quizzes: [
-    {
-      quizId: "string",
-      title: "string",
-      description: "string",
-      questionCount: number,
-      estimatedDuration: number // in minutes
-    }
-  ]
+  userId: "string", // User ID reference
+  courseName: "string",
+  timestamp: "string", // ISO date string
+  userMessage: "string",
+  botResponse: "string" // Or object for complex responses
 }
 ```
 
-### Quizzes Collection
+## Firebase Functions
 
-**Collection**: `quizzes`  
-**Document ID**: `{quizId}` (Generated ID)
+The following functions are currently implemented for interacting with Firebase:
 
-```javascript
-{
-  quizId: "string",
-  courseId: "string",
-  moduleId: "string",
-  title: "string",
-  description: "string",
-  difficulty: "string",
-  timeLimit: number, // in minutes
-  passingScore: number, // percentage
-  questions: [
-    {
-      questionId: "string",
-      text: "string",
-      type: "string", // "multiple-choice", "true-false", "short-answer"
-      options: ["string"], // for multiple-choice
-      correctAnswer: "string" or ["string"], // depends on question type
-      explanation: "string",
-      points: number
-    }
-  ]
-}
-```
+### User Authentication and Data
+- `signUp(email, password)`: Register a new user
+- `signIn(email, password)`: Authenticate an existing user
+- `signOut()`: Sign out the current user
+- `updateUserData(userId, userData)`: Update user data in Firestore
+- `getUserData(userId)`: Get user data from Firestore
 
-### Assignments Templates Collection
-
-**Collection**: `assignmentTemplates`  
-**Document ID**: `{templateId}` (Generated ID)
-
-```javascript
-{
-  templateId: "string",
-  subject: "string",
-  category: "string", // "mathematics", "science", etc.
-  title: "string", // template title
-  description: "string", // template description
-  // Template content - can be customized for specific students
-  content: "string", // markdown or HTML content
-  // Metadata
-  difficulty: "string", // "beginner", "intermediate", "advanced"
-  estimatedMinutes: number,
-  tags: ["string"],
-  createdAt: Timestamp,
-  updatedAt: Timestamp,
-  
-  // Resources included with this template
-  resources: [
-    {
-      resourceId: "string",
-      title: "string",
-      type: "string", // "reading", "video", "practice"
-      url: "string"
-    }
-  ]
-}
-```
-
-## Firebase Storage Structure
-
-Firebase Storage will organize files in the following structure:
-
-```
-/users/{uid}/
-  /profile/
-    - profile_picture.jpg
-  /course_uploads/{courseId}/
-    - {timestamp}_{filename}.jpg
-    - {timestamp}_{filename}.pdf
-  /chat_images/
-    - {chatId}_{timestamp}.jpg
-  /assignment_submissions/{assignmentId}/
-    - {timestamp}_{filename}.pdf
-    - {timestamp}_{filename}.jpg
-
-/courses/{courseId}/
-  /resources/
-    - {resourceId}.pdf
-    - {resourceId}.mp4
-  /thumbnails/
-    - thumbnail.jpg
-    
-/assignments/templates/
-  /{templateId}/
-    - template_resource.pdf
-    - instructions.pdf
-```
-
-## Firebase Authentication
-
-AdaptIQ will use Firebase Authentication with the following sign-in methods:
-
-- Email/Password *
-- Google Sign-In *
-- Apple Sign-In (for iOS users)
-- Microsoft Account Sign-In (for educational institutions)
-
-Custom claims will be used to assign user roles:
-
-```javascript
-{
-  "admin": true, // For administrative users
-  "parent": true, // For parent accounts
-  "student": true, // For student accounts
-  "premium": true, // For premium subscriptions
-  "educator": true // For teacher/educator accounts
-}
-```
-
-User authentication flow includes:
-- Social sign-in options with one-click authentication
-- Secure password policies with complexity requirements
-- Email verification for new accounts
-- Password reset functionality
-- Account linking for multiple sign-in methods
-- Session management with configurable expiration
-
-## Security Rules
-
-### Firestore Security Rules
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // User profiles - accessible only by the user or admins
-    match /users/{userId} {
-      allow read: if request.auth.uid == userId || request.auth.token.admin == true;
-      allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-      
-      // User subcollections - courses, schedule, activities, assignments, events
-      match /courses/{courseId} {
-        allow read: if request.auth.uid == userId || request.auth.token.admin == true;
-        allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-      }
-      
-      match /schedule/{entryId} {
-        allow read: if request.auth.uid == userId || 
-                     request.auth.token.admin == true || 
-                     request.auth.token.parent == true && 
-                     get(/databases/$(database)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
-        allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-      }
-      
-      match /activities/{activityId} {
-        allow read: if request.auth.uid == userId || 
-                     request.auth.token.admin == true || 
-                     request.auth.token.parent == true && 
-                     get(/databases/$(database)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
-        allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-      }
-      
-      match /assignments/{assignmentId} {
-        allow read: if request.auth.uid == userId || 
-                     request.auth.token.admin == true || 
-                     request.auth.token.parent == true && 
-                     get(/databases/$(database)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
-        allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-      }
-      
-      match /events/{eventId} {
-        allow read: if request.auth.uid == userId || 
-                     request.auth.token.admin == true || 
-                     request.auth.token.parent == true && 
-                     get(/databases/$(database)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
-        allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-      }
-    }
-    
-    // Global courses - readable by anyone, writable by admins
-    match /courses/{courseId} {
-      allow read: if true;
-      allow write: if request.auth.token.admin == true;
-      
-      // Course modules
-      match /modules/{moduleId} {
-        allow read: if true;
-        allow write: if request.auth.token.admin == true;
-      }
-    }
-    
-    // Assignment templates - readable by authenticated users, writable by admins
-    match /assignmentTemplates/{templateId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.token.admin == true;
-    }
-    
-    // Quizzes - accessible by authenticated users, writable by admins
-    match /quizzes/{quizId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.token.admin == true;
-    }
-  }
-}
-```
-
-### Storage Security Rules
-
-```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    // User profile images
-    match /users/{userId}/profile/{fileName} {
-      allow read: if true;
-      allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-    }
-    
-    // User course uploads
-    match /users/{userId}/course_uploads/{courseId}/{fileName} {
-      allow read: if request.auth.uid == userId || 
-                   request.auth.token.admin == true || 
-                   request.auth.token.parent == true && 
-                   firestore.get(/databases/(default)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
-      allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-    }
-    
-    // Chat images
-    match /users/{userId}/chat_images/{fileName} {
-      allow read: if request.auth.uid == userId || 
-                   request.auth.token.admin == true || 
-                   request.auth.token.parent == true && 
-                   firestore.get(/databases/(default)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
-      allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-    }
-    
-    // Assignment submissions
-    match /users/{userId}/assignment_submissions/{assignmentId}/{fileName} {
-      allow read: if request.auth.uid == userId || 
-                   request.auth.token.admin == true || 
-                   request.auth.token.parent == true && 
-                   firestore.get(/databases/(default)/documents/users/$(userId)).data.parentAccess == request.auth.uid;
-      allow write: if request.auth.uid == userId || request.auth.token.admin == true;
-    }
-    
-    // Course resources - readable by anyone, writable by admins
-    match /courses/{courseId}/{fileName} {
-      allow read: if true;
-      allow write: if request.auth.token.admin == true;
-    }
-    
-    // Assignment templates
-    match /assignments/templates/{templateId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.token.admin == true;
-    }
-  }
-}
-```
-
-## API Integration Points
-
-### Firebase Cloud Functions
-
-The following Cloud Functions will be implemented:
-
-1. **User Registration Processing**
-   - Trigger: `onCreate` for new user accounts
-   - Actions: Set up default courses, initialize progress tracking
-
-2. **Course Progress Calculation**
-   - Trigger: `onWrite` for user activity documents
-   - Actions: Recalculate course progress, update user dashboard stats
-
-3. **Schedule Generation**
-   - Trigger: HTTP callable function
-   - Actions: Generate optimized study schedule based on user preferences
-
-4. **Weekly Assignment Generation**
-   - Trigger: Scheduled function (weekly)
-   - Actions: Generate new assignments for each subject the student is enrolled in
-   - Implementation: Uses Gemini API to create contextually relevant assignments
-
-5. **Assignment Due Date Monitoring**
-   - Trigger: Scheduled function (daily)
-   - Actions: Check for upcoming and overdue assignments, update status, send notifications
-
-6. **Assignment Submission Processing**
-   - Trigger: `onCreate` for assignment submission documents
-   - Actions: Process submission, update assignment status, calculate progress impact
-
-7. **PDF/ODF Export**
-   - Trigger: HTTP callable function
-   - Actions: Generate formatted schedule documents for download
-
-8. **Parent Invitation**
-   - Trigger: HTTP callable function
-   - Actions: Send invitation to parent, set up access permissions
-
-9. **Activity Analytics**
-   - Trigger: Scheduled function (daily)
-   - Actions: Generate user activity reports, learning pattern insights
-
-10. **Daily Goals Generator**
-    - Trigger: Scheduled function (daily)
-    - Actions: Generate new daily goals based on user courses and progress
-
-11. **Study Streak Calculator**
-    - Trigger: `onWrite` for user activity documents
-    - Actions: Calculate consecutive days of learning activity, update streak counter in user profile
-
-12. **Dashboard Data Aggregator**
-    - Trigger: HTTP callable function
-    - Actions: Aggregate all dashboard-related data into a single response for efficient loading
-
-13. **Course Recommendations**
-    - Trigger: Scheduled function (weekly)
-    - Actions: Generate personalized course and topic recommendations based on progress and learning patterns
-
-## Implementation Guidelines
-
-### User Progress Tracking
-
-1. **Track Granular Activities**: Record all learning interactions (quizzes, resource access, chat sessions)
-
-2. **Calculate Progress**: Use weighted scoring system:
-   - Quiz scores: 35% of course progress
-   - Resource completion: 25% of course progress
-   - Tutor interactions: 15% of course progress 
-   - Time spent: 10% of course progress
-   - Assignment completion: 15% of course progress
-
-3. **Progress Updates**: Update in real-time when activities are completed
-
-4. **Progress History**: Maintain a historical record of progress changes for trend analysis and visualization
-
-5. **Study Streak**: Calculate and update consecutive days of activity to encourage consistent learning
-
-### Dashboard Data Integration
-
-1. **Centralized Stats Collection**:
-   - Store aggregated dashboard statistics in the user document for efficient retrieval
-   - Update statistics in real-time when activities are completed
-
-2. **Recent Activity Feed**:
-   - Store the most recent 10-15 activities in the user document
-   - Include activity type, timestamp, and relevant details
-   - Use this for dashboard activity feed display
-
-3. **Daily Goals Management**:
-   - Generate personalized daily goals based on course progress and scheduled activities
-   - Automatically mark goals as complete when relevant activities are finished
-   - Allow manual completion tracking via the UI
-
-4. **Event Management**:
-   - Store upcoming events in a dedicated subcollection
-   - Include study sessions, quiz deadlines, and assignments
-   - Update dashboard display with the next 3-5 upcoming events
-
-5. **Suggested Topics Generation**:
-   - Analyze course progress to identify areas needing attention
-   - Generate personalized topic suggestions for each course
-   - Include in dashboard recommendations section
+### Course Progress Tracking
+- `updateCourseProgress(userId, courseName, progress)`: Update course completion percentage
+- `getCourseProgress(userId, courseName)`: Get progress for a specific course
+- `saveActivityHistory(userId, activityData)`: Record a learning activity
+- `getActivityHistory(userId, courseName)`: Get activity history for a course
 
 ### Assignment Management
+- `createAssignment(assignmentData)`: Create a new assignment
+- `getUserAssignments(userId)`: Get all assignments for a user
+- `getAssignmentsBySubject(userId, subject)`: Get assignments for a specific subject
+- `getAssignmentsByCourse(userId, course)`: Get assignments for a specific course
+- `updateAssignmentStatus(assignmentId, status)`: Update assignment status
 
-1. **Weekly Generation**: Automatically generate new assignments weekly for each enrolled subject
+### Chat and Learning History
+- `saveChatHistory(userId, courseName, chatData)`: Save a chat conversation
+- `getChatHistory(userId, courseName)`: Get chat history for a course
 
-2. **Priority Calculation**: Calculate and update assignment priority based on due dates:
-   - Overdue: Priority 5
-   - Due today: Priority 4
-   - Due tomorrow: Priority 3
-   - Due within 3 days: Priority 2
-   - Due within a week: Priority 1
-   - Due later: Priority 0
+## Current Limitations
 
-3. **Status Management**:
-   - Automatically update status to "overdue" when due date passes
-   - Allow students to manually update status to "in-progress" or "completed"
-   - Record completion date when status changes to "completed"
+The current Firebase implementation has the following limitations:
 
-4. **Gemini API Integration**:
-   - Prepare detailed prompts based on subject, recent topics, and student level
-   - Process API responses to extract assignment content, resources, and metadata
-   - Store generated content in the assignments collection
-   - Include fallback templates for when API is unavailable
+- No real-time synchronization for multi-device use cases
+- Limited offline support
+- Basic security rules implementation
+- No cloud functions for server-side processing
 
-5. **Activity Synchronization**:
-   - Record assignment interactions in the activities collection
-   - Update course progress when assignments are completed
-   - Include assignment completion in activity history for each course
+## Future Development
 
-### Data Synchronization
+Planned extensions to the Firebase implementation include:
 
-1. Use Firebase offline persistence for seamless offline/online transitions
-2. Implement optimistic UI updates with proper error handling
-3. Use transaction operations for critical data updates
+- Firebase Storage for user-uploaded files and assignment submissions
+- Firebase Analytics for tracking user behavior and learning patterns
+- Firebase Cloud Functions for:
+  - AI integration with Gemini Pro via secure API endpoints
+  - Automated assignment generation and grading
+  - Scheduled notifications and reminders
+- Enhanced real-time synchronization for collaborative features
+- Advanced security rules with role-based access control
 
-### Performance Considerations
-
-1. Keep document sizes small (under 1MB)
-2. Use subcollections for one-to-many relationships
-3. Denormalize data where appropriate for read optimization
-4. Use composite indexes for complex queries
-5. Implement pagination for large collections
-
-## Firebase Services Integration Plan
-
-### Phase 1: Authentication & Basic Data Storage
-- Implement Firebase Authentication
-- Set up Firestore basic collections 
-- Implement basic security rules
-
-### Phase 2: Progress Tracking & Dashboard Integration
-- Implement activity tracking
-- Set up progress calculation functions
-- Create dashboard data aggregation
-- Implement study streak calculation
-- Set up real-time progress updates
-
-### Phase 3: Schedule & Event Management
-- Complete schedule data storage
-- Implement event tracking and management
-- Set up calendar integration
-- Create notification system for upcoming events
-
-### Phase 4: Assignment Management System
-- Implement assignment generation and storage
-- Set up priority calculation and status management
-- Create assignment submission handling
-- Configure weekly assignment generation
-
-### Phase 5: Advanced Features & Analytics
-- Implement chat image storage
-- Set up analytics events
-- Deploy cloud functions for advanced features
-- Integrate Gemini API for assignment generation
-- Implement dashboard recommendation engine
-
-### Phase 6: Theme & Settings Sync
-- Add user settings collection for theme preferences
-- Implement background sync for user settings
-- Create cloud functions for settings validation
-- Add real-time updates for shared device settings
-- Implement analytics for feature usage tracking
-
-## Data Migration Strategy
-
-For migrating from the current localStorage implementation:
-
-1. Create Firebase user accounts for existing users
-2. Transfer onboarding preferences to Firestore
-3. Migrate localStorage progress tracking data to Firestore
-4. Migrate locally stored schedules to Firestore
-5. Migrate locally stored assignments to Firestore
-6. Create initial dashboard statistics based on migrated data
-7. Generate course progress history from available data points
-8. Update application to read/write to Firebase instead of localStorage
-9. Implement data validation and cleanup processes
-
-## Testing & Security Considerations
-
-1. **Test Security Rules**: Validate all security rules with the Firebase emulator suite
-2. **Data Validation**: Implement server-side validation in Cloud Functions
-3. **Error Handling**: Implement robust error handling and logging
-4. **Backup Strategy**: Set up regular Firestore backups
-5. **Monitoring**: Configure Firebase alerts for abnormal usage patterns
-6. **Load Testing**: Test dashboard data retrieval performance under various conditions
-
-## Performance Optimization Strategies
-
-### Database Query Optimization
-
-- Implement paginated queries for large collections
-- Use composite indexes for complex queries
-- Structure data to minimize reads (denormalization where appropriate)
-- Cache frequently accessed data client-side
-- Implement query limiting and cursor-based pagination
-
-### Image Storage Optimization
-
-- Implement image compression before upload
-- Generate multiple resolutions for different device sizes
-- Use lazy loading for images in lists and grids
-- Implement Cloud Functions for automated image processing
-- Set up cache control headers for optimal browser caching
-
-### Real-time Updates Optimization
-
-- Use document-level subscriptions instead of collection-level when possible
-- Implement throttling for high-frequency updates
-- Use server timestamps for consistent ordering
-- Batch writes for multiple document updates
-- Implement offline persistence with conflict resolution strategies
-
-## Disaster Recovery Plan
-
-- Regular Firestore backups (daily)
-- Point-in-time recovery capability
-- Export critical data to Cloud Storage monthly
-- Documentation of restoration procedures
-- Regular restoration testing
-
-## Monitoring and Alerting
-
-- Set up Firebase Alerts for:
-  - Unusual authentication activity
-  - Spike in error rates
-  - Quota usage approaching limits
-  - Performance degradation
-  - Security rule violations
-- Implement custom Cloud Functions for advanced monitoring
-- Regular review of Firebase Analytics data for usage patterns
-- Integration with external monitoring tools for comprehensive coverage
-
-## Last Updated: March 31, 2025
+## Last Updated: April 3, 2025
