@@ -141,6 +141,9 @@ const CourseLearningPage = () => {
   // State to track whether user data is loaded from Firebase
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
 
+  // State for confirmation modal
+  const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
+
   // Check for Firebase authentication status
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -1381,13 +1384,6 @@ const CourseLearningPage = () => {
                               <IconHistory size={20} />
                               <span>History</span>
                             </button>
-                            <button 
-                              className="clear-history-button"
-                              onClick={clearConversationHistory}
-                            >
-                              <IconTrash size={18} />
-                              <span>Clear</span>
-                            </button>
                           </>
                         )}
                       </div>
@@ -1404,7 +1400,53 @@ const CourseLearningPage = () => {
                             exit={{ opacity: 0, x: 320 }}
                             transition={{ duration: 0.3 }}
                           >
-                            <h3>Recent {mode === 'chat' ? 'Conversations' : 'Quiz Sessions'}</h3>
+                            <div className="history-panel-header">
+                              <h3>Recent {mode === 'chat' ? 'Conversations' : 'Quiz Sessions'}</h3>
+                              <button
+                                className="clear-history-header-button"
+                                onClick={() => setShowClearHistoryConfirm(true)}
+                                aria-label="Clear history"
+                              >
+                                <IconTrash size={16} />
+                              </button>
+                            </div>
+                            
+                            {/* Confirmation Modal */}
+                            <AnimatePresence>
+                              {showClearHistoryConfirm && (
+                                <motion.div
+                                  className="clear-history-confirm-modal"
+                                  initial={{ opacity: 0, scale: 0.9 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.9 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <div className="confirm-modal-content">
+                                    <IconAlertTriangle size={24} color="#ff4d4d" />
+                                    <h4>Clear History</h4>
+                                    <p>Are you sure you want to clear all your {mode === 'chat' ? 'conversation' : 'quiz'} history? This action cannot be undone.</p>
+                                    <div className="confirm-modal-buttons">
+                                      <button 
+                                        className="confirm-cancel-button"
+                                        onClick={() => setShowClearHistoryConfirm(false)}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button 
+                                        className="confirm-delete-button"
+                                        onClick={() => {
+                                          clearConversationHistory();
+                                          setShowClearHistoryConfirm(false);
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
                             {/* Use the appropriate history based on mode */}
                             {(mode === 'chat' ? chatHistory : quizHistory).length > 0 ? (
                               <div className="history-list">

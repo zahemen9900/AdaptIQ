@@ -7,9 +7,10 @@ import {
   IconClipboard, IconUsers, IconAward, IconBell, IconArrowUpRight,
   IconBrandZoom, IconNotebook, IconClock, IconCheck, IconRefresh,
   IconArrowRight, IconEye, IconActivity, IconBulb, IconTrophy, 
-  IconTargetArrow, IconMessageCircle, IconX, IconPlus, IconSparkles
+  IconTargetArrow, IconMessageCircle, IconX, IconPlus, IconSparkles,
+  IconLogout, IconAlertCircle
 } from '@tabler/icons-react';
-import { getAssignments, formatAssignmentDate, sortAssignments } from '../utils/assignmentsUtils';
+import { getAssignmentsFromFirestore, formatAssignmentDate, sortAssignments } from '../utils/assignmentsUtils';
 import { 
   getProgressFromFirebase, 
   getAllCoursesProgress, 
@@ -18,6 +19,49 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from '@firebase/auth';
 import { auth } from '../../firebase';
+
+// SignOut Confirmation Modal Component
+const SignOutConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+  
+  return (
+    <motion.div
+      className="modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div 
+        className="confirmation-modal"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      >
+        <div className="modal-header">
+          <IconAlertCircle size={24} className="warning-icon" />
+          <h3>Sign Out</h3>
+          <button className="close-modal-button" onClick={onClose}>
+            <IconX size={20} />
+          </button>
+        </div>
+        
+        <div className="modal-content">
+          <p>Are you sure you want to sign out from AdaptIQ?</p>
+        </div>
+        
+        <div className="modal-actions">
+          <button className="modal-button secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="modal-button primary" onClick={onConfirm}>
+            Sign Out
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -39,6 +83,9 @@ const DashboardPage = () => {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [newGoalText, setNewGoalText] = useState('');
   const goalInputRef = useRef(null);
+
+  // State for sign out confirmation modal
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   // State for additional dashboard features
   const [recentActivity, setRecentActivity] = useState([]);
@@ -451,8 +498,8 @@ const DashboardPage = () => {
   // Function to fetch upcoming assignments
   const fetchAssignments = async () => {
     try {
-      // Get assignments from local storage or API
-      let assignments = getAssignments();
+      // Get assignments from Firebase instead of localStorage
+      let assignments = await getAssignmentsFromFirestore();
       
       // Sort by due date
       assignments = sortAssignments(assignments, 'dueDate');
@@ -470,6 +517,10 @@ const DashboardPage = () => {
     }
   };  
 
+  const handleSignOutClick = () => {
+    setShowSignOutModal(true);
+  };
+
   const handleSignOut = async() => {
     try {
       await signOut(auth);
@@ -478,7 +529,7 @@ const DashboardPage = () => {
     } catch (error) {
       console.error("Error signing out:", error);
     }
-  }
+  };
   
   return (
     <div className="dashboard-page">
@@ -524,7 +575,10 @@ const DashboardPage = () => {
           <div className="user-profile">
             <span className="user-name">{nickname || 'Guest'}</span>
             <div className="user-avatar">{nickname ? nickname.substring(0, 2).toUpperCase() : 'G'}</div>
-            <button onClick={handleSignOut}>SignOut</button>
+            <button className="sign-out-button" onClick={handleSignOutClick}>
+              <IconLogout size={18} />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
         
@@ -563,17 +617,25 @@ const DashboardPage = () => {
                 <div className="dashboard-card assignments-card">
                   <h2>Upcoming Assignments</h2>
                   {upcomingAssignments.length > 0 ? (
-                    <div className="assignments-list">
-                      {upcomingAssignments.map(assignment => (
-                        <div key={assignment.id} className="assignment-item">
-                          <div className="assignment-info">
-                            <h4>{assignment.title}</h4>
-                            <p>{assignment.subject}</p>
+                    <>
+                      <div className="assignments-list">
+                        {upcomingAssignments.map(assignment => (
+                          <div key={assignment.id} className="assignment-item">
+                            <div className="assignment-info">
+                              <h4>{assignment.title}</h4>
+                              <p>{assignment.subject}</p>
+                            </div>
+                            <div className="assignment-due">Due: {formatAssignmentDate(assignment.dueDate)}</div>
                           </div>
-                          <div className="assignment-due">Due: {formatAssignmentDate(assignment.dueDate)}</div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                      <div className="view-all-assignments">
+                        <Link to="/dashboard/assignments" className="view-all-button">
+                          <span>View All Assignments</span>
+                          <IconArrowRight size={16} />
+                        </Link>
+                      </div>
+                    </>
                   ) : (
                     <div className="empty-state">
                       <IconClipboard size={32} />
@@ -852,6 +914,13 @@ const DashboardPage = () => {
           )}
         </div>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutConfirmationModal 
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        onConfirm={handleSignOut}
+      />
     </div>
   );
 };

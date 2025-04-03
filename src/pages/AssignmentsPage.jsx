@@ -76,6 +76,156 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
   );
 };
 
+// Past Assignment Modal Component
+const PastAssignmentModal = ({ isOpen, onClose, pastAssignments }) => {
+  const [selectedPastAssignment, setSelectedPastAssignment] = useState(null);
+
+  if (!isOpen) return null;
+  
+  return (
+    <motion.div
+      className="modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div 
+        className="past-assignments-modal"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="past-assignments-header">
+          <h2>Past Assignments</h2>
+          <button className="close-modal-button" onClick={onClose}>
+            <IconX size={20} />
+          </button>
+        </div>
+        
+        <div className="past-assignments-content">
+          <div className="past-assignments-list">
+            {pastAssignments.length > 0 ? (
+              pastAssignments.map(assignment => {
+                const priorityInfo = getPriorityInfo(assignment.priority);
+                return (
+                  <div 
+                    key={assignment.id}
+                    className={`past-assignment-item ${selectedPastAssignment?.id === assignment.id ? 'active' : ''}`}
+                    onClick={() => setSelectedPastAssignment(assignment)}
+                  >
+                    <div className="past-assignment-header">
+                      <h3>{assignment.title}</h3>
+                      <div className="assignment-badge status-badge">Completed</div>
+                    </div>
+                    <div className="past-assignment-meta">
+                      <div className="meta-item">
+                        <IconBook size={14} />
+                        <span>{assignment.subject}</span>
+                      </div>
+                      <div className="meta-item">
+                        <IconCalendar size={14} />
+                        <span>{formatAssignmentDate(assignment.dueDate)}</span>
+                      </div>
+                      {assignment.submission?.submittedAt && (
+                        <div className="meta-item">
+                          <IconCheck size={14} />
+                          <span>Submitted {new Date(assignment.submission.submittedAt).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      {assignment.submission?.grade && (
+                        <div className="meta-item grade">
+                          <span className="grade-pill">{assignment.submission.grade}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="no-past-assignments">
+                <p>You haven't completed any assignments yet.</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="past-assignment-details">
+            {selectedPastAssignment ? (
+              <>
+                <div className="past-details-header">
+                  <h3>{selectedPastAssignment.title}</h3>
+                  <div 
+                    className="details-priority-badge"
+                    style={{ 
+                      color: getPriorityInfo(selectedPastAssignment.priority).color,
+                      backgroundColor: getPriorityInfo(selectedPastAssignment.priority).bgColor
+                    }}
+                  >
+                    {getPriorityInfo(selectedPastAssignment.priority).label}
+                  </div>
+                </div>
+                
+                <div className="past-details-content">
+                  <div className="details-section">
+                    <h4>Description</h4>
+                    <div className="markdown-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {selectedPastAssignment.description}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                  
+                  {selectedPastAssignment.submission && (
+                    <>
+                      <div className="details-section">
+                        <div className="section-header">
+                          <h4>Your Submission</h4>
+                          <div className="submission-date">
+                            {new Date(selectedPastAssignment.submission.submittedAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        </div>
+                        <div className="markdown-content">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedPastAssignment.submission.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                      
+                      <div className="details-section">
+                        <div className="section-header">
+                          <h4>Feedback & Solution</h4>
+                          <div className="grade-display">
+                            Grade: <span className="grade-value">{selectedPastAssignment.submission.grade}</span>
+                          </div>
+                        </div>
+                        <div className="markdown-content">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedPastAssignment.submission.feedback}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="no-selection">
+                <p>Select an assignment from the list to view details</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 const AssignmentsPage = () => {
   // State for user info
   const [nickname, setNickname] = useState('');
@@ -97,6 +247,10 @@ const AssignmentsPage = () => {
   // New state for assignment submission
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
   const [submissionAssignment, setSubmissionAssignment] = useState(null);
+  
+  // State for past assignments modal
+  const [showPastAssignmentsModal, setShowPastAssignmentsModal] = useState(false);
+  const [pastAssignments, setPastAssignments] = useState([]);
   
   // State for calendar view
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -139,6 +293,10 @@ const AssignmentsPage = () => {
           const updatedAssignments = existingAssignments.map(updateAssignmentStatus);
           setAssignments(updatedAssignments);
           setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
+          
+          // Separate past assignments
+          const completedAssignments = updatedAssignments.filter(a => a.status === 'completed');
+          setPastAssignments(completedAssignments);
         } else {
           // Generate new assignments for selected subjects
           const newAssignments = await generateAssignmentsForSubjects(subjectsForAssignments);
@@ -467,6 +625,14 @@ const AssignmentsPage = () => {
               >
                 <IconPlus size={20} />
                 <span>New</span>
+              </button>
+              
+              <button 
+                className="past-assignments-button"
+                onClick={() => setShowPastAssignmentsModal(true)}
+              >
+                <IconClipboard size={20} />
+                <span>Past</span>
               </button>
             </div>
             
@@ -948,6 +1114,13 @@ const AssignmentsPage = () => {
             />
           )}
         </AnimatePresence>
+        
+        {/* Past Assignments Modal */}
+        <PastAssignmentModal
+          isOpen={showPastAssignmentsModal}
+          onClose={() => setShowPastAssignmentsModal(false)}
+          pastAssignments={pastAssignments}
+        />
         
         {/* Confirmation Modal */}
         <ConfirmationModal
