@@ -1,7 +1,7 @@
 // Assignment utility functions for AdaptIQ
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { auth, db } from '../../firebase';
-import { doc, getDoc } from '@firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from '@firebase/firestore';
 import { getSubjectImageUrl } from './subjectImageUtils';
 
 // Initialize the Google Generative AI with the API key
@@ -258,7 +258,124 @@ export const fetchUserSubjects = async () => {
 
     const userData = userSnap.data();
     
-    // First try to get subjects directly if available
+    // First check if we can get the actual course names instead of just subject categories
+    if (userData.courses && userData.courses.length > 0) {
+      const courseNames = [];
+      const coursesBySubject = {
+        math: [
+          { id: 'algebra', label: 'Algebra' },
+          { id: 'geometry', label: 'Geometry' },
+          { id: 'calculus', label: 'Calculus' },
+          { id: 'statistics', label: 'Statistics' },
+          { id: 'trigonometry', label: 'Trigonometry' }
+        ],
+        science: [
+          { id: 'biology', label: 'Biology' },
+          { id: 'chemistry', label: 'Chemistry' },
+          { id: 'physics', label: 'Physics' },
+          { id: 'environmental', label: 'Environmental Science' },
+          { id: 'astronomy', label: 'Astronomy' }
+        ],
+        history: [
+          { id: 'world', label: 'World History' },
+          { id: 'us', label: 'US History' },
+          { id: 'european', label: 'European History' },
+          { id: 'ancient', label: 'Ancient Civilizations' },
+          { id: 'modern', label: 'Modern History' }
+        ],
+        language: [
+          { id: 'composition', label: 'Composition' },
+          { id: 'literature', label: 'Literature' },
+          { id: 'grammar', label: 'Grammar' },
+          { id: 'creative', label: 'Creative Writing' },
+          { id: 'speech', label: 'Speech & Debate' }
+        ],
+        foreign: [
+          { id: 'spanish', label: 'Spanish' },
+          { id: 'french', label: 'French' },
+          { id: 'german', label: 'German' },
+          { id: 'chinese', label: 'Chinese' },
+          { id: 'japanese', label: 'Japanese' }
+        ],
+        computer: [
+          { id: 'programming', label: 'Programming' },
+          { id: 'webdev', label: 'Web Development' },
+          { id: 'database', label: 'Database Systems' },
+          { id: 'ai', label: 'Artificial Intelligence' },
+          { id: 'cybersecurity', label: 'Cybersecurity' }
+        ],
+        engineering: [
+          { id: 'mechanical', label: 'Mechanical Engineering' },
+          { id: 'electrical', label: 'Electrical Engineering' },
+          { id: 'civil', label: 'Civil Engineering' },
+          { id: 'chemical', label: 'Chemical Engineering' },
+          { id: 'software', label: 'Software Engineering' }
+        ],
+        economics: [
+          { id: 'micro', label: 'Microeconomics' },
+          { id: 'macro', label: 'Macroeconomics' },
+          { id: 'international', label: 'International Economics' },
+          { id: 'business', label: 'Business Economics' },
+          { id: 'finance', label: 'Finance' }
+        ],
+        psychology: [
+          { id: 'general', label: 'General Psychology' },
+          { id: 'developmental', label: 'Developmental Psychology' },
+          { id: 'cognitive', label: 'Cognitive Psychology' },
+          { id: 'abnormal', label: 'Abnormal Psychology' },
+          { id: 'social', label: 'Social Psychology' }
+        ],
+        art: [
+          { id: 'drawing', label: 'Drawing' },
+          { id: 'painting', label: 'Painting' },
+          { id: 'sculpture', label: 'Sculpture' },
+          { id: 'digital', label: 'Digital Art' }
+        ],
+        music: [
+          { id: 'theory', label: 'Music Theory' },
+          { id: 'instrumental', label: 'Instrumental' },
+          { id: 'vocal', label: 'Vocal' },
+          { id: 'composition', label: 'Composition' }
+        ],
+        physical: [
+          { id: 'fitness', label: 'Fitness' },
+          { id: 'sports', label: 'Sports' },
+          { id: 'nutrition', label: 'Nutrition' },
+          { id: 'wellness', label: 'Wellness' }
+        ]
+      };
+      
+      // Process each course ID to get the specific course name
+      for (const courseId of userData.courses) {
+        // Parse course ID (format: subject-course)
+        if (courseId.includes('-')) {
+          const [subjectId, courseCode] = courseId.split('-');
+          
+          // Handle custom courses
+          if (courseCode === 'other' && userData.customCourses && userData.customCourses[subjectId]) {
+            courseNames.push(userData.customCourses[subjectId]);
+          } else {
+            // Get course name from predefined courses
+            if (coursesBySubject[subjectId]) {
+              const courseObj = coursesBySubject[subjectId].find(c => c.id === courseCode);
+              if (courseObj) {
+                courseNames.push(courseObj.label);
+              }
+            }
+          }
+        } else {
+          // For legacy course IDs, just use as is
+          courseNames.push(courseId);
+        }
+      }
+      
+      // Return specific course names if we found any
+      if (courseNames.length > 0) {
+        return courseNames;
+      }
+    }
+    
+    // If no specific course names were found, fall back to the original subject-based approach
     if (userData.subjects && userData.subjects.length > 0) {
       const subjectLabels = userData.subjects.map(subjectId => {
         const subjectMap = {
@@ -280,7 +397,7 @@ export const fetchUserSubjects = async () => {
       return subjectLabels;
     }
 
-    // If no subjects directly, try to extract from courses
+    // If no subjects directly, try to extract from courses (legacy support)
     if (userData.courses && userData.courses.length > 0) {
       const subjectSet = new Set();
       
@@ -750,19 +867,146 @@ export const filterAssignments = (assignments, filters) => {
   });
 };
 
-// Save assignments to local storage (will be replaced with Firebase)
-export const saveAssignments = (assignments) => {
+// Get the ISO week number for a date
+const getISOWeek = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+};
+
+// Get the ISO week year for a date
+const getISOWeekYear = (date) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  return d.getFullYear();
+};
+
+// Format week identifier for Firestore (YYYY-WW format)
+const formatWeekIdentifier = (date) => {
+  const weekYear = getISOWeekYear(date);
+  const weekNum = getISOWeek(date);
+  return `${weekYear}-${weekNum.toString().padStart(2, '0')}`;
+};
+
+// FIREBASE INTEGRATION - New functions for Firebase Firestore storage
+
+// Save assignments to Firestore
+export const saveAssignmentsToFirestore = async (assignments) => {
   try {
+    if (!auth.currentUser) {
+      console.error("No user signed in");
+      return false;
+    }
+
+    const userId = auth.currentUser.uid;
+    const currentDate = new Date();
+    const weekIdentifier = formatWeekIdentifier(currentDate);
+    const batch = writeBatch(db);
+
+    // Reference to the user's assignments collection for this week
+    const weekRef = collection(db, "users", userId, "assignments");
+    
+    // First, delete existing assignments for this week
+    const weekQuery = query(weekRef, where("weekIdentifier", "==", weekIdentifier));
+    const existingDocs = await getDocs(weekQuery);
+    
+    // Delete existing assignments for this week
+    existingDocs.forEach((document) => {
+      batch.delete(document.ref);
+    });
+
+    // Add new assignments
+    for (const assignment of assignments) {
+      const assignmentData = {
+        ...assignment,
+        userId,
+        weekIdentifier,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        submission: null,
+        feedback: null,
+        score: null
+      };
+
+      // Add the new assignment document
+      const assignmentRef = doc(collection(db, "users", userId, "assignments"));
+      batch.set(assignmentRef, assignmentData);
+    }
+
+    // Commit the batch
+    await batch.commit();
+    
+    // Also save to localStorage as a fallback for offline support
     localStorage.setItem('userAssignments', JSON.stringify(assignments));
+    
     return true;
   } catch (error) {
-    console.error("Error saving assignments:", error);
+    console.error("Error saving assignments to Firestore:", error);
+    
+    // Save to localStorage as fallback
+    try {
+      localStorage.setItem('userAssignments', JSON.stringify(assignments));
+    } catch (localError) {
+      console.error("Error saving to localStorage:", localError);
+    }
+    
     return false;
   }
 };
 
-// Get assignments from local storage (will be replaced with Firebase)
-export const getAssignments = () => {
+// Get assignments from Firestore
+export const getAssignmentsFromFirestore = async (weekOffset = 0) => {
+  try {
+    if (!auth.currentUser) {
+      console.warn("No user signed in, using localStorage fallback");
+      return getLocalAssignments();
+    }
+
+    const userId = auth.currentUser.uid;
+    let date = new Date();
+    
+    // Adjust date for weekOffset
+    if (weekOffset !== 0) {
+      date.setDate(date.getDate() + (weekOffset * 7));
+    }
+    
+    const weekIdentifier = formatWeekIdentifier(date);
+    
+    // Query assignments for the specified week
+    const assignmentsRef = collection(db, "users", userId, "assignments");
+    const weekQuery = query(assignmentsRef, where("weekIdentifier", "==", weekIdentifier));
+    const querySnapshot = await getDocs(weekQuery);
+    
+    // Convert to array of assignment objects
+    const assignments = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      // Include the Firestore document ID as firestoreId for updates
+      assignments.push({
+        ...data,
+        firestoreId: doc.id,
+        // Convert Firestore timestamps if necessary
+        createdDate: data.createdAt ? data.createdAt.toDate().toISOString() : data.createdDate
+      });
+    });
+    
+    // Update assignment statuses based on current date
+    const updatedAssignments = assignments.map(updateAssignmentStatus);
+    
+    // Save to localStorage as a fallback
+    localStorage.setItem('userAssignments', JSON.stringify(updatedAssignments));
+    
+    return updatedAssignments;
+  } catch (error) {
+    console.error("Error getting assignments from Firestore:", error);
+    return getLocalAssignments();
+  }
+};
+
+// Fallback function to get assignments from localStorage
+const getLocalAssignments = () => {
   try {
     const assignmentsData = localStorage.getItem('userAssignments');
     if (assignmentsData) {
@@ -771,8 +1015,126 @@ export const getAssignments = () => {
     }
     return [];
   } catch (error) {
-    console.error("Error retrieving assignments:", error);
+    console.error("Error retrieving assignments from localStorage:", error);
     return [];
+  }
+};
+
+// Update an assignment in Firestore
+export const updateAssignmentInFirestore = async (assignmentId, updates) => {
+  try {
+    if (!auth.currentUser) {
+      console.error("No user signed in");
+      return false;
+    }
+
+    const userId = auth.currentUser.uid;
+    
+    // Check if we have a Firestore document ID
+    if (updates.firestoreId) {
+      const assignmentRef = doc(db, "users", userId, "assignments", updates.firestoreId);
+      
+      // Remove the firestoreId from updates to avoid storing it redundantly
+      const { firestoreId, ...updateData } = updates;
+      
+      // Add timestamp for the update
+      updateData.updatedAt = serverTimestamp();
+      
+      await updateDoc(assignmentRef, updateData);
+    } else {
+      // Query to find the assignment by its generated ID
+      const assignmentsRef = collection(db, "users", userId, "assignments");
+      const q = query(assignmentsRef, where("id", "==", assignmentId));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        console.error(`Assignment with ID ${assignmentId} not found`);
+        return false;
+      }
+      
+      // Update the first matching document
+      const assignmentDoc = querySnapshot.docs[0];
+      
+      // Add timestamp for the update
+      updates.updatedAt = serverTimestamp();
+      
+      await updateDoc(assignmentDoc.ref, updates);
+    }
+    
+    // Update in localStorage as well for offline support
+    const assignments = getLocalAssignments();
+    const updatedAssignments = assignments.map(assignment => 
+      assignment.id === assignmentId ? { ...assignment, ...updates } : assignment
+    );
+    localStorage.setItem('userAssignments', JSON.stringify(updatedAssignments));
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating assignment in Firestore:", error);
+    
+    // Try to update in localStorage as fallback
+    try {
+      const assignments = getLocalAssignments();
+      const updatedAssignments = assignments.map(assignment => 
+        assignment.id === assignmentId ? { ...assignment, ...updates } : assignment
+      );
+      localStorage.setItem('userAssignments', JSON.stringify(updatedAssignments));
+    } catch (localError) {
+      console.error("Error updating in localStorage:", localError);
+    }
+    
+    return false;
+  }
+};
+
+// Submit an assignment in Firestore
+export const submitAssignmentToFirestore = async (assignmentId, submissionData) => {
+  try {
+    if (!auth.currentUser) {
+      console.error("No user signed in");
+      return false;
+    }
+
+    const userId = auth.currentUser.uid;
+    const updates = {
+      status: 'completed',
+      submission: submissionData,
+      submittedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    
+    return await updateAssignmentInFirestore(assignmentId, updates);
+  } catch (error) {
+    console.error("Error submitting assignment:", error);
+    return false;
+  }
+};
+
+// Get assignments from combined sources (prioritize Firestore, fallback to local)
+export const getAssignments = async () => {
+  try {
+    return await getAssignmentsFromFirestore();
+  } catch (error) {
+    console.error("Error in getAssignments:", error);
+    return getLocalAssignments();
+  }
+};
+
+// Save assignments (uses Firestore when available)
+export const saveAssignments = async (assignments) => {
+  try {
+    return await saveAssignmentsToFirestore(assignments);
+  } catch (error) {
+    console.error("Error in saveAssignments:", error);
+    
+    // Fallback to localStorage
+    try {
+      localStorage.setItem('userAssignments', JSON.stringify(assignments));
+      return true;
+    } catch (localError) {
+      console.error("Error saving to localStorage:", localError);
+      return false;
+    }
   }
 };
 
@@ -793,8 +1155,8 @@ export const generateUserAssignments = async () => {
     // 3. Generate assignments for selected subjects
     const assignments = await generateAssignmentsForSubjects(selectedSubjects);
     
-    // 4. Save assignments
-    saveAssignments(assignments);
+    // 4. Save assignments to Firestore
+    await saveAssignmentsToFirestore(assignments);
     
     return assignments;
   } catch (error) {
@@ -805,63 +1167,213 @@ export const generateUserAssignments = async () => {
 
 // Ensure user has assignments - check if there are assignments due within a week
 export const ensureUserHasAssignments = async () => {
-  // Get existing assignments
-  const existingAssignments = getAssignments();
-  
-  // Check if there are assignments due within the next week
-  const now = new Date();
-  const nextWeek = new Date(now);
-  nextWeek.setDate(now.getDate() + 7);
-  
-  const hasUpcomingAssignments = existingAssignments.some(assignment => {
-    const dueDate = new Date(assignment.dueDate);
-    return dueDate > now && dueDate <= nextWeek && assignment.status !== 'completed';
-  });
-  
-  // If there are no assignments due within the next week, generate new ones
-  if (!hasUpcomingAssignments || existingAssignments.length === 0) {
-    return await generateUserAssignments();
+  try {
+    // Get existing assignments from Firestore
+    const existingAssignments = await getAssignmentsFromFirestore();
+    
+    // Check if there are assignments due within the next week
+    const now = new Date();
+    const nextWeek = new Date(now);
+    nextWeek.setDate(now.getDate() + 7);
+    
+    const hasUpcomingAssignments = existingAssignments.some(assignment => {
+      const dueDate = new Date(assignment.dueDate);
+      return dueDate > now && dueDate <= nextWeek && assignment.status !== 'completed';
+    });
+    
+    // If there are no assignments due within the next week, generate new ones
+    if (!hasUpcomingAssignments || existingAssignments.length === 0) {
+      return await generateUserAssignments();
+    }
+    
+    return existingAssignments;
+  } catch (error) {
+    console.error("Error ensuring user has assignments:", error);
+    
+    // Fallback to local storage
+    const localAssignments = getLocalAssignments();
+    if (localAssignments.length === 0) {
+      return await generateUserAssignments();
+    }
+    return localAssignments;
   }
-  
-  return existingAssignments;
 };
 
 // Export helper function to get a random topic for a subject
 export const getRandomTopicForSubject = (subject) => {
   const subjectTopics = {
+    // Mathematics and related courses
     'Mathematics': ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Probability', 'Number Theory', 'Discrete Mathematics', 'Linear Algebra'],
-    'Algebra': ['Equations', 'Inequalities', 'Functions', 'Polynomials', 'Radical Expressions', 'Rational Expressions', 'Systems of Equations'],
-    'Geometry': ['Triangles', 'Circles', 'Polygons', 'Coordinate Geometry', 'Transformations', 'Surface Area and Volume', 'Proofs'],
-    'Calculus': ['Limits', 'Derivatives', 'Integrals', 'Differential Equations', 'Vector Calculus', 'Series'],
-    'Statistics': ['Probability', 'Data Analysis', 'Hypothesis Testing', 'Regression Analysis', 'Statistical Inference', 'Sampling'],
-    'Science': ['Scientific Method', 'Laboratory Techniques', 'Research Methodology', 'Experimental Design', 'Data Collection'],
-    'Biology': ['Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Anatomy', 'Physiology', 'Botany', 'Zoology'],
-    'Chemistry': ['Periodic Table', 'Chemical Bonding', 'Stoichiometry', 'Acids and Bases', 'Thermodynamics', 'Organic Chemistry'],
-    'Physics': ['Mechanics', 'Electricity', 'Magnetism', 'Thermodynamics', 'Optics', 'Quantum Mechanics', 'Relativity'],
-    'History': ['Ancient Civilizations', 'Middle Ages', 'Renaissance', 'Industrial Revolution', 'World Wars', 'Cold War', 'Modern History'],
-    'World History': ['Ancient Greece', 'Roman Empire', 'Chinese Dynasties', 'Colonialism', 'World Wars', 'Cold War', 'Globalization'],
-    'US History': ['Colonial Period', 'American Revolution', 'Civil War', 'Great Depression', 'Civil Rights Movement', 'Cold War', 'Post 9/11'],
-    'Language Arts': ['Literature Analysis', 'Creative Writing', 'Grammar', 'Rhetoric', 'Poetry', 'Non-fiction', 'Drama'],
-    'English': ['Literature Analysis', 'Grammar', 'Composition', 'Rhetoric', 'Poetry', 'Drama', 'Novels'],
-    'Foreign Languages': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'Cultural Studies', 'Translation'],
-    'Spanish': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'Hispanic Culture', 'Spanish History'],
-    'French': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'French Culture', 'French History'],
-    'German': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'German Culture', 'German History'],
-    'Computer Science': ['Programming', 'Algorithms', 'Data Structures', 'Databases', 'Web Development', 'Networking', 'Cybersecurity'],
-    'Programming': ['Object-Oriented Design', 'Functional Programming', 'Web Development', 'Mobile Apps', 'Algorithms', 'API Design'],
-    'Art & Design': ['Drawing', 'Painting', 'Sculpture', 'Photography', 'Digital Art', 'Art History', 'Color Theory'],
-    'Music': ['Music Theory', 'Music History', 'Composition', 'Performance', 'Instrumental Techniques', 'Musical Analysis'],
-    'Physical Education': ['Fitness', 'Sports', 'Nutrition', 'Exercise Science', 'Health', 'Wellness'],
-    'Economics': ['Microeconomics', 'Macroeconomics', 'International Trade', 'Economic Policy', 'Market Analysis', 'Financial Systems'],
-    'Psychology': ['Cognitive Psychology', 'Developmental Psychology', 'Social Psychology', 'Clinical Psychology', 'Abnormal Psychology', 'Neuroscience'],
-    'Engineering': ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Chemical Engineering', 'Software Engineering', 'Materials Science']
+    'Algebra': ['Linear Equations', 'Quadratic Equations', 'Inequalities', 'Functions', 'Polynomials', 'Radical Expressions', 'Rational Expressions', 'Systems of Equations', 'Matrices', 'Determinants'],
+    'Geometry': ['Triangles', 'Circles', 'Polygons', 'Coordinate Geometry', 'Transformations', 'Surface Area and Volume', 'Proofs', 'Congruence', 'Similarity', 'Trigonometry'],
+    'Calculus': ['Limits', 'Derivatives', 'Integrals', 'Differential Equations', 'Vector Calculus', 'Series', 'Multivariable Calculus', 'Applications of Derivatives', 'Applications of Integrals', 'Optimization'],
+    'Statistics': ['Probability', 'Data Analysis', 'Hypothesis Testing', 'Regression Analysis', 'Statistical Inference', 'Sampling', 'Correlation', 'Distributions', 'ANOVA', 'Bayesian Statistics'],
+    'Trigonometry': ['Sine Function', 'Cosine Function', 'Tangent Function', 'Unit Circle', 'Identities', 'Law of Sines', 'Law of Cosines', 'Polar Coordinates', 'Complex Numbers', 'Parametric Equations'],
+    
+    // Science and related courses
+    'Science': ['Scientific Method', 'Laboratory Techniques', 'Research Methodology', 'Experimental Design', 'Data Collection', 'Analysis of Results', 'Scientific Writing'],
+    'Biology': ['Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Anatomy', 'Physiology', 'Botany', 'Zoology', 'Molecular Biology', 'Biotechnology'],
+    'Chemistry': ['Periodic Table', 'Chemical Bonding', 'Stoichiometry', 'Acids and Bases', 'Thermodynamics', 'Organic Chemistry', 'Inorganic Chemistry', 'Analytical Chemistry', 'Biochemistry', 'Electrochemistry'],
+    'Physics': ['Mechanics', 'Electricity', 'Magnetism', 'Thermodynamics', 'Optics', 'Quantum Mechanics', 'Relativity', 'Nuclear Physics', 'Fluid Mechanics', 'Wave Motion'],
+    'Environmental Science': ['Ecosystems', 'Climate Change', 'Pollution', 'Conservation', 'Sustainability', 'Renewable Energy', 'Biodiversity', 'Environmental Policy', 'Natural Resources', 'Human Impact'],
+    'Astronomy': ['Solar System', 'Stars', 'Galaxies', 'Cosmology', 'Celestial Mechanics', 'Telescopes', 'Space Exploration', 'Stellar Evolution', 'Black Holes', 'Exoplanets'],
+    
+    // History and related courses
+    'History': ['Ancient Civilizations', 'Middle Ages', 'Renaissance', 'Industrial Revolution', 'World Wars', 'Cold War', 'Modern History', 'Historical Analysis', 'Primary Sources', 'Historiography'],
+    'World History': ['Ancient Greece', 'Roman Empire', 'Chinese Dynasties', 'Colonialism', 'World Wars', 'Cold War', 'Globalization', 'Industrial Revolution', 'Renaissance', 'Age of Exploration'],
+    'US History': ['Colonial Period', 'American Revolution', 'Civil War', 'Great Depression', 'Civil Rights Movement', 'Cold War', 'Post 9/11', 'Westward Expansion', 'Progressive Era', 'World War II'],
+    'European History': ['Medieval Europe', 'Renaissance', 'Reformation', 'French Revolution', 'Industrial Revolution', 'World Wars', 'Cold War', 'European Union', 'Imperialism', 'Enlightenment'],
+    'Ancient Civilizations': ['Mesopotamia', 'Egypt', 'Greece', 'Rome', 'China', 'India', 'Maya', 'Aztec', 'Inca', 'Indus Valley'],
+    'Modern History': ['World War I', 'World War II', 'Cold War', 'Decolonization', 'Civil Rights', 'Technological Revolution', 'Globalization', 'Terrorism', 'Climate Crisis', 'Digital Age'],
+    
+    // Language Arts and related courses
+    'Language Arts': ['Literature Analysis', 'Creative Writing', 'Grammar', 'Rhetoric', 'Poetry', 'Non-fiction', 'Drama', 'Literary Criticism', 'Comparative Literature', 'Media Literacy'],
+    'English': ['Literature Analysis', 'Grammar', 'Composition', 'Rhetoric', 'Poetry', 'Drama', 'Novels', 'Shakespeare', 'American Literature', 'British Literature'],
+    'Composition': ['Essay Structure', 'Thesis Development', 'Research Methods', 'Citation Styles', 'Rhetoric', 'Persuasive Writing', 'Narrative Writing', 'Expository Writing', 'Editing', 'Revision'],
+    'Literature': ['Literary Analysis', 'Poetry', 'Drama', 'Fiction', 'Non-fiction', 'Literary Movements', 'Literary Theory', 'World Literature', 'Contemporary Literature', 'Classical Literature'],
+    'Grammar': ['Parts of Speech', 'Sentence Structure', 'Punctuation', 'Syntax', 'Verb Tense', 'Subject-Verb Agreement', 'Modifiers', 'Parallel Structure', 'Active vs. Passive Voice', 'Common Errors'],
+    'Creative Writing': ['Fiction', 'Poetry', 'Screenwriting', 'Playwriting', 'Memoir', 'Character Development', 'Plot Structure', 'Setting', 'Dialogue', 'Point of View'],
+    'Speech & Debate': ['Public Speaking', 'Argument Construction', 'Rhetorical Strategies', 'Debate Formats', 'Logical Fallacies', 'Research Methods', 'Impromptu Speaking', 'Persuasion', 'Delivery Techniques', 'Cross-Examination'],
+    
+    // Foreign Languages
+    'Foreign Languages': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'Cultural Studies', 'Translation', 'Reading Comprehension', 'Listening Skills', 'Writing Systems', 'Idiomatic Expressions'],
+    'Spanish': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'Hispanic Culture', 'Spanish History', 'Regional Dialects', 'Business Spanish', 'Medical Spanish', 'Spanish Literature'],
+    'French': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'French Culture', 'French History', 'Francophone World', 'Cinema', 'Cuisine', 'Art History'],
+    'German': ['Grammar', 'Vocabulary', 'Conversation', 'Literature', 'German Culture', 'German History', 'Business German', 'Scientific German', 'German Film', 'Philosophy'],
+    'Chinese': ['Characters', 'Pinyin', 'Grammar', 'Conversation', 'Chinese Culture', 'Chinese History', 'Business Chinese', 'Classical Chinese', 'Regional Dialects', 'Literature'],
+    'Japanese': ['Hiragana', 'Katakana', 'Kanji', 'Grammar', 'Conversation', 'Japanese Culture', 'Japanese History', 'Anime and Manga', 'Business Japanese', 'Literature'],
+    
+    // Computer Science and related courses
+    'Computer Science': ['Programming', 'Algorithms', 'Data Structures', 'Databases', 'Web Development', 'Networking', 'Cybersecurity', 'Operating Systems', 'Software Engineering', 'Theory of Computation'],
+    'Programming': ['Object-Oriented Design', 'Functional Programming', 'Web Development', 'Mobile Apps', 'Algorithms', 'API Design', 'Version Control', 'Testing', 'Debugging', 'Design Patterns'],
+    'Web Development': ['HTML', 'CSS', 'JavaScript', 'Responsive Design', 'Frontend Frameworks', 'Backend Development', 'APIs', 'Database Integration', 'Web Security', 'Web Performance'],
+    'Database Systems': ['SQL', 'Data Modeling', 'Normalization', 'NoSQL', 'Database Design', 'Query Optimization', 'Transactions', 'Indexing', 'Data Warehousing', 'Database Administration'],
+    'Artificial Intelligence': ['Machine Learning', 'Neural Networks', 'Natural Language Processing', 'Computer Vision', 'Expert Systems', 'Knowledge Representation', 'Robotics', 'Ethical AI', 'Generative AI', 'Reinforcement Learning'],
+    'Cybersecurity': ['Network Security', 'Cryptography', 'Ethical Hacking', 'Security Policies', 'Incident Response', 'Vulnerability Assessment', 'Malware Analysis', 'Digital Forensics', 'Security Auditing', 'Identity Management'],
+    
+    // Engineering and related courses
+    'Engineering': ['Design Process', 'Materials Science', 'Thermodynamics', 'Fluid Mechanics', 'Control Systems', 'Circuit Analysis', 'Technical Drawing', 'Engineering Ethics', 'Project Management', 'Systems Engineering'],
+    'Mechanical Engineering': ['Statics', 'Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Heat Transfer', 'Machine Design', 'Manufacturing Processes', 'Robotics', 'Material Science', 'Control Systems'],
+    'Electrical Engineering': ['Circuit Analysis', 'Electronics', 'Digital Logic', 'Signal Processing', 'Power Systems', 'Electromagnetics', 'Control Systems', 'Communications', 'Microprocessors', 'VLSI Design'],
+    'Civil Engineering': ['Structural Analysis', 'Geotechnical Engineering', 'Transportation Engineering', 'Environmental Engineering', 'Construction Management', 'Surveying', 'Hydraulics', 'Infrastructure Systems', 'Materials Testing', 'Urban Planning'],
+    'Chemical Engineering': ['Mass Transfer', 'Heat Transfer', 'Thermodynamics', 'Reaction Engineering', 'Process Design', 'Separation Processes', 'Plant Design', 'Process Control', 'Biochemical Engineering', 'Materials Science'],
+    'Software Engineering': ['Software Design', 'Requirements Engineering', 'Testing', 'Project Management', 'Software Architecture', 'Agile Methodologies', 'DevOps', 'Quality Assurance', 'Technical Documentation', 'User Experience Design'],
+    
+    // Economics and related courses
+    'Economics': ['Microeconomics', 'Macroeconomics', 'International Trade', 'Economic Policy', 'Market Analysis', 'Financial Systems', 'Econometrics', 'Development Economics', 'Public Finance', 'Labor Economics'],
+    'Microeconomics': ['Consumer Theory', 'Producer Theory', 'Market Structures', 'Game Theory', 'Market Failure', 'Utility Maximization', 'Cost Analysis', 'Pricing Strategies', 'Behavioral Economics', 'Industrial Organization'],
+    'Macroeconomics': ['Fiscal Policy', 'Monetary Policy', 'Economic Growth', 'Business Cycles', 'Inflation', 'Unemployment', 'International Trade', 'Exchange Rates', 'National Income', 'Central Banking'],
+    'International Economics': ['Trade Theory', 'Trade Policy', 'Exchange Rates', 'Balance of Payments', 'International Finance', 'Economic Integration', 'Globalization', 'Comparative Advantage', 'Trade Agreements', 'Currency Markets'],
+    'Business Economics': ['Market Analysis', 'Pricing Strategies', 'Risk Management', 'Cost-Benefit Analysis', 'Financial Decision Making', 'Competitive Strategy', 'Business Forecasting', 'Economic Value Creation', 'Business Cycles', 'Resource Allocation'],
+    'Finance': ['Financial Markets', 'Corporate Finance', 'Investment Analysis', 'Financial Risk Management', 'Portfolio Theory', 'Valuation', 'Financial Institutions', 'International Finance', 'Financial Derivatives', 'Financial Regulations'],
+    
+    // Psychology and related courses
+    'Psychology': ['Cognitive Psychology', 'Developmental Psychology', 'Social Psychology', 'Clinical Psychology', 'Abnormal Psychology', 'Neuroscience', 'Personality Theory', 'Research Methods', 'Educational Psychology', 'Health Psychology'],
+    'Cognitive Psychology': ['Memory', 'Perception', 'Attention', 'Problem Solving', 'Language', 'Decision Making', 'Cognitive Neuroscience', 'Consciousness', 'Intelligence', 'Cognitive Development'],
+    'Developmental Psychology': ['Child Development', 'Adolescence', 'Adulthood', 'Aging', 'Cognitive Development', 'Social Development', 'Emotional Development', 'Moral Development', 'Language Acquisition', 'Developmental Disorders'],
+    'Social Psychology': ['Social Influence', 'Group Dynamics', 'Attitudes', 'Stereotypes', 'Prejudice', 'Attribution', 'Conformity', 'Obedience', 'Interpersonal Relationships', 'Social Cognition'],
+    'Clinical Psychology': ['Psychological Disorders', 'Therapeutic Approaches', 'Assessment', 'Diagnosis', 'Treatment Planning', 'Clinical Interviewing', 'Evidence-Based Practice', 'Ethics', 'Psychopharmacology', 'Crisis Intervention'],
+    'Abnormal Psychology': ['Psychological Disorders', 'Diagnostic Criteria', 'Treatment Approaches', 'Etiology', 'Psychopathology', 'Mood Disorders', 'Anxiety Disorders', 'Personality Disorders', 'Schizophrenia', 'Developmental Disorders'],
+    
+    // Art and Design
+    'Art & Design': ['Drawing', 'Painting', 'Sculpture', 'Photography', 'Digital Art', 'Art History', 'Color Theory', 'Composition', 'Typography', 'Graphic Design'],
+    'Drawing': ['Perspective', 'Figure Drawing', 'Shading Techniques', 'Composition', 'Portrait Drawing', 'Still Life', 'Gesture Drawing', 'Anatomical Drawing', 'Landscape Drawing', 'Abstract Drawing'],
+    'Painting': ['Oil Painting', 'Watercolor', 'Acrylic', 'Color Theory', 'Composition', 'Portrait Painting', 'Landscape Painting', 'Abstract Painting', 'Mixed Media', 'Art History'],
+    'Sculpture': ['3D Design', 'Modeling', 'Carving', 'Casting', 'Assemblage', 'Installation Art', 'Materials and Techniques', 'Figure Sculpture', 'Abstract Sculpture', 'Public Art'],
+    'Digital Art': ['Digital Painting', '3D Modeling', 'Animation', 'Game Art', 'Vector Graphics', 'Digital Illustration', 'Concept Art', 'Digital Photography', 'Character Design', 'User Interface Design'],
+    
+    // Music
+    'Music': ['Music Theory', 'Music History', 'Composition', 'Performance', 'Instrumental Techniques', 'Musical Analysis', 'Ear Training', 'Sight Reading', 'Music Technology', 'World Music'],
+    'Music Theory': ['Scales', 'Chords', 'Harmony', 'Counterpoint', 'Form and Analysis', 'Ear Training', 'Sight Singing', 'Composition', 'Orchestration', 'Jazz Theory'],
+    'Instrumental': ['Technique', 'Repertoire', 'Performance Practice', 'Chamber Music', 'Orchestra', 'Band', 'Solo Performance', 'Sight Reading', 'Interpretation', 'Music History'],
+    'Vocal': ['Vocal Technique', 'Repertoire', 'Diction', 'Choral Singing', 'Opera', 'Art Song', 'Popular Vocal Styles', 'Vocal Health', 'Performance Practice', 'Sight Singing'],
+    'Composition': ['Melody Writing', 'Harmony', 'Counterpoint', 'Orchestration', 'Form', 'Contemporary Techniques', 'Film Scoring', 'Song Writing', 'Electronic Music', 'Arranging'],
+    
+    // Physical Education
+    'Physical Education': ['Fitness', 'Sports', 'Nutrition', 'Exercise Science', 'Health', 'Wellness', 'Movement Fundamentals', 'Team Sports', 'Individual Sports', 'Recreation'],
+    'Fitness': ['Strength Training', 'Cardiovascular Exercise', 'Flexibility', 'HIIT', 'Circuit Training', 'Group Fitness', 'Personal Training', 'Assessment', 'Program Design', 'Exercise Physiology'],
+    'Sports': ['Team Sports', 'Individual Sports', 'Sport Psychology', 'Training Methods', 'Rules and Strategies', 'Performance Analysis', 'Skill Development', 'Coaching', 'Sport History', 'Sport Management'],
+    'Nutrition': ['Macronutrients', 'Micronutrients', 'Meal Planning', 'Sports Nutrition', 'Diet Analysis', 'Weight Management', 'Nutritional Supplements', 'Hydration', 'Metabolism', 'Dietary Guidelines'],
+    'Wellness': ['Holistic Health', 'Stress Management', 'Mental Health', 'Sleep', 'Work-Life Balance', 'Mindfulness', 'Self-Care', 'Preventive Health', 'Lifestyle Medicine', 'Health Behavior Change']
   };
   
-  // Get topics for the subject, or use a default list if no specific topics are defined
-  const topics = subjectTopics[subject] || 
-                ['Fundamentals', 'Advanced Concepts', 'Applied Methods', 'Current Research', 'Historical Development', 'Problem Solving'];
+  // Function to handle custom course subjects not in our predefined list
+  const getTopicsForCustomSubject = (customSubject) => {
+    // Try to identify the subject area from keywords in the custom subject name
+    const subjectKeywords = {
+      math: ['math', 'algebra', 'calculus', 'geometry', 'statistics', 'trigonometry', 'linear', 'discrete', 'numerical', 'mathematical'],
+      science: ['science', 'biology', 'chemistry', 'physics', 'astronomy', 'geology', 'environmental', 'laboratory', 'scientific'],
+      computer: ['computer', 'programming', 'software', 'web', 'database', 'network', 'algorithm', 'data', 'artificial', 'cyber', 'code'],
+      language: ['language', 'literature', 'writing', 'grammar', 'composition', 'rhetoric', 'speech', 'communication', 'reading', 'linguistics'],
+      history: ['history', 'civilization', 'ancient', 'medieval', 'modern', 'renaissance', 'revolution', 'war', 'historical'],
+      art: ['art', 'design', 'drawing', 'painting', 'sculpture', 'photography', 'visual', 'creative', 'artistic', 'digital'],
+      music: ['music', 'theory', 'composition', 'instrumental', 'vocal', 'performance', 'orchestra', 'band', 'chord', 'melody'],
+      psychology: ['psychology', 'cognitive', 'behavioral', 'social', 'developmental', 'clinical', 'abnormal', 'personality', 'therapeutic']
+    };
+    
+    // Check for matches with keywords
+    const lowercaseSubject = customSubject.toLowerCase();
+    for (const [category, keywords] of Object.entries(subjectKeywords)) {
+      for (const keyword of keywords) {
+        if (lowercaseSubject.includes(keyword)) {
+          // If we find a match, use topics from a related subject
+          switch (category) {
+            case 'math':
+              return subjectTopics['Mathematics'];
+            case 'science':
+              return subjectTopics['Science'];
+            case 'computer':
+              return subjectTopics['Computer Science'];
+            case 'language':
+              return subjectTopics['Language Arts'];
+            case 'history':
+              return subjectTopics['History'];
+            case 'art':
+              return subjectTopics['Art & Design'];
+            case 'music':
+              return subjectTopics['Music'];
+            case 'psychology':
+              return subjectTopics['Psychology'];
+            default:
+              return null;
+          }
+        }
+      }
+    }
+    
+    // If no match found, generate generic topics based on the subject name
+    return [
+      `Introduction to ${customSubject}`,
+      `Advanced Topics in ${customSubject}`,
+      `${customSubject} Fundamentals`,
+      `${customSubject} Applications`,
+      `${customSubject} Theory and Practice`,
+      `Contemporary Issues in ${customSubject}`,
+      `${customSubject} Research Methods`,
+      `${customSubject} Case Studies`,
+      `${customSubject} Analysis Techniques`,
+      `${customSubject} Project Development`
+    ];
+  };
   
-  // Randomly select a topic
-  const randomIndex = Math.floor(Math.random() * topics.length);
-  return topics[randomIndex];
+  // First try to get topics for the exact subject
+  const exactTopics = subjectTopics[subject];
+  
+  if (exactTopics) {
+    // Randomly select a topic
+    const randomIndex = Math.floor(Math.random() * exactTopics.length);
+    return exactTopics[randomIndex];
+  }
+  
+  // If no exact match, try to get topics for a custom subject
+  const customTopics = getTopicsForCustomSubject(subject);
+  if (customTopics) {
+    const randomIndex = Math.floor(Math.random() * customTopics.length);
+    return customTopics[randomIndex];
+  }
+  
+  // If all else fails, use default generic topics
+  const defaultTopics = ['Fundamentals', 'Advanced Concepts', 'Applied Methods', 'Current Research', 'Historical Development', 'Problem Solving'];
+  const randomIndex = Math.floor(Math.random() * defaultTopics.length);
+  return defaultTopics[randomIndex];
 };

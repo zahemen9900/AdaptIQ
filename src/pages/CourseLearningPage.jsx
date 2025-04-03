@@ -16,12 +16,24 @@ import {
   getProgressFromFirebase, 
   updateProgressInFirebase, 
   incrementProgress,
-  getActivityHistory
+  getActivityHistory,
+  recordActivity
 } from '../utils/progressTracker';
+import {
+  saveChatHistory,
+  getChatHistory,
+  getAllChatHistory,
+  clearChatHistory,
+  getOrCreateSessionId,
+  endCurrentSession,
+  getConversationSession,
+  forceNewSession
+} from '../utils/chatHistoryUtils';
 import { getAssignments, formatAssignmentDate } from '../utils/assignmentsUtils';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { auth } from '../../firebase';
 
 // Initialize the Google Generative AI with the API key
 // In production, this should be properly handled with environment variables
@@ -111,6 +123,7 @@ const CourseLearningPage = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
+  const [quizHistory, setQuizHistory] = useState([]);
   const [showChatHistory, setShowChatHistory] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -119,10 +132,22 @@ const CourseLearningPage = () => {
   const [progressAnimation, setProgressAnimation] = useState(false);
   const [showActivityPanel, setShowActivityPanel] = useState(false);
   const fileInputRef = useRef(null);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
   
   // New state for course assignments
   const [currentAssignment, setCurrentAssignment] = useState(null);
   const [courseAssignments, setCourseAssignments] = useState([]);
+  
+  // State to track whether user data is loaded from Firebase
+  const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+
+  // Check for Firebase authentication status
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsUserAuthenticated(!!user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Fetch progress data
   useEffect(() => {
@@ -140,7 +165,26 @@ const CourseLearningPage = () => {
       }
     }
     fetchProgress();
-  }, [courseName, loading]);
+  }, [courseName, loading, isUserAuthenticated]);
+
+  // Fetch chat and quiz history from Firestore or localStorage
+  useEffect(() => {
+    async function fetchChatAndQuizHistory() {
+      if (!loading) {
+        try {
+          // Get both chat and quiz history
+          const { chat, quiz } = await getAllChatHistory(courseName);
+          
+          // Update state with fetched history
+          setChatHistory(chat || []);
+          setQuizHistory(quiz || []);
+        } catch (error) {
+          console.error('Error fetching chat and quiz history:', error);
+        }
+      }
+    }
+    fetchChatAndQuizHistory();
+  }, [courseName, loading, isUserAuthenticated]);
   
   // New function to fetch course assignments
   useEffect(() => {
@@ -184,33 +228,37 @@ const CourseLearningPage = () => {
       // Trigger animation before updating the value
       setProgressAnimation(true);
       
-      // Update progress in Firebase (mock)
-      const newProgress = await incrementProgress(courseName, incrementAmount);
-      
-      // Wait for animation to start before updating value
-      setTimeout(() => {
-        setProgress(newProgress);
-        
-        // Show success popup
-        setShowProgressPopup(true);
-        
-        // Hide popup after 3 seconds
-        setTimeout(() => {
-          setShowProgressPopup(false);
-          setProgressAnimation(false);
-        }, 3000);
-      }, 300);
-      
-      // Add to activity history
-      const newActivity = {
-        id: Date.now(),
+      // Create activity object
+      const activityObj = {
         type: mode,
         name: `${mode === 'chat' ? 'Tutor Session' : mode === 'quiz' ? 'Quiz Completion' : 'Resource Study'}`,
-        date: new Date(),
         score: mode === 'quiz' ? Math.floor(70 + Math.random() * 30) : null // Random score for quizzes
       };
       
-      setActivityHistory(prev => [newActivity, ...prev]);
+      // Record activity in Firebase
+      const newActivity = await recordActivity(courseName, activityObj);
+      
+      // Wait for animation to start before updating value
+      setTimeout(() => {
+        // Get the latest progress after recording activity
+        getProgressFromFirebase(courseName).then(newProgress => {
+          setProgress(newProgress);
+          
+          // Show success popup
+          setShowProgressPopup(true);
+          
+          // Hide popup after 3 seconds
+          setTimeout(() => {
+            setShowProgressPopup(false);
+            setProgressAnimation(false);
+          }, 3000);
+        });
+      }, 300);
+      
+      // Update local activity history
+      if (newActivity) {
+        setActivityHistory(prev => [newActivity, ...prev]);
+      }
       
     } catch (error) {
       console.error('Error updating progress:', error);
@@ -305,22 +353,31 @@ const CourseLearningPage = () => {
   // Function to handle starting a chat
   const handleStartChat = () => {
     setMode('chat');
+    
+    // Always create a new unique session ID for a new conversation
+    const newSessionId = forceNewSession(courseName, 'chat');
+    setCurrentSessionId(newSessionId);
+    
     // Add initial tutor message
-    setChatMessages([{
+    const initialMessage = {
       sender: 'bot',
       content: `Hi, I'm your ${courseName} tutor. What do you need assistance with today?`,
       timestamp: new Date().toISOString()
-    }]);
+    };
+    
+    setChatMessages([initialMessage]);
     
     // Add assignment context if there is a current assignment
     if (currentAssignment) {
       setTimeout(() => {
         // Add a message about the current assignment
-        setChatMessages(prevMessages => [...prevMessages, {
+        const assignmentMessage = {
           sender: 'bot',
           content: `I see you have an assignment on "${currentAssignment.title}" due ${formatAssignmentDate(currentAssignment.dueDate)}. Would you like help with this assignment?`,
           timestamp: new Date().toISOString()
-        }]);
+        };
+        
+        setChatMessages(prevMessages => [...prevMessages, assignmentMessage]);
       }, 1000);
     }
   };
@@ -330,21 +387,29 @@ const CourseLearningPage = () => {
     setMode('quiz');
     setIsThinking(true);
     
+    // Always create a new unique session ID for a new quiz
+    const newSessionId = forceNewSession(courseName, 'quiz');
+    setCurrentSessionId(newSessionId);
+    
     try {
       // Add initial welcome message
-      const initialMessages = [{
+      const welcomeMessage = {
         sender: 'bot',
         content: `Welcome to the ${courseName} quiz! I'll ask you a series of questions to test your knowledge.`,
         timestamp: new Date().toISOString()
-      }];
+      };
+      
+      const initialMessages = [welcomeMessage];
       
       // Add context about current assignment if available
       if (currentAssignment) {
-        initialMessages.push({
+        const assignmentMessage = {
           sender: 'bot',
           content: `This quiz will focus on topics related to your current assignment: "${currentAssignment.title}".`,
           timestamp: new Date().toISOString()
-        });
+        };
+        
+        initialMessages.push(assignmentMessage);
       }
       
       setChatMessages(initialMessages);
@@ -354,27 +419,53 @@ const CourseLearningPage = () => {
       const question = await generateQuizQuestion(courseName, topic);
       
       // Add question to messages
-      setChatMessages(prevMessages => [...prevMessages, {
+      const questionMessage = {
         sender: 'bot',
         content: question,
         timestamp: new Date().toISOString()
-      }]);
+      };
+      
+      setChatMessages(prevMessages => [...prevMessages, questionMessage]);
+      
+      // This is the first entry we save to history for this session
+      await saveChatHistory(
+        courseName,
+        'quiz',
+        'quiz_question',
+        questionMessage.content,
+        newSessionId
+      );
     } catch (error) {
       console.error("Error starting quiz:", error);
       // Add fallback message if there's an error
-      setChatMessages(prevMessages => [...prevMessages, {
+      const fallbackMessage = {
         sender: 'bot',
         content: `What are the key principles of ${courseName} that you've learned so far?`,
         timestamp: new Date().toISOString()
-      }]);
+      };
+      
+      setChatMessages(prevMessages => [...prevMessages, fallbackMessage]);
+      
+      // Save fallback question to quiz history
+      await saveChatHistory(
+        courseName,
+        'quiz',
+        'quiz_question',
+        fallbackMessage.content,
+        newSessionId
+      );
     } finally {
       setIsThinking(false);
     }
   };
 
   // Function to handle starting the learning resources
-  const handleStartResources = () => {
+  const handleStartResources = async () => {
     setMode('resources');
+    
+    // Always create a new unique session ID for resources view
+    const newSessionId = forceNewSession(courseName, 'resources');
+    setCurrentSessionId(newSessionId);
     
     const initialMessages = [{
       sender: 'bot',
@@ -391,14 +482,22 @@ const CourseLearningPage = () => {
       });
     }
     
-    initialMessages.push({
+    const resourcesMessage = {
       sender: 'bot',
       content: generateResourcesList(courseName, currentAssignment),
       timestamp: new Date().toISOString(),
       isResource: true
-    });
+    };
     
+    initialMessages.push(resourcesMessage);
     setChatMessages(initialMessages);
+    
+    // Record activity for accessing resources
+    await recordActivity(courseName, {
+      type: 'resources',
+      name: 'Resource Access',
+      score: null
+    });
   };
 
   // Generate dynamic system prompt based on course
@@ -524,7 +623,7 @@ const CourseLearningPage = () => {
   };
 
   // Generate a chat response using Gemini (streaming version)
-  const generateChatResponse = async (userMessage, course, handleStreamingUpdate) => {
+  const generateChatResponse = async (userMessage, course, handleStreamingUpdate, context = '') => {
     try {
       if (!API_KEY) {
         console.warn("API key not found, using fallback chat responses");
@@ -562,7 +661,7 @@ const CourseLearningPage = () => {
       }
       
       // Generate content with the system prompt
-      const prompt = `${systemPrompt}\n\nStudent question: ${userMessage}\n\nYour helpful response:`;
+      const prompt = `${systemPrompt}\n\n${context}\n\nStudent question: ${userMessage}\n\nYour helpful response:`;
       
       // Use streaming API
       const streamingResult = await model.generateContentStream(prompt);
@@ -679,7 +778,19 @@ const CourseLearningPage = () => {
       let responseContent = '';
       
       if (mode === 'chat') {
-        responseContent = await generateChatResponse(currentMessage, courseName, handleStreamingUpdate);
+        // Extract conversation context from the recent messages (last 3 turns)
+        // This provides the AI with context from previous interactions
+        const recentMessages = chatMessages.slice(-6); // Last 3 turns (6 messages max)
+        const conversationContext = recentMessages
+          .map(msg => `${msg.sender === 'user' ? 'Student' : 'AI Tutor'}: ${msg.content}`)
+          .join('\n\n');
+          
+        responseContent = await generateChatResponse(
+          currentMessage, 
+          courseName, 
+          handleStreamingUpdate,
+          conversationContext // Pass the context to maintain conversation continuity
+        );
       } else if (mode === 'quiz') {
         responseContent = await evaluateQuizAnswer(currentMessage, question, courseName, handleStreamingUpdate);
       }
@@ -693,6 +804,25 @@ const CourseLearningPage = () => {
         )
       );
       
+      // Save to appropriate history collection in Firestore based on mode
+      // Using the current session ID to group all messages in the same conversation
+      await saveChatHistory(
+        courseName,
+        mode,
+        currentMessage,
+        responseContent,
+        currentSessionId
+      );
+      
+      // Refresh the history from the server to show updated sessions
+      if (mode === 'chat') {
+        const updatedChatHistory = await getChatHistory(courseName, 'chat');
+        setChatHistory(updatedChatHistory);
+      } else if (mode === 'quiz') {
+        const updatedQuizHistory = await getChatHistory(courseName, 'quiz');
+        setQuizHistory(updatedQuizHistory);
+      }
+      
       // Generate a follow-up question if in quiz mode
       if (mode === 'quiz') {
         setTimeout(async () => {
@@ -704,20 +834,18 @@ const CourseLearningPage = () => {
             timestamp: new Date().toISOString()
           };
           setChatMessages(prevMessages => [...prevMessages, nextQuestionMessage]);
+          
+          // Save the follow-up question to quiz history with the same session ID
+          await saveChatHistory(
+            courseName,
+            'quiz',
+            'follow_up_question',
+            nextQuestion,
+            currentSessionId
+          );
         }, 2000);
       }
       
-      // Save to chat history
-      const newHistoryItem = {
-        courseName,
-        timestamp: new Date().toISOString(),
-        userMessage: currentMessage,
-        botResponse: responseContent
-      };
-      
-      const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)]; // Keep only latest 20 items
-      setChatHistory(updatedHistory);
-      localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
     } catch (error) {
       console.error("Error generating response:", error);
       // Add fallback error message
@@ -743,37 +871,70 @@ const CourseLearningPage = () => {
   // Toggle chat history visibility
   const toggleChatHistory = () => {
     setShowChatHistory(!showChatHistory);
+    
+    // If we're showing history, refresh it from Firestore
+    if (!showChatHistory) {
+      getChatHistory(courseName, mode).then(history => {
+        if (mode === 'chat') {
+          setChatHistory(history);
+        } else if (mode === 'quiz') {
+          setQuizHistory(history);
+        }
+      });
+    }
   };
 
   // Load a conversation from history
-  const loadConversationFromHistory = (historyItem) => {
+  const loadConversationFromHistory = async (historyItem) => {
     // If we're in the select mode, switch to chat mode first
     if (mode === 'select') {
-      setMode('chat');
+      setMode(historyItem.mode || 'chat');
     }
     
-    // Create the conversation starter messages
-    const starterMessages = [
-      {
-        sender: 'user',
-        content: historyItem.userMessage,
-        timestamp: historyItem.timestamp
-      },
-      {
-        sender: 'bot',
-        content: historyItem.botResponse,
-        timestamp: new Date(new Date(historyItem.timestamp).getTime() + 1000).toISOString()
-      }
-    ];
+    // Set the current session ID to the one from the history item
+    setCurrentSessionId(historyItem.sessionId);
     
-    // Set the messages
-    setChatMessages(starterMessages);
+    // Load the full conversation session
+    const session = await getConversationSession(courseName, historyItem.mode || mode, historyItem.sessionId);
+    
+    if (session && session.messages && session.messages.length > 0) {
+      // Convert the messages to the format expected by the chat UI
+      const formattedMessages = session.messages.map(msg => ({
+        sender: msg.role === 'user' ? 'user' : 'bot',
+        content: msg.content,
+        timestamp: msg.timestamp,
+        id: msg.timestamp // Use timestamp as ID for simplicity
+      }));
+      
+      // Set the messages
+      setChatMessages(formattedMessages);
+    } else {
+      // Fallback to just showing the first exchange if full session not available
+      const starterMessages = [
+        {
+          sender: 'user',
+          content: historyItem.userMessage,
+          timestamp: historyItem.timestamp
+        },
+        {
+          sender: 'bot',
+          content: historyItem.botResponse,
+          timestamp: new Date(new Date(historyItem.timestamp).getTime() + 1000).toISOString()
+        }
+      ];
+      
+      // Set the messages
+      setChatMessages(starterMessages);
+    }
     
     // Hide the history panel
     setShowChatHistory(false);
     
-    // Log this for analytics purposes
-    console.log('Loaded conversation from history:', historyItem.timestamp);
+    // Record this activity
+    recordActivity(courseName, {
+      type: historyItem.mode || mode,
+      name: `Resumed ${historyItem.mode || mode} Session`
+    });
   };
 
   // File upload states
@@ -837,18 +998,45 @@ const CourseLearningPage = () => {
       setChatMessages(prevMessages => [...prevMessages, botResponse]);
       setIsThinking(false);
       
-      // Save to chat history
-      const newHistoryItem = {
+      // Save to chat history using the current session ID
+      saveChatHistory(
         courseName,
-        timestamp: new Date().toISOString(),
-        userMessage: currentMessage,
-        botResponse: responseContent
-      };
+        mode,
+        `[Image uploaded] ${currentMessage}`,
+        responseContent,
+        currentSessionId
+      );
       
-      const updatedHistory = [newHistoryItem, ...chatHistory.slice(0, 19)];
-      setChatHistory(updatedHistory);
-      localStorage.setItem(`chatHistory_${courseName}`, JSON.stringify(updatedHistory));
+      // Refresh the history from the server
+      getChatHistory(courseName, mode).then(history => {
+        if (mode === 'chat') {
+          setChatHistory(history);
+        } else if (mode === 'quiz') {
+          setQuizHistory(history);
+        }
+      });
     }, 2000); // Slightly longer for image processing simulation
+  };
+
+  // Reset conversation history for the current mode
+  const clearConversationHistory = async () => {
+    try {
+      await clearChatHistory(courseName, mode);
+      
+      if (mode === 'chat') {
+        setChatHistory([]);
+      } else if (mode === 'quiz') {
+        setQuizHistory([]);
+      }
+      
+      setShowChatHistory(false);
+      
+      // End the current session since we've cleared history
+      endCurrentSession(courseName, mode);
+      setCurrentSessionId(null);
+    } catch (error) {
+      console.error("Error clearing conversation history:", error);
+    }
   };
 
   return (
@@ -1185,13 +1373,22 @@ const CourseLearningPage = () => {
                           <span>Complete {mode === 'chat' ? 'Session' : mode === 'quiz' ? 'Quiz' : 'Study'}</span>
                         </button>
                         {mode !== 'resources' && (
-                          <button 
-                            className={`history-button ${showChatHistory ? 'active' : ''}`}
-                            onClick={toggleChatHistory}
-                          >
-                            <IconHistory size={20} />
-                            <span>History</span>
-                          </button>
+                          <>
+                            <button 
+                              className={`history-button ${showChatHistory ? 'active' : ''}`}
+                              onClick={toggleChatHistory}
+                            >
+                              <IconHistory size={20} />
+                              <span>History</span>
+                            </button>
+                            <button 
+                              className="clear-history-button"
+                              onClick={clearConversationHistory}
+                            >
+                              <IconTrash size={18} />
+                              <span>Clear</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1207,10 +1404,11 @@ const CourseLearningPage = () => {
                             exit={{ opacity: 0, x: 320 }}
                             transition={{ duration: 0.3 }}
                           >
-                            <h3>Recent Conversations</h3>
-                            {chatHistory.length > 0 ? (
+                            <h3>Recent {mode === 'chat' ? 'Conversations' : 'Quiz Sessions'}</h3>
+                            {/* Use the appropriate history based on mode */}
+                            {(mode === 'chat' ? chatHistory : quizHistory).length > 0 ? (
                               <div className="history-list">
-                                {chatHistory.map((item, index) => (
+                                {(mode === 'chat' ? chatHistory : quizHistory).map((item, index) => (
                                   <div 
                                     key={index} 
                                     className="history-item"
@@ -1221,18 +1419,22 @@ const CourseLearningPage = () => {
                                         {new Date(item.timestamp).toLocaleDateString()}
                                       </span>
                                       <span className="history-time">
-                                        {new Date(item.timestamp).toLocaleTimeString()}
+                                        {new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                       </span>
                                     </div>
                                     <div className="history-content">
                                       <p className="history-question">{item.userMessage}</p>
-                                      <p className="history-answer">{typeof item.botResponse === 'string' ? item.botResponse.substring(0, 60) + (item.botResponse.length > 60 ? '...' : '') : 'Complex response...'}</p>
+                                      <p className="history-answer">
+                                        {typeof item.botResponse === 'string' 
+                                          ? item.botResponse.substring(0, 60) + (item.botResponse.length > 60 ? '...' : '') 
+                                          : 'Complex response...'}
+                                      </p>
                                     </div>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <p className="no-history">No conversation history yet</p>
+                              <p className="no-history">No {mode === 'chat' ? 'conversation' : 'quiz'} history yet</p>
                             )}
                           </motion.div>
                         )}
@@ -1640,7 +1842,12 @@ const CourseLearningPage = () => {
                     <div className="mode-controls">
                       <motion.button 
                         className="mode-control-button" 
-                        onClick={() => setMode('select')}
+                        onClick={() => {
+                          // End the current session before returning to menu
+                          endCurrentSession(courseName, mode);
+                          setCurrentSessionId(null);
+                          setMode('select');
+                        }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >

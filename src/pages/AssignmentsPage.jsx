@@ -13,6 +13,8 @@ import {
   getAssignments, 
   saveAssignments, 
   updateAssignmentStatus,
+  updateAssignmentInFirestore,
+  submitAssignmentToFirestore,
   groupAssignmentsByDate,
   generateCalendarDates,
   isSameDay,
@@ -129,8 +131,8 @@ const AssignmentsPage = () => {
         const subjectsForAssignments = selectSubjectsForAssignments(userSubjects);
         setSelectedSubjects(subjectsForAssignments);
         
-        // Check if there are existing assignments in storage
-        const existingAssignments = getAssignments();
+        // Check if there are existing assignments in Firestore
+        const existingAssignments = await getAssignments();
         
         if (existingAssignments && existingAssignments.length > 0) {
           // Use existing assignments, but update their status based on due dates
@@ -144,16 +146,15 @@ const AssignmentsPage = () => {
           setFilteredAssignments(sortAssignments(newAssignments, filters.sortBy));
           
           // Save the newly generated assignments
-          saveAssignments(newAssignments);
+          await saveAssignments(newAssignments);
         }
         
         // Ensure user has assignments due within the next week
-        ensureUserHasAssignments().then(updatedAssignments => {
-          if (updatedAssignments && updatedAssignments.length > 0) {
-            setAssignments(updatedAssignments);
-            setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
-          }
-        });
+        const updatedAssignments = await ensureUserHasAssignments();
+        if (updatedAssignments && updatedAssignments.length > 0) {
+          setAssignments(updatedAssignments);
+          setFilteredAssignments(sortAssignments(updatedAssignments, filters.sortBy));
+        }
         
         // Generate calendar dates for current month
         const year = currentDate.getFullYear();
@@ -208,7 +209,7 @@ const AssignmentsPage = () => {
   }, [currentDate]);
 
   // Handle assignment status update
-  const handleStatusChange = (assignmentId, newStatus) => {
+  const handleStatusChange = async (assignmentId, newStatus) => {
     // If the assignment is being marked as completed, show the submission form
     if (newStatus === 'completed') {
       const assignment = assignments.find(a => a.id === assignmentId);
@@ -228,7 +229,19 @@ const AssignmentsPage = () => {
     });
     
     setAssignments(updatedAssignments);
-    saveAssignments(updatedAssignments);
+    
+    // Update in Firestore
+    try {
+      const assignment = assignments.find(a => a.id === assignmentId);
+      if (assignment) {
+        await updateAssignmentInFirestore(assignmentId, { status: newStatus });
+      }
+      
+      // Also save to local storage via the saveAssignments function
+      await saveAssignments(updatedAssignments);
+    } catch (error) {
+      console.error("Error updating assignment status:", error);
+    }
     
     // If viewing assignment details, update the selected assignment
     if (selectedAssignment && selectedAssignment.id === assignmentId) {
@@ -295,8 +308,8 @@ const AssignmentsPage = () => {
       // Generate assignments for selected subjects (one per subject)
       const newAssignments = await generateAssignmentsForSubjects(subjectsToUse);
       
-      // Save and update assignments in state
-      saveAssignments(newAssignments);
+      // Save to Firestore and update assignments in state
+      await saveAssignments(newAssignments);
       setAssignments(newAssignments);
       setFilteredAssignments(sortAssignments(newAssignments, filters.sortBy));
     } catch (error) {
@@ -307,41 +320,54 @@ const AssignmentsPage = () => {
   };
 
   // Handle assignment submission
-  const handleAssignmentSubmit = (submissionData) => {
-    // Update the assignment with submission data and change status to completed
-    const updatedAssignments = assignments.map(assignment => {
-      if (assignment.id === submissionData.assignmentId) {
-        return { 
-          ...assignment, 
-          status: 'completed',
-          submission: {
-            content: submissionData.submissionContent,
-            feedback: submissionData.feedback,
-            grade: submissionData.grade,
-            submittedAt: submissionData.submittedAt
-          }
-        };
+  const handleAssignmentSubmit = async (submissionData) => {
+    try {
+      // Submit the assignment to Firestore
+      await submitAssignmentToFirestore(submissionData.assignmentId, {
+        content: submissionData.submissionContent,
+        feedback: submissionData.feedback,
+        grade: submissionData.grade,
+        submittedAt: new Date().toISOString()
+      });
+      
+      // Update the assignment in local state
+      const updatedAssignments = assignments.map(assignment => {
+        if (assignment.id === submissionData.assignmentId) {
+          return { 
+            ...assignment, 
+            status: 'completed',
+            submission: {
+              content: submissionData.submissionContent,
+              feedback: submissionData.feedback,
+              grade: submissionData.grade,
+              submittedAt: new Date().toISOString()
+            }
+          };
+        }
+        return assignment;
+      });
+      
+      // Update state
+      setAssignments(updatedAssignments);
+      
+      // Update filtered assignments
+      const filtered = filterAssignments(updatedAssignments, filters);
+      const sorted = sortAssignments(filtered, filters.sortBy);
+      setFilteredAssignments(sorted);
+      
+      // Close the submission form
+      setShowSubmissionForm(false);
+      setSubmissionAssignment(null);
+      
+      // If the same assignment was open in the details panel, update it
+      if (selectedAssignment && selectedAssignment.id === submissionData.assignmentId) {
+        const updatedAssignment = updatedAssignments.find(a => a.id === submissionData.assignmentId);
+        setSelectedAssignment(updatedAssignment);
       }
-      return assignment;
-    });
-    
-    // Update state and save to localStorage
-    setAssignments(updatedAssignments);
-    saveAssignments(updatedAssignments);
-    
-    // Update filtered assignments
-    const filtered = filterAssignments(updatedAssignments, filters);
-    const sorted = sortAssignments(filtered, filters.sortBy);
-    setFilteredAssignments(sorted);
-    
-    // Close the submission form
-    setShowSubmissionForm(false);
-    setSubmissionAssignment(null);
-    
-    // If the same assignment was open in the details panel, update it
-    if (selectedAssignment && selectedAssignment.id === submissionData.assignmentId) {
-      const updatedAssignment = updatedAssignments.find(a => a.id === submissionData.assignmentId);
-      setSelectedAssignment(updatedAssignment);
+    } catch (error) {
+      console.error("Error submitting assignment:", error);
+      // Show error message to user
+      alert("Failed to submit assignment. Please try again.");
     }
   };
 

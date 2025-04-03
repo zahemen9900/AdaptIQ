@@ -1,4 +1,21 @@
 // Progress tracking utilities for AdaptIQ
+import { auth, db } from '../../firebase';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  collection, 
+  addDoc, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  getDocs,
+  arrayUnion,
+  Timestamp,
+  serverTimestamp
+} from 'firebase/firestore';
 
 /**
  * Get progress value from Firebase (or localStorage as fallback)
@@ -7,15 +24,63 @@
  */
 export const getProgressFromFirebase = async (courseName) => {
   try {
-    // In a real implementation, this would fetch from Firebase
-    // For now, we'll use localStorage as a stand-in for Firebase
+    // Return 0 if not authenticated
+    if (!auth.currentUser) {
+      console.warn("No user signed in, using localStorage fallback");
+      return getProgressFromLocalStorage(courseName);
+    }
+    
+    const userId = auth.currentUser.uid;
+    const courseId = courseName.toLowerCase().replace(/ /g, '-');
+    
+    // Get user's course data
+    const courseRef = doc(db, "users", userId, "courses", courseId);
+    const courseDoc = await getDoc(courseRef);
+    
+    if (courseDoc.exists() && courseDoc.data().progress !== undefined) {
+      return courseDoc.data().progress;
+    }
+    
+    // If no record in Firebase, check localStorage as fallback
+    const localProgress = getProgressFromLocalStorage(courseName);
+    
+    // If there's local progress data, sync it to Firebase
+    if (localProgress > 0) {
+      await setDoc(courseRef, {
+        courseName,
+        courseId, 
+        progress: localProgress,
+        lastUpdated: serverTimestamp()
+      }, { merge: true });
+    } else {
+      // Initialize progress for this course
+      await setDoc(courseRef, {
+        courseName,
+        courseId,
+        progress: 0,
+        lastUpdated: serverTimestamp()
+      }, { merge: true });
+    }
+    
+    return localProgress;
+  } catch (error) {
+    console.error("Error fetching progress from Firebase:", error);
+    return getProgressFromLocalStorage(courseName);
+  }
+};
+
+/**
+ * Get progress from localStorage
+ * @param {string} courseName - The name of the course
+ * @returns {number} - The progress value
+ */
+const getProgressFromLocalStorage = (courseName) => {
+  try {
     const progressKey = `course-progress-${courseName.toLowerCase().replace(/ /g, '-')}`;
     const storedProgress = localStorage.getItem(progressKey);
-    
-    // Return stored progress if it exists, otherwise 0
-    return storedProgress ? parseInt(storedProgress, 10) : 0;
+    return storedProgress ? parseInt(storedProgress, 5) : 0;
   } catch (error) {
-    console.error("Error fetching progress from storage:", error);
+    console.error("Error fetching progress from localStorage:", error);
     return 0;
   }
 };
@@ -28,41 +93,42 @@ export const getProgressFromFirebase = async (courseName) => {
  */
 export const updateProgressInFirebase = async (courseName, newProgress) => {
   try {
-    // In a real implementation, this would update Firebase
-    // For now, we'll use localStorage as a stand-in for Firebase
-    const progressKey = `course-progress-${courseName.toLowerCase().replace(/ /g, '-')}`;
-    
     // Ensure progress is within valid range
     const clampedProgress = Math.min(100, Math.max(0, newProgress));
     
-    // Store progress in localStorage
+    // Always update localStorage for fallback
+    const progressKey = `course-progress-${courseName.toLowerCase().replace(/ /g, '-')}`;
     localStorage.setItem(progressKey, clampedProgress.toString());
     
-    // Also store update time for tracking activity
-    const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
-    const activityHistory = JSON.parse(localStorage.getItem(activityKey) || '[]');
-    
-    // Add new activity entry
-    const newActivity = {
-      id: Date.now(),
-      type: 'progress-update',
-      date: new Date(),
-      oldProgress: parseInt(localStorage.getItem(progressKey) || '0', 10),
-      newProgress: clampedProgress
-    };
-    
-    activityHistory.unshift(newActivity);
-    
-    // Keep only the latest 50 activities
-    if (activityHistory.length > 50) {
-      activityHistory.length = 50;
+    // If user is authenticated, update Firebase
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      const courseId = courseName.toLowerCase().replace(/ /g, '-');
+      
+      // Get user's course data
+      const courseRef = doc(db, "users", userId, "courses", courseId);
+      const courseDoc = await getDoc(courseRef);
+      
+      if (courseDoc.exists()) {
+        // Update existing document
+        await updateDoc(courseRef, {
+          progress: clampedProgress,
+          lastUpdated: serverTimestamp()
+        });
+      } else {
+        // Create new document
+        await setDoc(courseRef, {
+          courseName,
+          courseId,
+          progress: clampedProgress,
+          lastUpdated: serverTimestamp()
+        });
+      }
     }
-    
-    localStorage.setItem(activityKey, JSON.stringify(activityHistory));
     
     return clampedProgress;
   } catch (error) {
-    console.error("Error updating progress in storage:", error);
+    console.error("Error updating progress in Firebase:", error);
     return newProgress;
   }
 };
@@ -92,12 +158,76 @@ export const incrementProgress = async (courseName, increment = 5) => {
 /**
  * Get activity history for a course
  * @param {string} courseName - The name of the course
+ * @param {number} maxItems - Maximum number of activities to return (default: 50)
  * @returns {Promise<Array>} - Array of activity objects
  */
-export const getActivityHistory = async (courseName) => {
+export const getActivityHistory = async (courseName, maxItems = 50) => {
   try {
-    // In a real implementation, this would fetch from Firebase
-    // For now, we'll use localStorage as a stand-in for Firebase
+    // If not authenticated, fall back to localStorage
+    if (!auth.currentUser) {
+      console.warn("No user signed in, using localStorage fallback");
+      return getActivityHistoryFromLocalStorage(courseName);
+    }
+    
+    const userId = auth.currentUser.uid;
+    const courseId = courseName.toLowerCase().replace(/ /g, '-');
+    
+    // Query Firestore for activity history
+    const activitiesRef = collection(db, "users", userId, "activities");
+    const activitiesQuery = query(
+      activitiesRef,
+      where("courseId", "==", courseId),
+      orderBy("timestamp", "desc"),
+      limit(maxItems)
+    );
+    
+    const querySnapshot = await getDocs(activitiesQuery);
+    
+    // Convert query results to array
+    const activities = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      activities.push({
+        id: doc.id,
+        type: data.type,
+        name: data.name,
+        date: data.timestamp ? data.timestamp.toDate() : new Date(),
+        score: data.score || null
+      });
+    });
+    
+    if (activities.length === 0) {
+      // If no activities in Firestore, check localStorage
+      const localActivities = getActivityHistoryFromLocalStorage(courseName);
+      
+      // If local activities exist, sync them to Firebase
+      if (localActivities.length > 0) {
+        for (const activity of localActivities) {
+          await recordActivity(courseName, {
+            type: activity.type,
+            name: activity.name,
+            score: activity.score
+          });
+        }
+        
+        return localActivities;
+      }
+    }
+    
+    return activities;
+  } catch (error) {
+    console.error("Error fetching activity history from Firebase:", error);
+    return getActivityHistoryFromLocalStorage(courseName);
+  }
+};
+
+/**
+ * Get activity history from localStorage
+ * @param {string} courseName - The name of the course
+ * @returns {Array} - Array of activity objects
+ */
+const getActivityHistoryFromLocalStorage = (courseName) => {
+  try {
     const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
     const storedActivity = localStorage.getItem(activityKey);
     
@@ -111,7 +241,7 @@ export const getActivityHistory = async (courseName) => {
     
     return activityData;
   } catch (error) {
-    console.error("Error fetching activity history:", error);
+    console.error("Error fetching activity history from localStorage:", error);
     return [];
   }
 };
@@ -119,48 +249,65 @@ export const getActivityHistory = async (courseName) => {
 /**
  * Record a learning activity for a course
  * @param {string} courseName - The name of the course
- * @param {string} activityType - Type of activity ('chat', 'quiz', 'resources')
- * @param {string} activityName - Name of the activity
- * @param {number|null} score - Score if applicable (e.g., for quizzes)
+ * @param {Object} activity - The activity object with type, name, and optional score
  * @returns {Promise<Object>} - The recorded activity object
  */
-export const recordActivity = async (courseName, activityType, activityName, score = null) => {
+export const recordActivity = async (courseName, activity) => {
   try {
-    const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
-    const activityHistory = JSON.parse(localStorage.getItem(activityKey) || '[]');
+    // Extract activity properties or use defaults
+    const { type, name, score } = activity;
     
     // Create new activity object
     const newActivity = {
       id: Date.now(),
-      type: activityType,
-      name: activityName,
+      type: type || 'generic',
+      name: name || `${type} Activity`,
       date: new Date(),
-      score: score
+      score: score || null
     };
     
-    // Add to the beginning of the array
-    activityHistory.unshift(newActivity);
+    // Always save to localStorage as fallback
+    saveActivityToLocalStorage(courseName, newActivity);
     
-    // Keep only the latest 50 activities
-    if (activityHistory.length > 50) {
-      activityHistory.length = 50;
+    // If user is authenticated, save to Firebase
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      const courseId = courseName.toLowerCase().replace(/ /g, '-');
+      
+      // Create activity document for Firestore
+      const activityData = {
+        userId,
+        courseId,
+        courseName,
+        type: newActivity.type,
+        name: newActivity.name,
+        score: newActivity.score,
+        timestamp: Timestamp.fromDate(new Date())
+      };
+      
+      // Add to activities collection
+      const activitiesRef = collection(db, "users", userId, "activities");
+      await addDoc(activitiesRef, activityData);
+      
+      // Update course document with latest activity
+      const courseRef = doc(db, "users", userId, "courses", courseId);
+      await updateDoc(courseRef, {
+        lastActivityType: newActivity.type,
+        lastActivityDate: serverTimestamp(),
+      }, { merge: true });
     }
     
-    // Save to localStorage
-    localStorage.setItem(activityKey, JSON.stringify(activityHistory));
-    
     // Increment progress based on activity type
-    // Each activity type contributes differently to overall progress
     let progressIncrement = 0;
     
-    switch (activityType) {
+    switch (type) {
       case 'quiz':
         // Quiz contributes more to progress
-        progressIncrement = 10;
+        progressIncrement = 5;
         break;
       case 'chat':
         // Chat contributes moderately to progress
-        progressIncrement = 5;
+        progressIncrement = 3;
         break;
       case 'resources':
         // Resource study contributes slightly to progress
@@ -175,8 +322,33 @@ export const recordActivity = async (courseName, activityType, activityName, sco
     
     return newActivity;
   } catch (error) {
-    console.error("Error recording activity:", error);
+    console.error("Error recording activity in Firebase:", error);
     return null;
+  }
+};
+
+/**
+ * Save activity to localStorage
+ * @param {string} courseName - The name of the course
+ * @param {Object} activity - The activity object
+ */
+const saveActivityToLocalStorage = (courseName, activity) => {
+  try {
+    const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
+    const activityHistory = JSON.parse(localStorage.getItem(activityKey) || '[]');
+    
+    // Add to the beginning of the array
+    activityHistory.unshift(activity);
+    
+    // Keep only the latest 50 activities
+    if (activityHistory.length > 50) {
+      activityHistory.length = 50;
+    }
+    
+    // Save to localStorage
+    localStorage.setItem(activityKey, JSON.stringify(activityHistory));
+  } catch (error) {
+    console.error("Error saving activity to localStorage:", error);
   }
 };
 
@@ -187,12 +359,28 @@ export const recordActivity = async (courseName, activityType, activityName, sco
  */
 export const resetProgress = async (courseName) => {
   try {
-    // Reset progress to 0
-    await updateProgressInFirebase(courseName, 0);
+    // Reset progress in localStorage
+    const progressKey = `course-progress-${courseName.toLowerCase().replace(/ /g, '-')}`;
+    localStorage.removeItem(progressKey);
     
-    // Clear activity history
+    // Clear activity history in localStorage
     const activityKey = `course-activity-${courseName.toLowerCase().replace(/ /g, '-')}`;
     localStorage.removeItem(activityKey);
+    
+    // If user is authenticated, reset in Firebase
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      const courseId = courseName.toLowerCase().replace(/ /g, '-');
+      
+      // Reset progress in course document
+      const courseRef = doc(db, "users", userId, "courses", courseId);
+      await updateDoc(courseRef, {
+        progress: 0,
+        lastReset: serverTimestamp()
+      });
+      
+      // Note: We don't delete activity history in Firebase, just reset progress
+    }
     
     return true;
   } catch (error) {
@@ -207,8 +395,42 @@ export const resetProgress = async (courseName) => {
  */
 export const getAllCoursesProgress = async () => {
   try {
-    // In a real implementation, this would be a single Firebase query
-    // For our localStorage implementation, we need to scan for keys
+    // If not authenticated, fall back to localStorage
+    if (!auth.currentUser) {
+      return getAllCoursesProgressFromLocalStorage();
+    }
+    
+    const userId = auth.currentUser.uid;
+    
+    // Get all courses for this user
+    const coursesRef = collection(db, "users", userId, "courses");
+    const querySnapshot = await getDocs(coursesRef);
+    
+    const allProgress = {};
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      allProgress[data.courseName] = data.progress || 0;
+    });
+    
+    // If no courses in Firebase, check localStorage
+    if (Object.keys(allProgress).length === 0) {
+      return getAllCoursesProgressFromLocalStorage();
+    }
+    
+    return allProgress;
+  } catch (error) {
+    console.error("Error fetching all courses progress from Firebase:", error);
+    return getAllCoursesProgressFromLocalStorage();
+  }
+};
+
+/**
+ * Get overall progress for all courses from localStorage
+ * @returns {Object} - Object with course names as keys and progress values as values
+ */
+const getAllCoursesProgressFromLocalStorage = () => {
+  try {
     const allProgress = {};
     
     // Iterate through localStorage and find all course progress entries
@@ -222,7 +444,7 @@ export const getAllCoursesProgress = async () => {
           .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize words
         
         // Get progress value
-        const progressValue = parseInt(localStorage.getItem(key) || '0', 10);
+        const progressValue = parseInt(localStorage.getItem(key) || '0', 5);
         
         // Add to results
         allProgress[courseName] = progressValue;
@@ -231,7 +453,7 @@ export const getAllCoursesProgress = async () => {
     
     return allProgress;
   } catch (error) {
-    console.error("Error fetching all courses progress:", error);
+    console.error("Error fetching all courses progress from localStorage:", error);
     return {};
   }
 };
