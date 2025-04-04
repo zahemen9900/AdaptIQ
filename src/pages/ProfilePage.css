@@ -91,14 +91,17 @@
   margin-top: 1rem;
 }
 
-.loading-spinner {
+.loading-spinner-profile {
   width: 40px;
   height: 40px;
   border: 3px solid rgba(74, 107, 251, 0.2);
   border-top-color: #4a6bfb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 @keyframes spin {
@@ -1022,7 +1025,7 @@
 }
 
 /* Loading state in dark mode */
-.theme-dark .loading-spinner {
+.theme-dark .loading-spinner-profile {
   border-color: rgba(74, 107, 251, 0.2);
   border-top-color: #4a6bfb;
 }

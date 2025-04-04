@@ -584,7 +584,7 @@ const DashboardPage = () => {
         <div className="dashboard-main">
           {loading ? (
             <div className="dashboard-loading">
-              <div className="loading-spinner"></div>
+              <div className="loading-spinner-dashboard"></div>
               <p>Loading your dashboard...</p>
             </div>
           ) : (

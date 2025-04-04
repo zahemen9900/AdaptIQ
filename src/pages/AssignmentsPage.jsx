@@ -744,7 +744,7 @@ const AssignmentsPage = () => {
           {loading && (
             <div className="loading-overlay">
               <div className="loading-spinner-container">
-                <div className="loading-spinner"></div>
+                <div className="loading-spinner-assignments"></div>
                 <p>Generating AI assignments...</p>
               </div>
             </div>

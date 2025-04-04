@@ -485,7 +485,7 @@ const ProfilePage = () => {
         
         {loading ? (
           <div className="profile-loading">
-            <div className="loading-spinner"></div>
+            <div className="loading-spinner-profile"></div>
             <p>Loading profile data...</p>
           </div>
         ) : (

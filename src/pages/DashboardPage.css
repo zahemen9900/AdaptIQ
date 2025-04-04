@@ -547,6 +547,28 @@
   border-radius: 8px;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+}
+
+.theme-dark .activity-item,
+.dark-theme .activity-item {
+  background-color: var(--bg-secondary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.activity-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-color, #4a6bfb);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-dark .activity-item:hover,
+.dark-theme .activity-item:hover {
+  background-color: var(--hover-bg, rgba(255, 255, 255, 0.03));
+  border-color: var(--primary-color, #4c6ef5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .activity-icon {
@@ -556,13 +578,15 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background-color: var(--activity-bg, rgba(79, 70, 229, 0.1));
-  color: var(--primary-color, #4F46E5);
+  background-color: var(--activity-bg, rgba(74, 107, 251, 0.1));
+  color: var(--primary-color, #4a6bfb);
   flex-shrink: 0;
 }
 
-.activity-details {
-  flex: 1;
+.theme-dark .activity-icon,
+.dark-theme .activity-icon {
+  background-color: rgba(74, 107, 251, 0.15);
+  color: var(--primary-color, #4c6ef5);
 }
 
 .activity-details h4 {
@@ -576,6 +600,16 @@
   font-size: 13px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+.theme-dark .activity-details h4,
+.dark-theme .activity-details h4 {
+  color: var(--text-primary, #e2e8f0);
+}
+
+.theme-dark .activity-details p,
+.dark-theme .activity-details p {
+  color: var(--text-secondary, #a0aec0);
 }
 
 /* Suggested Items Styles */
@@ -740,42 +774,42 @@
   transform: translateY(-2px);
 }
 
-/* Add styles for the View All Courses link */
-.view-all-link-container {
-  text-align: center;
-  margin-top: 20px;
-  padding-top: 12px;
-  border-top: 1px solid #eef1f6;
-}
-
-.view-all-link {
+/* View All Links Unified Styling */
+.view-all-link,
+.view-all-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #4a6bfb;
+  color: var(--primary-color, #4a6bfb);
   font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
   padding: 8px 16px;
   border-radius: 6px;
   transition: all 0.2s ease;
+  background: transparent;
+  border: none;
 }
 
-.view-all-link:hover {
+.view-all-link:hover,
+.view-all-button:hover {
   background-color: rgba(74, 107, 251, 0.1);
 }
 
-.view-all-link svg {
+.view-all-link svg,
+.view-all-button svg {
   transition: transform 0.2s ease;
 }
 
-.view-all-link:hover svg {
+.view-all-link:hover svg,
+.view-all-button:hover svg {
   transform: translateX(3px);
 }
 
-/* Add styles for the View All Assignments button */
-.view-all-assignments {
+/* Container styling for both view all sections */
+.view-all-assignments,
+.view-all-link-container {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--divider-color, #E5E7EB);
@@ -783,47 +817,27 @@
   justify-content: center;
 }
 
-.view-all-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--primary-color, #4a6bfb);
-  color: white;
-  border: none;
-  font-size: 0.9rem;
-  font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.view-all-button:hover {
-  background-color: var(--primary-hover, #3a5be0);
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(74, 107, 251, 0.25);
-}
-
-.view-all-button svg {
-  transition: transform 0.2s ease;
-}
-
-.view-all-button:hover svg {
-  transform: translateX(3px);
-}
-
-/* Dark theme support */
-.theme-dark .view-all-assignments {
+/* Dark theme support for both buttons */
+.theme-dark .view-all-assignments,
+.theme-dark .view-all-link-container,
+.dark-theme .view-all-assignments,
+.dark-theme .view-all-link-container {
   border-top-color: var(--border-color);
 }
 
-.theme-dark .view-all-button {
-  background-color: var(--primary-color, #4c6ef5);
+.theme-dark .view-all-link,
+.theme-dark .view-all-button,
+.dark-theme .view-all-link,
+.dark-theme .view-all-button {
+  color: var(--primary-color, #4c6ef5);
 }
 
-.theme-dark .view-all-button:hover {
-  background-color: var(--primary-hover, #3b5bdb);
+.theme-dark .view-all-link:hover,
+.theme-dark .view-all-button:hover,
+.dark-theme .view-all-link:hover,
+.dark-theme .view-all-button:hover {
+  background-color: rgba(76, 110, 245, 0.15);
+  color: var(--primary-color, #4c6ef5);
 }
 
 /* Add styles for refreshing animation */
@@ -1302,4 +1316,44 @@
 
 .dark-theme .modal-button.primary:hover {
   background-color: #3b5bdb;
+}
+
+/* Dashboard Loading Styles */
+.dashboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  width: 100%;
+  text-align: center;
+}
+
+.dashboard-loading p {
+  color: var(--text-secondary);
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Loading Spinner Animation */
+.loading-spinner-dashboard {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(74, 107, 251, 0.2);
+  border-top: 4px solid var(--primary-color, #4a6bfb);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Dark theme support for loading */
+.theme-dark .dashboard-loading p,
+.dark-theme .dashboard-loading p {
+  color: var(--text-secondary, #cbd5e1);
+}
+
+.theme-dark .loading-spinner-dashboard,
+.dark-theme .loading-spinner-dashboard {
+  border-color: rgba(76, 110, 245, 0.2);
+  border-top-color: var(--primary-color, #4c6ef5);
 }

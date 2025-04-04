@@ -912,14 +912,15 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.loading-spinner {
+.loading-spinner-assignments {
   width: 50px;
   height: 50px;
   border: 4px solid #f3f3f3;
   border-top: 4px solid #4a6bfb;
   border-radius: 50%;
   animation: spin 1.5s linear infinite;
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem auto;
+  display: block;
 }
 
 .loading-spinner-container p {
