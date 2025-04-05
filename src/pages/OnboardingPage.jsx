@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import './OnboardingPage.css';
 import Logo from '../assets/Logo.png';
 import { IconArrowRight, IconArrowLeft, IconBulb, IconBook, IconCalendar, IconSchool, IconUser } from '@tabler/icons-react';
-import ScheduleGenerator from '../components/ScheduleGenerator/ScheduleGenerator';
 import { auth, updateUserData } from '../../firebase';
+import { motion } from 'framer-motion';
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -36,8 +36,9 @@ const OnboardingPage = () => {
     goals: ''
   });
   
-  // State for generated schedule
-  const [generatedSchedule, setGeneratedSchedule] = useState(null);
+  // State for form submission and page transitions
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   const learningStyles = [
     { id: 'visual', label: 'Visual', description: 'Learn best through images, diagrams, and videos' },
@@ -265,8 +266,6 @@ const OnboardingPage = () => {
         return formData.availableDays.length > 0 && formData.studyDuration && formData.breakFrequency && formData.schedulingStyle;
       case 5:
         return formData.nickname && formData.goals;
-      case 6:
-        return true; // Schedule generator step doesn't need validation
       default:
         return true;
     }
@@ -286,13 +285,36 @@ const OnboardingPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Onboarding data:', formData); 
-    const response = await updateUserData(auth.currentUser.uid, formData);
-    console.log("response: "+response);
-    // Save onboarding data to localStorage
-    localStorage.setItem('onboardingData', JSON.stringify(formData));
-    // Navigate to loading page after completing onboarding
-    navigate('/loading');
+    
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      console.log('Submitting onboarding data:', formData);
+      
+      if (auth.currentUser) {
+        // Save data to Firebase if user is authenticated
+        const response = await updateUserData(auth.currentUser.uid, formData);
+        console.log("Firebase update response:", response);
+      }
+      
+      // Save onboarding data to localStorage regardless of authentication status
+      localStorage.setItem('onboardingData', JSON.stringify(formData));
+      
+      // Start exit animation
+      setIsExiting(true);
+      
+      // Wait for animation to complete before navigating
+      setTimeout(() => {
+        navigate('/loading');
+      }, 500); // Match this with the animation duration in CSS
+    } catch (error) {
+      console.error("Error saving onboarding data:", error);
+      alert("There was an error saving your data. Please try again.");
+      setIsSubmitting(false);
+      setIsExiting(false);
+    }
   };
 
   const renderStepIndicator = () => {
@@ -307,16 +329,8 @@ const OnboardingPage = () => {
         <div className={`step-dot ${step >= 4 ? 'active' : ''}`}></div>
         <div className="step-line"></div>
         <div className={`step-dot ${step >= 5 ? 'active' : ''}`}></div>
-        <div className="step-line"></div>
-        <div className={`step-dot ${step >= 6 ? 'active' : ''}`}></div>
       </div>
     );
-  };
-
-  // Handle schedule completion
-  const handleScheduleComplete = (schedule) => {
-    console.log('Schedule saved:', schedule);
-    navigate('/dashboard');
   };
 
   const renderStepContent = () => {
@@ -637,31 +651,19 @@ const OnboardingPage = () => {
           </div>
         );
       
-      case 6:
-        return (
-          <div className="step-content">
-            <div className="step-header">
-              <IconCalendar size={32} className="step-icon" />
-              <h2>Your Personalized Schedule</h2>
-              <p className="step-description">Here's your optimized study schedule based on your preferences</p>
-            </div>
-            
-            <div className="schedule-container">
-              <ScheduleGenerator 
-                userData={formData} 
-                onComplete={handleScheduleComplete} 
-              />
-            </div>
-          </div>
-        );
-      
       default:
         return null;
     }
   };
 
   return (
-    <div className="onboarding-page">
+    <motion.div 
+      className={`onboarding-page ${isExiting ? 'exiting' : ''}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="onboarding-container">
         <div className="onboarding-header">
           <Link to="/" className="logo-link">
@@ -670,29 +672,42 @@ const OnboardingPage = () => {
           {renderStepIndicator()}
         </div>
 
-        <form onSubmit={step === 6 ? handleSubmit : e => e.preventDefault()}>
+        <form onSubmit={step === 5 ? handleSubmit : e => e.preventDefault()}>
           {renderStepContent()}
 
           <div className="onboarding-buttons">
             {step > 1 && (
-              <button type="button" className="back-button" onClick={prevStep}>
+              <button 
+                type="button" 
+                className="back-button" 
+                onClick={prevStep}
+                disabled={isSubmitting}
+              >
                 <IconArrowLeft size={20} /> Back
               </button>
             )}
             
-            {step < 6 ? (
-              <button type="button" className="next-button" onClick={nextStep}>
+            {step < 5 ? (
+              <button 
+                type="button" 
+                className="next-button" 
+                onClick={nextStep}
+              >
                 Next <IconArrowRight size={20} />
               </button>
             ) : (
-              <button type="submit" className="finish-button">
-                Finish <IconArrowRight size={20} />
+              <button 
+                type="submit" 
+                className="finish-button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Finish'} <IconArrowRight size={20} />
               </button>
             )}
           </div>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './CoursesPage.css';
 import Logo from '../assets/logo-white.png';
 import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEye, IconPlayerPlay, IconSparkles } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
 import { getAssignments } from '../utils/assignmentsUtils';
 import { getProgressFromFirebase } from '../utils/progressTracker';
+import ConfirmationModal from '../components/ConfirmationModal/ConfirmationModal';
+import { useTheme } from '../context/ThemeContext';
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
@@ -14,6 +16,9 @@ const CoursesPage = () => {
   const [activeCourseCount, setActiveCourseCount] = useState(0);
   const [completedCourseCount, setCompletedCourseCount] = useState(0);
   const [filterCategory, setFilterCategory] = useState('all');
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   
   // Track whether course data has been loaded from progress tracker
   const [progressLoaded, setProgressLoaded] = useState(false);
@@ -248,9 +253,32 @@ const CoursesPage = () => {
   const overallProgress = courses.length > 0
     ? Math.round(courses.reduce((sum, course) => sum + course.progress, 0) / courses.length)
     : 0;
-  
+
+  // Function to handle course update confirmation
+  const handleUpdateCourses = () => {
+    // User confirmed, navigate to onboarding page
+    navigate('/onboarding');
+  };
+
+  // Function to render the empty state UI with confirm modal
+  const renderEmptyCourses = () => (
+    <div className="courses-empty">
+      <IconBook size={64} />
+      <h2>No Courses Found</h2>
+      <p>You haven't enrolled in any courses yet or none match your current filter.</p>
+      <div className="empty-actions">
+        <button 
+          onClick={() => setShowUpdateModal(true)} 
+          className="onboarding-link"
+        >
+          Update Course Selection
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="dashboard-page">
+    <div className={`dashboard-page ${isDarkMode ? 'dark-theme' : ''}`}>
       <div className="dashboard-sidebar">
         <div className="sidebar-header">
           <img src={Logo} alt="AdaptIQ Logo" className="dashboard-logo" />
@@ -405,7 +433,7 @@ const CoursesPage = () => {
             <div className="courses-loading">
               <div className="loading-animation">
                 <IconBook size={64} className="loading-icon" />
-                <div className="loading-spinner"></div>
+                <div className="loading-spinner-courses"></div>
               </div>
               <h2>Loading your courses...</h2>
               <p>We're preparing your personalized learning content</p>
@@ -451,17 +479,20 @@ const CoursesPage = () => {
               ))}
             </div>
           ) : (
-            <div className="courses-empty">
-              <IconBook size={64} />
-              <h2>No Courses Found</h2>
-              <p>You haven't enrolled in any courses yet or none match your current filter.</p>
-              <div className="empty-actions">
-                <Link to="/onboarding" className="onboarding-link">Update Course Selection</Link>
-              </div>
-            </div>
+            renderEmptyCourses()
           )}
         </div>
       </div>
+      
+      {/* Confirmation Modal for updating courses */}
+      <ConfirmationModal 
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        onConfirm={handleUpdateCourses}
+        title="Update Your Course Selection"
+        message="This will take you to the onboarding process where you can update all your account information, including your subjects, courses, and schedule preferences."
+        subMessage="Note: You may need to regenerate your assignments after updating your courses."
+      />
     </div>
   );
 };

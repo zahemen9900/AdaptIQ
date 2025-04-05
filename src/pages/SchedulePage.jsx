@@ -652,7 +652,7 @@ const SchedulePage = () => {
           <div className="schedule-loading">
             <div className="loading-animation">
               <IconCalendar size={64} className="loading-icon" />
-              <div className="loading-spinner"></div>
+              <div className="loading-spinner-schedule"></div>
             </div>
             <h2>Loading your study schedule...</h2>
             <p>We're preparing your personalized study plan</p>

@@ -3,8 +3,14 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f0f4f8;
+  font-family: "DM Sans", Arial, sans-serif;
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.loading-page.exiting {
+  opacity: 0;
+  transform: scale(1.02);
 }
 
 .loading-container {
@@ -12,70 +18,83 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  max-width: 600px;
-  padding: 3rem;
-  text-align: center;
+  padding: 2rem;
   background-color: white;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
 }
 
 .loading-logo {
-  width: 180px;
+  width: 160px;
   margin-bottom: 2rem;
 }
 
 .loading-animation {
+  margin-bottom: 1.5rem;
   position: relative;
-  margin: 2.5rem 0;
-  width: 150px;
-  height: 120px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+}
+
+.loading-spinner-login {
+  width: 80px;
+  height: 80px;
+  border: 6px solid rgba(3, 205, 255, 0.1);
+  border-left-color: rgb(3, 205, 255);
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
 }
 
 .loading-icon {
-  display: none; /* Removing the icon as requested */
-  color: #2563eb;
-  z-index: 2;
-}
-
-.loading-spinner {
   position: absolute;
-  width: 200px;  /* Increased from 100% */
-  height: 200px; /* Increased from 100% */
-  border: 5px solid rgba(37, 99, 235, 0.1);  /* Slightly thicker border */
-  border-top: 5px solid #2563eb;
-  border-radius: 50%;
-  animation: spin 1.5s linear infinite;
-  transform: translateY(-15px); /* Move up by 15px */
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgb(3, 205, 255);
 }
 
 .loading-text {
-  font-size: 1.625rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  color: #1e3a8a;
-  margin-bottom: 0.75rem;
-  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+  color: #041137;
+}
+
+.loading-description {
+  font-size: 1.1rem;
+  color: #6c757d;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
 }
 
 .loading-dots {
   display: inline-block;
-  width: 24px;
+  min-width: 30px;
   text-align: left;
 }
 
-.loading-description {
-  color: #64748b;
-  font-size: 1.125rem;
-  line-height: 1.5;
-  max-width: 420px;
-  margin: 0.5rem auto 0;
-  font-weight: 400;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .loading-container {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+
+  .loading-logo {
+    width: 120px;
+  }
+
+  .loading-text {
+    font-size: 1.4rem;
+  }
+
+  .loading-description {
+    font-size: 1rem;
+  }
 }

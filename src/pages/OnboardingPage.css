@@ -2,10 +2,17 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  background-image: url(src/assets/backImg.jpg);
   min-height: 100vh;
   background-color: #f8f9fa;
   padding: 2rem;
   font-family: "DM Sans", Arial, sans-serif;
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.onboarding-page.exiting {
+  opacity: 0;
+  transform: scale(0.98) translateY(-20px);
 }
 
 .onboarding-container {
@@ -58,6 +65,7 @@
 
 .step-content {
   margin-bottom: 2rem;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .step-header {
@@ -314,4 +322,27 @@
   background-color: white;
   border-radius: 16px;
   overflow: hidden;
+}
+
+/* Add page transition animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
 }

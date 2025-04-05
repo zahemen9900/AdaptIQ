@@ -8,18 +8,28 @@ import {
   IconClipboard, IconUsers, IconEdit, IconCamera, IconDownload,
   IconBadge, IconChevronRight, IconClock, IconBrain,
   IconCheck, IconX, IconPencil, IconDeviceAnalytics, IconTrophy,
-  IconPalette, IconHeart, IconStar, IconCertificate, IconSparkles
+  IconPalette, IconHeart, IconStar, IconCertificate, IconSparkles,
+  IconAlertCircle, IconCircleCheck
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAllCoursesProgress } from '../utils/progressTracker';
+import { auth, db, storage } from '../../firebase';
+import { 
+  getUserData, 
+  getUserStreakInfo, 
+  getCompletedAssignmentsCount, 
+  updateUserData,
+  uploadProfilePictureFromDataURL, 
+  updateUserStreak 
+} from '../../firebase';
+import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from '@firebase/firestore';
 
 const ProfilePage = () => {
   // User data state
   const [userData, setUserData] = useState({
     nickname: '',
     email: '',
-    firstName: '',
-    lastName: '',
+    fullName: '',
     bio: '',
     subjects: [],
     joinDate: '',
@@ -43,74 +53,166 @@ const ProfilePage = () => {
   const [activityHistory, setActivityHistory] = useState([]);
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false); // Separate saving state
+  const [error, setError] = useState(null);
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
   // Fetch user data and profile information
   useEffect(() => {
     const fetchUserData = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
-        // Get user info from local storage (onboarding data)
-        const onboardingData = localStorage.getItem('onboardingData');
-        if (onboardingData) {
-          const parsedData = JSON.parse(onboardingData);
-          
+        if (!auth.currentUser) {
+          throw new Error("Not authenticated. Please log in.");
+        }
+
+        const userId = auth.currentUser.uid;
+        
+        // Update user streak on profile page visit
+        await updateUserStreak(userId);
+        
+        // Get user data from Firebase
+        const userResult = await getUserData(userId);
+        if (!userResult.success) {
+          throw new Error(userResult.error || "Failed to fetch user data");
+        }
+        
+        const firebaseUserData = userResult.userData;
+        
+        // Get streak information
+        const streakResult = await getUserStreakInfo(userId);
+        const streakDays = streakResult.success ? streakResult.currentStreak : 0;
+        
+        // Get completed assignments count
+        const assignmentsResult = await getCompletedAssignmentsCount(userId);
+        const completedAssignments = assignmentsResult.success ? assignmentsResult.completedCount : 0;
+        
+        // Extract subjects from user data
+        const subjects = [];
+        if (firebaseUserData.courses && firebaseUserData.courses.length > 0) {
           // Map courses to subject names
-          const subjects = [];
-          if (parsedData.courses && parsedData.courses.length > 0) {
-            parsedData.courses.forEach(courseId => {
-              const parts = courseId.split('-');
-              const subjectId = parts[0];
-              
-              // Map subject IDs to display names
-              const subjectMap = {
-                'math': 'Mathematics',
-                'algebra': 'Algebra',
-                'geometry': 'Geometry',
-                'calculus': 'Calculus',
-                'science': 'Science',
-                'biology': 'Biology',
-                'chemistry': 'Chemistry',
-                'physics': 'Physics',
-                'history': 'History',
-                'worldHistory': 'World History',
-                'language': 'Language',
-                'english': 'English',
-                'programming': 'Programming',
-                'computerScience': 'Computer Science'
-              };
-              
-              const subjectName = subjectMap[subjectId] || subjectId;
-              if (!subjects.includes(subjectName)) {
-                subjects.push(subjectName);
-              }
-            });
-          }
-          
-          // Create profile data
-          const profileData = {
-            nickname: parsedData.nickname || 'Student',
-            email: parsedData.email || 'student@example.com',
-            firstName: parsedData.firstName || '',
-            lastName: parsedData.lastName || '',
-            bio: parsedData.bio || "I'm a student using AdaptIQ to improve my learning!",
-            subjects: subjects,
-            joinDate: parsedData.joinDate || new Date().toISOString(),
-            studyPreference: parsedData.studyPreference || 'Balanced',
-            learningStyle: parsedData.learningStyle || 'Visual',
-            profilePicture: parsedData.profilePicture || null
+          const subjectMap = {
+            'math': 'Mathematics',
+            'algebra': 'Algebra',
+            'geometry': 'Geometry',
+            'calculus': 'Calculus',
+            'science': 'Science',
+            'biology': 'Biology',
+            'chemistry': 'Chemistry',
+            'physics': 'Physics',
+            'history': 'History',
+            'worldHistory': 'World History',
+            'language': 'Language',
+            'english': 'English',
+            'programming': 'Programming',
+            'computerScience': 'Computer Science'
           };
           
-          setUserData(profileData);
-          setEditData(profileData);
-          
-          // Fetch additional profile data
-          await fetchProfileStatistics(subjects);
-          generateAchievements(subjects);
-          generateActivityHistory();
-          generateBadges();
+          firebaseUserData.courses.forEach(courseId => {
+            const parts = courseId.split('-');
+            const subjectId = parts[0];
+            const subjectName = subjectMap[subjectId] || subjectId;
+            
+            if (!subjects.includes(subjectName)) {
+              subjects.push(subjectName);
+            }
+          });
+        } else if (firebaseUserData.subjects) {
+          // Use subjects array directly if available
+          subjects.push(...firebaseUserData.subjects);
         }
+        
+        // Create profile data from Firebase data
+        const profileData = {
+          nickname: firebaseUserData.nickname || 'Student',
+          email: firebaseUserData.email || auth.currentUser.email,
+          fullName: firebaseUserData.fullName || '',
+          bio: firebaseUserData.bio || "I'm a student using AdaptIQ to improve my learning!",
+          subjects: subjects,
+          joinDate: firebaseUserData.createdAt ? new Date(firebaseUserData.createdAt.toDate()).toISOString() : new Date().toISOString(),
+          studyPreference: firebaseUserData.studyPreference || 'Balanced',
+          learningStyle: firebaseUserData.learningStyle || 'Visual',
+          profilePicture: firebaseUserData.profilePictureURL || null
+        };
+        
+        setUserData(profileData);
+        setEditData(profileData);
+        
+        // Fetch additional profile data
+        await fetchProfileStatistics(subjects, streakDays, completedAssignments);
+        await fetchActivityHistory();
+        generateAchievements(subjects, streakDays, completedAssignments);
+        generateBadges();
+        
       } catch (error) {
         console.error('Error loading profile data:', error);
+        setError(error.message);
+        
+        // Use local storage as fallback
+        const onboardingData = localStorage.getItem('onboardingData');
+        if (onboardingData) {
+          try {
+            const parsedData = JSON.parse(onboardingData);
+            
+            // Map courses to subject names
+            const subjects = [];
+            if (parsedData.courses && parsedData.courses.length > 0) {
+              parsedData.courses.forEach(courseId => {
+                const parts = courseId.split('-');
+                const subjectId = parts[0];
+                
+                // Map subject IDs to display names
+                const subjectMap = {
+                  'math': 'Mathematics',
+                  'algebra': 'Algebra',
+                  'geometry': 'Geometry',
+                  'calculus': 'Calculus',
+                  'science': 'Science',
+                  'biology': 'Biology',
+                  'chemistry': 'Chemistry',
+                  'physics': 'Physics',
+                  'history': 'History',
+                  'worldHistory': 'World History',
+                  'language': 'Language',
+                  'english': 'English',
+                  'programming': 'Programming',
+                  'computerScience': 'Computer Science'
+                };
+                
+                const subjectName = subjectMap[subjectId] || subjectId;
+                if (!subjects.includes(subjectName)) {
+                  subjects.push(subjectName);
+                }
+              });
+            }
+            
+            // Create profile data
+            const profileData = {
+              nickname: parsedData.nickname || 'Student',
+              email: parsedData.email || 'student@example.com',
+              fullName: parsedData.fullName || '',
+              bio: parsedData.bio || "I'm a student using AdaptIQ to improve my learning!",
+              subjects: subjects,
+              joinDate: parsedData.joinDate || new Date().toISOString(),
+              studyPreference: parsedData.studyPreference || 'Balanced',
+              learningStyle: parsedData.learningStyle || 'Visual',
+              profilePicture: parsedData.profilePicture || null
+            };
+            
+            setUserData(profileData);
+            setEditData(profileData);
+            
+            // Generate sample data
+            await fetchProfileStatistics(subjects);
+            generateAchievements(subjects);
+            await fetchActivityHistory();
+            generateBadges();
+          } catch (localError) {
+            console.error('Error parsing local data:', localError);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -118,9 +220,19 @@ const ProfilePage = () => {
     
     fetchUserData();
   }, []);
+
+  // Hide notification after a delay
+  useEffect(() => {
+    if (notification.show) {
+      const timer = setTimeout(() => {
+        setNotification({ ...notification, show: false });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
   
   // Fetch user statistics
-  const fetchProfileStatistics = async (subjects) => {
+  const fetchProfileStatistics = async (subjects, streakDays = 0, completedAssignments = 0) => {
     try {
       // Get course progress data
       const coursesProgress = await getAllCoursesProgress();
@@ -139,12 +251,12 @@ const ProfilePage = () => {
         };
       });
       
-      // Generate random stats for demo purposes
-      // In a real app, these would come from actual user data
+      // Use actual streakDays from Firebase if available
+      
+      // For study hours and average score, we'll still use random values
+      // These would be calculated from actual user activity in a fully implemented system
       const totalStudyHours = Math.floor(Math.random() * 100) + 10;
-      const completedAssignments = Math.floor(Math.random() * 50) + 5;
       const averageScore = Math.floor(Math.random() * 20) + 80; // 80-100 range
-      const streakDays = Math.floor(Math.random() * 30) + 1;
       
       setStatistics({
         totalStudyHours,
@@ -158,8 +270,154 @@ const ProfilePage = () => {
     }
   };
   
+  // Fetch activity history from Firebase
+  const fetchActivityHistory = async () => {
+    try {
+      if (!auth.currentUser) {
+        throw new Error("Not authenticated");
+      }
+      
+      const userId = auth.currentUser.uid;
+      
+      // Get assignment activity
+      const assignmentActivities = [];
+      try {
+        const assignmentsRef = collection(db, "users", userId, "assignments");
+        const assignmentsQuery = query(
+          assignmentsRef, 
+          orderBy("createdAt", "desc"), 
+          limit(10)
+        );
+        
+        const assignmentDocs = await getDocs(assignmentsQuery);
+        assignmentDocs.forEach(doc => {
+          const data = doc.data();
+          if (data.status === 'completed') {
+            assignmentActivities.push({
+              id: doc.id,
+              type: 'assignment',
+              subject: data.subject,
+              details: `Completed "${data.title}" assignment`,
+              date: data.submittedAt ? data.submittedAt.toDate() : new Date()
+            });
+          } else if (data.createdAt) {
+            assignmentActivities.push({
+              id: doc.id,
+              type: 'assignment-received',
+              subject: data.subject,
+              details: `Received "${data.title}" assignment`,
+              date: data.createdAt.toDate()
+            });
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching assignment activities:", error);
+      }
+      
+      // Get course activities (if implemented)
+      const courseActivities = [];
+      
+      // Get login activities (if implemented)
+      const loginActivities = [];
+      
+      // Combine all activities and sort by date
+      const allActivities = [...assignmentActivities, ...courseActivities, ...loginActivities]
+        .sort((a, b) => b.date - a.date);
+      
+      // If we have enough activities, use them
+      if (allActivities.length > 0) {
+        setActivityHistory(allActivities);
+        return;
+      }
+      
+      // Fallback to generated activities if needed
+      const generatedActivities = [
+        {
+          id: 'activity-1',
+          type: 'course-progress',
+          subject: 'Mathematics',
+          details: 'Reached 75% completion in Algebra',
+          date: new Date(Date.now() - 86400000 * 2) // 2 days ago
+        },
+        {
+          id: 'activity-2',
+          type: 'assignment',
+          subject: 'Physics',
+          details: 'Completed "Introduction to Forces" assignment with score 92',
+          date: new Date(Date.now() - 86400000 * 4) // 4 days ago
+        },
+        {
+          id: 'activity-3',
+          type: 'assessment',
+          subject: 'Chemistry',
+          details: 'Took assessment on "Periodic Table" with score 88',
+          date: new Date(Date.now() - 86400000 * 7) // 7 days ago
+        },
+        {
+          id: 'activity-4',
+          type: 'study-session',
+          subject: 'History',
+          details: 'Completed a 45-minute study session',
+          date: new Date(Date.now() - 86400000 * 1) // 1 day ago
+        },
+        {
+          id: 'activity-5',
+          type: 'course-started',
+          subject: 'Programming',
+          details: 'Started "Introduction to Python" course',
+          date: new Date(Date.now() - 86400000 * 10) // 10 days ago
+        }
+      ];
+      
+      setActivityHistory(generatedActivities);
+    } catch (error) {
+      console.error("Error fetching activity history:", error);
+      
+      // Fallback to generated activities
+      const activities = [
+        {
+          id: 'activity-1',
+          type: 'course-progress',
+          subject: 'Mathematics',
+          details: 'Reached 75% completion in Algebra',
+          date: new Date(Date.now() - 86400000 * 2) // 2 days ago
+        },
+        {
+          id: 'activity-2',
+          type: 'assignment',
+          subject: 'Physics',
+          details: 'Completed "Introduction to Forces" assignment with score 92',
+          date: new Date(Date.now() - 86400000 * 4) // 4 days ago
+        },
+        {
+          id: 'activity-3',
+          type: 'assessment',
+          subject: 'Chemistry',
+          details: 'Took assessment on "Periodic Table" with score 88',
+          date: new Date(Date.now() - 86400000 * 7) // 7 days ago
+        },
+        {
+          id: 'activity-4',
+          type: 'study-session',
+          subject: 'History',
+          details: 'Completed a 45-minute study session',
+          date: new Date(Date.now() - 86400000 * 1) // 1 day ago
+        },
+        {
+          id: 'activity-5',
+          type: 'course-started',
+          subject: 'Programming',
+          details: 'Started "Introduction to Python" course',
+          date: new Date(Date.now() - 86400000 * 10) // 10 days ago
+        }
+      ];
+      
+      setActivityHistory(activities);
+    }
+  };
+  
   // Generate achievements based on subjects and activity
-  const generateAchievements = (subjects) => {
+  const generateAchievements = (subjects, streakDays = 0, completedAssignments = 0) => {
     const baseAchievements = [
       {
         id: 'first-login',
@@ -177,7 +435,7 @@ const ProfilePage = () => {
         icon: <IconUser size={24} />,
         date: formatDate(new Date(userData.joinDate)),
         color: '#2196f3',
-        achieved: userData.firstName && userData.lastName && userData.bio
+        achieved: userData.fullName && userData.bio
       },
       {
         id: 'streak-7',
@@ -186,7 +444,7 @@ const ProfilePage = () => {
         icon: <IconTrophy size={24} />,
         date: formatDate(new Date()),
         color: '#ff9800',
-        achieved: statistics.streakDays >= 7
+        achieved: streakDays >= 7
       },
       {
         id: 'assignments-10',
@@ -195,7 +453,7 @@ const ProfilePage = () => {
         icon: <IconClipboard size={24} />,
         date: formatDate(new Date()),
         color: '#9c27b0',
-        achieved: statistics.completedAssignments >= 10
+        achieved: completedAssignments >= 10
       }
     ];
     
@@ -216,49 +474,6 @@ const ProfilePage = () => {
     });
     
     setAchievements([...baseAchievements, ...subjectAchievements]);
-  };
-  
-  // Generate activity history
-  const generateActivityHistory = () => {
-    const activities = [
-      {
-        id: 'activity-1',
-        type: 'course-progress',
-        subject: 'Mathematics',
-        details: 'Reached 75% completion in Algebra',
-        date: new Date(Date.now() - 86400000 * 2) // 2 days ago
-      },
-      {
-        id: 'activity-2',
-        type: 'assignment',
-        subject: 'Physics',
-        details: 'Completed "Introduction to Forces" assignment with score 92',
-        date: new Date(Date.now() - 86400000 * 4) // 4 days ago
-      },
-      {
-        id: 'activity-3',
-        type: 'assessment',
-        subject: 'Chemistry',
-        details: 'Took assessment on "Periodic Table" with score 88',
-        date: new Date(Date.now() - 86400000 * 7) // 7 days ago
-      },
-      {
-        id: 'activity-4',
-        type: 'study-session',
-        subject: 'History',
-        details: 'Completed a 45-minute study session',
-        date: new Date(Date.now() - 86400000 * 1) // 1 day ago
-      },
-      {
-        id: 'activity-5',
-        type: 'course-started',
-        subject: 'Programming',
-        details: 'Started "Introduction to Python" course',
-        date: new Date(Date.now() - 86400000 * 10) // 10 days ago
-      }
-    ];
-    
-    setActivityHistory(activities);
   };
   
   // Generate badges for the user
@@ -308,46 +523,170 @@ const ProfilePage = () => {
     });
   };
   
-  // Save profile changes
-  const handleSaveProfile = () => {
-    // Update userData with editData
-    setUserData({ ...editData });
-    
-    // Save to localStorage (in a real app, this would be an API call)
+  // Upload profile picture separately before saving other profile changes
+  const uploadProfileImage = async (userId, imageDataUrl) => {
     try {
-      const onboardingData = localStorage.getItem('onboardingData');
-      if (onboardingData) {
-        const parsedData = JSON.parse(onboardingData);
-        const updatedData = {
-          ...parsedData,
-          nickname: editData.nickname,
-          firstName: editData.firstName,
-          lastName: editData.lastName,
-          email: editData.email,
-          bio: editData.bio,
-          learningStyle: editData.learningStyle,
-          studyPreference: editData.studyPreference
-        };
-        localStorage.setItem('onboardingData', JSON.stringify(updatedData));
+      if (!imageDataUrl) return { success: false, error: "No image data provided" };
+      if (!imageDataUrl.startsWith('data:image/')) return { success: false, error: "Invalid image data" };
+      
+      console.log('Starting profile picture upload...');
+      // Add a timeout to prevent hanging forever
+      const uploadPromise = uploadProfilePictureFromDataURL(userId, imageDataUrl);
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Upload timed out.")), 30000);  // Timeout after 30 seconds
+      });
+      
+      // Race the upload against the timeout
+      const pictureResult = await Promise.race([uploadPromise, timeoutPromise]);
+      console.log('Upload result:', pictureResult);
+      
+      if (!pictureResult.success) {
+        throw new Error(pictureResult.error || "Failed to upload profile picture");
       }
+      
+      return { success: true, profilePictureURL: pictureResult.profilePictureURL };
+    } catch (error) {
+      console.error('Error in uploadProfileImage function:', error);
+      return { success: false, error: error.message || "Failed to upload profile picture" };
+    }
+  };
+  
+  // Save profile changes
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true); // Use separate saving state to avoid UI jumping
+      
+      if (!auth.currentUser) {
+        throw new Error("Not authenticated");
+      }
+      
+      const userId = auth.currentUser.uid;
+      
+      // Prepare data to update in Firebase
+      const updateData = {
+        nickname: editData.nickname,
+        fullName: editData.fullName,
+        email: editData.email,
+        bio: editData.bio,
+        learningStyle: editData.learningStyle,
+        studyPreference: editData.studyPreference,
+      };
+      
+      let profilePictureURL = userData.profilePicture;
+      
+      // Handle profile picture upload separately
+      if (editData.profilePicture && editData.profilePicture !== userData.profilePicture) {
+        try {
+          const uploadResult = await uploadProfileImage(userId, editData.profilePicture);
+          if (uploadResult.success) {
+            profilePictureURL = uploadResult.profilePictureURL;
+            updateData.profilePictureURL = profilePictureURL;
+          } else {
+            throw new Error(uploadResult.error || "Failed to upload profile picture");
+          }
+        } catch (pictureError) {
+          console.error("Profile picture upload error:", pictureError);
+          setNotification({
+            show: true,
+            message: `Profile picture upload failed: ${pictureError.message}`,
+            type: 'error'
+          });
+          setSaving(false);
+          return; // Exit early if image upload fails
+        }
+      }
+      
+      // Update user profile data in Firebase
+      const result = await updateUserData(userId, updateData);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update profile");
+      }
+      
+      // Update local state
+      setUserData({ 
+        ...userData,
+        ...updateData,
+        profilePicture: profilePictureURL
+      });
+      
+      // Exit editing mode
+      setIsEditing(false);
+      
+      // Show success notification
+      setNotification({
+        show: true,
+        message: 'Profile updated successfully!',
+        type: 'success'
+      });
+      
+      // Also update localStorage as a fallback
+      try {
+        const onboardingData = localStorage.getItem('onboardingData');
+        if (onboardingData) {
+          const parsedData = JSON.parse(onboardingData);
+          const updatedData = {
+            ...parsedData,
+            ...updateData,
+            profilePicture: profilePictureURL
+          };
+          localStorage.setItem('onboardingData', JSON.stringify(updatedData));
+        }
+      } catch (localError) {
+        console.error('Error saving to localStorage:', localError);
+      }
+      
     } catch (error) {
       console.error('Error saving profile data:', error);
+      // Show error notification
+      setNotification({
+        show: true,
+        message: error.message || 'Failed to update profile',
+        type: 'error'
+      });
+    } finally {
+      setSaving(false);
     }
-    
-    // Exit editing mode
-    setIsEditing(false);
   };
   
   // Handle profile picture change
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type
+      if (!file.type.match('image.*')) {
+        setNotification({
+          show: true,
+          message: 'Please select a valid image file',
+          type: 'error'
+        });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setNotification({
+          show: true,
+          message: 'Image too large. Please select an image smaller than 5MB',
+          type: 'error'
+        });
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         // Update profile picture in edit data
         setEditData({
           ...editData,
           profilePicture: reader.result
+        });
+      };
+      reader.onerror = () => {
+        setNotification({
+          show: true,
+          message: 'Error reading file. Please try again.',
+          type: 'error'
         });
       };
       reader.readAsDataURL(file);
@@ -395,8 +734,14 @@ const ProfilePage = () => {
   
   // Get initials for avatar placeholder
   const getInitials = () => {
-    if (userData.firstName && userData.lastName) {
-      return `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`;
+    if (userData.fullName) {
+      // Get first letter of first name and first letter of last name
+      const nameParts = userData.fullName.split(' ');
+      if (nameParts.length > 1) {
+        return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+      }
+      // If only one name, return first 2 letters
+      return userData.fullName.substring(0, 2).toUpperCase();
     } else if (userData.nickname) {
       return userData.nickname.substring(0, 2).toUpperCase();
     }
@@ -470,23 +815,63 @@ const ProfilePage = () => {
               </button>
             ) : (
               <div className="edit-actions">
-                <button className="cancel-edit-button" onClick={handleEditToggle}>
+                <button className="cancel-edit-button" onClick={handleEditToggle} disabled={saving}>
                   <IconX size={18} />
                   <span>Cancel</span>
                 </button>
-                <button className="save-profile-button" onClick={handleSaveProfile}>
-                  <IconCheck size={18} />
-                  <span>Save Changes</span>
+                <button className="save-profile-button" onClick={handleSaveProfile} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <div className="button-spinner"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <IconCheck size={18} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
           </div>
         </div>
         
+        {/* Notification popup */}
+        <AnimatePresence>
+          {notification.show && (
+            <motion.div 
+              className={`notification-popup ${notification.type}`}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {notification.type === 'success' ? 
+                <IconCircleCheck size={20} /> : 
+                <IconAlertCircle size={20} />
+              }
+              <span>{notification.message}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         {loading ? (
           <div className="profile-loading">
             <div className="loading-spinner-profile"></div>
             <p>Loading profile data...</p>
+          </div>
+        ) : error ? (
+          <div className="profile-error">
+            <IconAlertCircle size={48} color="#e53935" />
+            <h3>Error Loading Profile</h3>
+            <p>{error}</p>
+            <button 
+              className="retry-button" 
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <div className="profile-container">
@@ -502,9 +887,10 @@ const ProfilePage = () => {
                         {getInitials()}
                       </div>
                     )}
-                    <label className="change-picture-button">
+                    <label className="change-picture-button" htmlFor="profile-picture-input">
                       <IconCamera size={20} />
                       <input 
+                        id="profile-picture-input"
                         type="file" 
                         accept="image/*" 
                         onChange={handleProfilePictureChange} 
@@ -529,24 +915,14 @@ const ProfilePage = () => {
                 {isEditing ? (
                   <div className="profile-edit-form">
                     <div className="form-row">
-                      <div className="form-group">
-                        <label>First Name</label>
+                      <div className="form-group full-width">
+                        <label>Full Name</label>
                         <input 
                           type="text" 
-                          name="firstName" 
-                          value={editData.firstName} 
+                          name="fullName" 
+                          value={editData.fullName} 
                           onChange={handleInputChange}
-                          placeholder="First Name" 
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Last Name</label>
-                        <input 
-                          type="text" 
-                          name="lastName" 
-                          value={editData.lastName} 
-                          onChange={handleInputChange}
-                          placeholder="Last Name" 
+                          placeholder="Full Name" 
                         />
                       </div>
                     </div>
@@ -569,6 +945,7 @@ const ProfilePage = () => {
                           value={editData.email} 
                           onChange={handleInputChange}
                           placeholder="Email"
+                          readOnly={auth.currentUser && auth.currentUser.email === editData.email}
                         />
                       </div>
                     </div>
@@ -616,12 +993,9 @@ const ProfilePage = () => {
                 ) : (
                   <>
                     <h2 className="profile-name">
-                      {userData.firstName && userData.lastName 
-                        ? `${userData.firstName} ${userData.lastName}` 
-                        : userData.nickname
-                      }
+                      {userData.fullName || userData.nickname}
                     </h2>
-                    {userData.firstName && userData.lastName && (
+                    {userData.fullName && (
                       <p className="profile-username">@{userData.nickname}</p>
                     )}
                     <p className="profile-bio">{userData.bio}</p>
@@ -709,7 +1083,7 @@ const ProfilePage = () => {
                         </div>
                         <div className="stat-content">
                           <h3>{statistics.completedAssignments}</h3>
-                          <p>Assignments</p>
+                          <p>Assignments Done</p>
                         </div>
                       </div>
                       <div className="profile-stat-card">
@@ -829,6 +1203,7 @@ const ProfilePage = () => {
                           <div className="activity-marker">
                             {activity.type === 'course-progress' && <IconBook size={20} />}
                             {activity.type === 'assignment' && <IconClipboard size={20} />}
+                            {activity.type === 'assignment-received' && <IconClipboard size={20} />}
                             {activity.type === 'assessment' && <IconDeviceAnalytics size={20} />}
                             {activity.type === 'study-session' && <IconClock size={20} />}
                             {activity.type === 'course-started' && <IconBrain size={20} />}
@@ -917,6 +1292,13 @@ const ProfilePage = () => {
                 )}
               </div>
             </div>
+          </div>
+        )}
+        
+        {saving && (
+          <div className="saving-overlay">
+            <div className="saving-spinner"></div>
+            <p>Saving profile changes...</p>
           </div>
         )}
       </div>
