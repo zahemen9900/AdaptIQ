@@ -8,7 +8,7 @@ import {
   IconQuestionMark, IconNotebook, IconSend, IconHistory,
   IconChartLine, IconActivity, IconRefresh, IconPhotoUp,
   IconTrash, IconCheck, IconX, IconDownload, IconExternalLink,
-  IconAlertTriangle, IconClock, IconSparkles
+  IconAlertTriangle, IconClock, IconSparkles, IconFileText
 } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -31,6 +31,7 @@ import {
 } from '../utils/chatHistoryUtils';
 import { getAssignments, formatAssignmentDate } from '../utils/assignmentsUtils';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { auth } from '../../firebase';
@@ -40,6 +41,9 @@ import { auth } from '../../firebase';
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
 const genAI = new GoogleGenerativeAI(API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+// Initialize GoogleGenAI for PDF handling (as in gemini-doc.js)
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // Animation variants for different components
 const containerVariants = {
@@ -416,26 +420,38 @@ const CourseLearningPage = () => {
       }
       
       setChatMessages(initialMessages);
+
+      // Add a temporary thinking message for the question generation
+      const tempBotMessageId = Date.now().toString();
+      const thinkingMessage = {
+        id: tempBotMessageId,
+        sender: 'bot',
+        content: '',
+        timestamp: new Date().toISOString(),
+        isThinking: true
+      };
+      
+      setChatMessages(prevMessages => [...prevMessages, thinkingMessage]);
       
       // Generate first quiz question using Gemini, related to assignment if possible
       const topic = currentAssignment ? currentAssignment.title.split(':').pop() : '';
       const question = await generateQuizQuestion(courseName, topic);
       
-      // Add question to messages
-      const questionMessage = {
-        sender: 'bot',
-        content: question,
-        timestamp: new Date().toISOString()
-      };
-      
-      setChatMessages(prevMessages => [...prevMessages, questionMessage]);
+      // Replace thinking message with the actual question
+      setChatMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === tempBotMessageId 
+            ? { ...msg, content: question, isThinking: false } 
+            : msg
+        )
+      );
       
       // This is the first entry we save to history for this session
       await saveChatHistory(
         courseName,
         'quiz',
         'quiz_question',
-        questionMessage.content,
+        question,
         newSessionId
       );
     } catch (error) {
@@ -447,7 +463,9 @@ const CourseLearningPage = () => {
         timestamp: new Date().toISOString()
       };
       
-      setChatMessages(prevMessages => [...prevMessages, fallbackMessage]);
+      setChatMessages(prevMessages => 
+        prevMessages.filter(msg => !msg.isThinking).concat([fallbackMessage])
+      );
       
       // Save fallback question to quiz history
       await saveChatHistory(
@@ -729,20 +747,53 @@ const CourseLearningPage = () => {
     }
   };
   
-  // Handle sending a message in chat mode
+  // Handle sending a message in chat mode - using server API for PDF handling
   const handleSendMessage = async () => {
-    if (!currentMessage.trim()) return;
+    if (!currentMessage.trim() && !selectedFile) return;
     
-    // Add user message to chat
+    // Create user message object - include file if available
     const newUserMessage = {
       sender: 'user',
       content: currentMessage,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Include file data if a file is selected
+      ...(selectedFile && {
+        file: {
+          type: fileType,
+          name: fileName,
+          ext: fileExt,
+          preview: previewUrl
+        }
+      })
     };
     
     setChatMessages(prevMessages => [...prevMessages, newUserMessage]);
     setCurrentMessage('');
-    setIsThinking(true);
+    
+    // Reset file preview if there was a file
+    if (showFilePreview) {
+      setShowFilePreview(false);
+      setSelectedFile(null);
+      setPreviewUrl('');
+      setFileType('');
+      setFileName('');
+      setFileExt('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+    
+    // Add a temporary placeholder for the bot's response with thinking indicator
+    const tempBotMessageId = Date.now().toString();
+    const tempBotMessage = {
+      id: tempBotMessageId,
+      sender: 'bot',
+      content: '',
+      timestamp: new Date().toISOString(),
+      isThinking: true // Added isThinking flag instead of isStreaming
+    };
+    
+    setChatMessages(prevMessages => [...prevMessages, tempBotMessage]);
     
     try {
       // Get the last bot message if in quiz mode to use as the question
@@ -754,24 +805,12 @@ const CourseLearningPage = () => {
         }
       }
       
-      // Add a temporary placeholder for the bot's response
-      const tempBotMessageId = Date.now().toString();
-      const tempBotMessage = {
-        id: tempBotMessageId,
-        sender: 'bot',
-        content: '',
-        timestamp: new Date().toISOString(),
-        isStreaming: true
-      };
-      
-      setChatMessages(prevMessages => [...prevMessages, tempBotMessage]);
-      
       // Create a function to handle streaming updates
       const handleStreamingUpdate = (text) => {
         setChatMessages(prevMessages => 
           prevMessages.map(msg => 
             msg.id === tempBotMessageId 
-              ? { ...msg, content: text } 
+              ? { ...msg, content: text, isThinking: false } // Set isThinking to false when content starts streaming
               : msg
           )
         );
@@ -781,38 +820,108 @@ const CourseLearningPage = () => {
       let responseContent = '';
       
       if (mode === 'chat') {
-        // Extract conversation context from the recent messages (last 3 turns)
-        // This provides the AI with context from previous interactions
-        const recentMessages = chatMessages.slice(-6); // Last 3 turns (6 messages max)
-        const conversationContext = recentMessages
-          .map(msg => `${msg.sender === 'user' ? 'Student' : 'AI Tutor'}: ${msg.content}`)
-          .join('\n\n');
-          
-        responseContent = await generateChatResponse(
-          currentMessage, 
-          courseName, 
-          handleStreamingUpdate,
-          conversationContext // Pass the context to maintain conversation continuity
-        );
+        if (newUserMessage.file) {
+          // Handle file analysis if a file was attached
+          try {
+            // User prompt
+            const prompt = currentMessage.trim() || 
+              `Analyze this ${newUserMessage.file.type === 'image' ? 'image' : 'PDF document'} in detail and explain what you see.`;
+            
+            if (newUserMessage.file.type === 'image') {
+              // EXACT implementation from gemini-vision.js for images
+              const base64Data = newUserMessage.file.preview.split(',')[1];
+              
+              // Use the GoogleGenerativeAI model as in gemini-vision.js
+              const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+              
+              // Same format as fileToGenerativePart in gemini-vision.js
+              const imagePart = {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: `image/${newUserMessage.file.ext}`
+                }
+              };
+              
+              // Same pattern as in gemini-vision.js: [prompt, ...imageParts]
+              const generatedContent = await model.generateContent([prompt, imagePart]);
+              responseContent = generatedContent.response.text();
+              handleStreamingUpdate(responseContent);
+            } 
+            else if (newUserMessage.file.type === 'pdf') {
+              // Using our Node.js server for PDFs without showing processing message
+              try {
+                // Create a FormData object to send the file to the server
+                const formData = new FormData();
+                
+                // Convert data URL back to a file object
+                const base64Response = await fetch(newUserMessage.file.preview);
+                const blob = await base64Response.blob();
+                const file = new File([blob], newUserMessage.file.name, { type: 'application/pdf' });
+                
+                // Append the file and prompt to the FormData
+                formData.append('pdfFile', file);
+                formData.append('prompt', prompt);
+                
+                // Send the request to our local PDF processing server
+                const serverUrl = 'http://localhost:3001/api/process-pdf';
+                const response = await fetch(serverUrl, {
+                  method: 'POST',
+                  body: formData,
+                });
+                
+                // Parse the JSON response
+                const responseData = await response.json();
+                
+                if (responseData.success) {
+                  responseContent = responseData.text;
+                } else {
+                  throw new Error(responseData.message || 'Error processing PDF');
+                }
+                
+                // Update the streaming response with the final content
+                handleStreamingUpdate(responseContent);
+              } catch (fileError) {
+                console.error("Error analyzing file:", fileError);
+                responseContent = `I encountered an error while trying to analyze your PDF file. Could you try again or describe what's in the file?`;
+                handleStreamingUpdate(responseContent);
+              }
+            }
+          } catch (fileError) {
+            console.error("Error analyzing file:", fileError);
+            responseContent = `I encountered an error while trying to analyze your ${newUserMessage.file.type} file "${newUserMessage.file.name}". ` +
+              `This could be due to file format issues or processing limitations. Error: ${fileError.message}. ` +
+              `Could you try again with a different file or describe what's in the file?`;
+            handleStreamingUpdate(responseContent);
+          }
+        } else {
+          // No file attached, proceed with normal chat response
+          responseContent = await generateChatResponse(
+            currentMessage, 
+            courseName, 
+            handleStreamingUpdate,
+            chatMessages.slice(-6).map(msg => `${msg.sender === 'user' ? 'Student' : 'AI Tutor'}: ${msg.content}`).join('\n\n')
+          );
+        }
       } else if (mode === 'quiz') {
         responseContent = await evaluateQuizAnswer(currentMessage, question, courseName, handleStreamingUpdate);
       }
       
-      // Update the temporary message with the final content and remove streaming flag
+      // If streaming didn't work for some reason, update the message at the end
       setChatMessages(prevMessages => 
         prevMessages.map(msg => 
           msg.id === tempBotMessageId 
-            ? { ...msg, content: responseContent, isStreaming: false } 
+            ? { ...msg, content: responseContent, isThinking: false } 
             : msg
         )
       );
       
       // Save to appropriate history collection in Firestore based on mode
-      // Using the current session ID to group all messages in the same conversation
       await saveChatHistory(
         courseName,
         mode,
-        currentMessage,
+        newUserMessage.file 
+          ? `[File uploaded: ${newUserMessage.file.type}] ${currentMessage}` 
+          : currentMessage,
         responseContent,
         currentSessionId
       );
@@ -851,15 +960,18 @@ const CourseLearningPage = () => {
       
     } catch (error) {
       console.error("Error generating response:", error);
-      // Add fallback error message
-      const errorResponse = {
-        sender: 'bot',
-        content: `I'm sorry, I encountered an issue while processing your request. Please try again later.`,
-        timestamp: new Date().toISOString()
-      };
-      setChatMessages(prevMessages => [...prevMessages, errorResponse]);
-    } finally {
-      setIsThinking(false);
+      // Add fallback error message - update the thinking bubble instead of adding a new one
+      setChatMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === tempBotMessageId 
+            ? { 
+                ...msg, 
+                content: `I'm sorry, I encountered an issue while processing your request. Please try again later.`, 
+                isThinking: false 
+              } 
+            : msg
+        )
+      );
     }
   };
 
@@ -943,54 +1055,106 @@ const CourseLearningPage = () => {
   // File upload states
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
-  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [showFilePreview, setShowFilePreview] = useState(false);
+  const [fileType, setFileType] = useState(''); // 'image' or 'pdf'
+  const [fileName, setFileName] = useState('');
+  const [fileExt, setFileExt] = useState('');
 
-  // Handle file selection
+  // Handle file selection - using the approach from example files
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file) {
+      // Clear any existing file first
+      cancelFileUpload();
+      
       setSelectedFile(file);
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        setPreviewUrl(fileReader.result);
-        setShowImagePreview(true);
-      };
-      fileReader.readAsDataURL(file);
+      setFileName(file.name);
+      
+      // Determine file type and extension
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+      setFileExt(fileExtension);
+      
+      // Handle image files exactly as in gemini-vision.js
+      if (file.type.startsWith('image/')) {
+        setFileType('image');
+        const fileReader = new FileReader();
+        fileReader.onload = (event) => {
+          // Store the base64 data for later processing
+          const base64Data = event.target.result.split(',')[1]; // Remove data URL prefix
+          setPreviewUrl(event.target.result); // For preview, keep the full data URL
+          setShowFilePreview(true);
+        };
+        fileReader.onerror = (error) => {
+          console.error("Error reading image file:", error);
+          cancelFileUpload();
+        };
+        fileReader.readAsDataURL(file);
+      } 
+      // Handle PDF files exactly as in gemini-doc.js, but adapted for browser
+      else if (fileExtension === 'pdf') {
+        setFileType('pdf');
+        const fileReader = new FileReader();
+        fileReader.onload = (event) => {
+          // Store the base64 data for later processing
+          setPreviewUrl(event.target.result); // Keep full data URL for now
+          setShowFilePreview(true);
+        };
+        fileReader.onerror = (error) => {
+          console.error("Error reading PDF file:", error);
+          cancelFileUpload();
+        };
+        fileReader.readAsDataURL(file);
+      } else {
+        // If not a supported file type
+        alert("Please select either an image file (JPEG, PNG) or a PDF document");
+        cancelFileUpload();
+      }
     }
   };
 
-  // Cancel image upload
-  const cancelImageUpload = () => {
+  // Cancel file upload
+  const cancelFileUpload = () => {
     setSelectedFile(null);
     setPreviewUrl('');
-    setShowImagePreview(false);
+    setShowFilePreview(false);
+    setFileType('');
+    setFileName('');
+    setFileExt('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Submit image with question
-  const submitWithImage = () => {
+  // Submit file with question
+  const submitWithFile = () => {
     if (!currentMessage.trim() && !selectedFile) return;
     
-    // Create message content with image
+    // Create message content with file
     const newUserMessage = {
       sender: 'user',
       content: currentMessage,
       timestamp: new Date().toISOString(),
-      image: previewUrl
+      file: {
+        type: fileType,
+        name: fileName,
+        ext: fileExt,
+        preview: previewUrl
+      }
     };
     
     setChatMessages(prevMessages => [...prevMessages, newUserMessage]);
     setCurrentMessage('');
-    setShowImagePreview(false);
+    setShowFilePreview(false);
     setSelectedFile(null);
     setPreviewUrl('');
+    setFileType('');
+    setFileName('');
+    setFileExt('');
     setIsThinking(true);
     
     // Simulate response from AI tutor
     setTimeout(() => {
-      const responseContent = `I've analyzed the image you've shared. ${generateChatResponse('image analysis ' + currentMessage, courseName)}`;
+      const responseContent = `I've analyzed the file you've shared. ${generateChatResponse('file analysis ' + currentMessage, courseName)}`;
       
       const botResponse = {
         sender: 'bot',
@@ -1005,7 +1169,7 @@ const CourseLearningPage = () => {
       saveChatHistory(
         courseName,
         mode,
-        `[Image uploaded] ${currentMessage}`,
+        `[File uploaded] ${currentMessage}`,
         responseContent,
         currentSessionId
       );
@@ -1018,7 +1182,7 @@ const CourseLearningPage = () => {
           setQuizHistory(history);
         }
       });
-    }, 2000); // Slightly longer for image processing simulation
+    }, 2000); // Slightly longer for file processing simulation
   };
 
   // Reset conversation history for the current mode
@@ -1505,18 +1669,39 @@ const CourseLearningPage = () => {
                               }
                             </div>
                             <div className={`message-content ${mode === 'quiz' && message.sender === 'bot' ? 'quiz-content' : ''}`}>
-                              {message.isResource ? (
+                              {message.isThinking ? (
+                                <div className="thinking-indicator">
+                                  <span></span>
+                                  <span></span>
+                                  <span></span>
+                                </div>
+                              ) : message.isResource ? (
                                 message.content 
-                              ) : message.image ? (
+                              ) : message.file ? (
                                 <>
-                                  <motion.div 
-                                    className="message-image-container"
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.3 }}
-                                  >
-                                    <img src={message.image} alt="Uploaded content" className="message-image" />
-                                  </motion.div>
+                                  {message.file.type === 'image' && (
+                                    <motion.div 
+                                      className="message-image-container"
+                                      initial={{ opacity: 0, scale: 0.9 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ duration: 0.3 }}
+                                    >
+                                      <img src={message.file.preview} alt="Uploaded content" className="message-image" />
+                                    </motion.div>
+                                  )}
+                                  {message.file.type === 'pdf' && (
+                                    <motion.div 
+                                      className="message-pdf-container"
+                                      initial={{ opacity: 0, scale: 0.9 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ duration: 0.3 }}
+                                    >
+                                      <div className="pdf-preview">
+                                        <IconFileText size={48} />
+                                        <span>{message.file.name}</span>
+                                      </div>
+                                    </motion.div>
+                                  )}
                                   <p>{message.content}</p>
                                 </>
                               ) : (
@@ -1531,27 +1716,7 @@ const CourseLearningPage = () => {
                               </span>
                             </div>
                           </motion.div>
-                        ))}
-                        
-                        {isThinking && (
-                          <motion.div 
-                            className="chat-message bot-message thinking"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <div className="message-avatar">{mode === 'quiz' ? 'Q' : courseName.substring(0, 2)}</div>
-                            <div className="message-content">
-                              <div className="thinking-indicator">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </motion.div>
+                        ))}                      </motion.div>
                     )}
                     
                     {/* Chat Input - Only for chat mode */}
@@ -1563,41 +1728,38 @@ const CourseLearningPage = () => {
                         transition={{ delay: 0.2, duration: 0.4 }}
                       >
                         <AnimatePresence>
-                          {showImagePreview && (
+                          {showFilePreview && (
                             <motion.div 
-                              className="image-preview-container"
+                              className="file-preview-container"
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ duration: 0.3 }}
                             >
                               <motion.div 
-                                className="image-preview"
+                                className="file-preview"
                                 initial={{ scale: 0.9 }}
                                 animate={{ scale: 1 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
                               >
-                                <img src={previewUrl} alt="Preview" />
+                                {fileType === 'image' && <img src={previewUrl} alt="Preview" />}
+                                {fileType === 'pdf' && (
+                                  <div className="pdf-preview">
+                                    <IconFileText size={48} />
+                                    <span>{fileName}</span>
+                                  </div>
+                                )}
                                 <motion.button 
-                                  className="cancel-image-button" 
-                                  onClick={cancelImageUpload}
+                                  className="cancel-file-button" 
+                                  onClick={cancelFileUpload}
                                   whileHover={{ scale: 1.1, backgroundColor: "#ff6b6b" }}
                                   whileTap={{ scale: 0.95 }}
                                 >
                                   <IconTrash size={16} />
                                 </motion.button>
                               </motion.div>
-                              <div className="image-preview-actions">
-                                <motion.button 
-                                  className="submit-image-button" 
-                                  onClick={submitWithImage}
-                                  disabled={!selectedFile && !currentMessage.trim()}
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                >
-                                  <IconSend size={18} />
-                                  <span>Send with Image</span>
-                                </motion.button>
+                              <div className="file-preview-message">
+                                <p>File attached to your message</p>
                               </div>
                             </motion.div>
                           )}
@@ -1610,22 +1772,23 @@ const CourseLearningPage = () => {
                           transition={{ delay: 0.3, duration: 0.3 }}
                         >
                           <motion.label 
-                            className="upload-image-button"
+                            className="upload-file-button"
                             whileHover={{ scale: 1.1, backgroundColor: "#f0f0f0" }}
                             whileTap={{ scale: 0.95 }}
+                            title="Upload image or PDF"
                           >
-                            <IconPhotoUp size={20} />
+                            <IconFileText size={20} />
                             <input 
                               type="file" 
                               ref={fileInputRef}
-                              accept="image/*" 
+                              accept="image/*,application/pdf" 
                               style={{ display: 'none' }} 
                               onChange={handleFileSelect}
                             />
                           </motion.label>
                           <textarea 
                             className="chat-input"
-                            placeholder="Ask your question here..."
+                            placeholder={selectedFile ? `Message with attached ${fileType}...` : "Ask your question here..."}
                             value={currentMessage}
                             onChange={(e) => setCurrentMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
@@ -1633,7 +1796,7 @@ const CourseLearningPage = () => {
                           <motion.button 
                             className="send-button" 
                             onClick={handleSendMessage}
-                            disabled={!currentMessage.trim()}
+                            disabled={!currentMessage.trim() && !selectedFile}
                             whileHover={{ scale: 1.05, backgroundColor: "#007bff" }}
                             whileTap={{ scale: 0.95 }}
                           >

@@ -202,7 +202,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 12px 20px; /* Reduced padding */
   background-color: #f5f5f7;
   border-bottom: 1px solid #e5e5e5;
 }
@@ -319,12 +319,12 @@
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 12px 20px; /* Further reduced padding */
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  height: calc(100vh - 280px) !important;
-  min-height: 500px !important;
+  gap: 10px; /* Further reduced gap */
+  height: calc(100vh - 200px) !important; /* Optimized height */
+  min-height: 550px !important;
 }
 
 .chat-message, .quiz-message {
@@ -388,11 +388,12 @@
 }
 
 .message-time {
-  font-size: 0.7rem;
-  opacity: 0.7;
+  font-size: 0.65rem; /* Reduced size */
+  opacity: 0.3; /* Reduced opacity for more subtlety */
   position: absolute;
-  bottom: -18px;
+  bottom: -16px; /* Adjusted position */
   right: 8px;
+  top: auto; /* Adjusted position */
 }
 
 .user-message .message-time {
@@ -436,7 +437,7 @@
 .chat-input-container, .quiz-input-container {
   background-color: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
-  padding: 20px;
+  padding: 12px 20px; /* Reduced padding */
   display: flex;
   gap: 12px;
   margin-top: auto;
@@ -446,36 +447,33 @@
   flex: 1;
   border: 1px solid #ddd;
   border-radius: 24px;
-  padding: 12px 18px;
+  padding: 10px 16px; /* Reduced padding */
   font-size: 1rem;
   resize: none;
-  min-height: 48px;
-  max-height: 150px;
+  min-height: 40px; /* Reduced height */
+  max-height: 120px;
   outline: none;
   transition: border-color 0.2s;
   font-family: inherit;
-}
-
-.chat-input:focus, .quiz-input:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(74, 107, 251, 0.2);
-  outline: none;
+  height: 50px;
 }
 
 .send-button, .submit-answer-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 8px 12px; /* Further reduced padding */
+  border-radius: 6px; /* Further reduced radius */
   background: linear-gradient(135deg, var(--accent-color), #3b82f6);
   color: white;
   border: none;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 120px;
+  min-width: 80px; /* Further reduced min-width */
+  font-size: 0.95rem; /* Further reduced font size */
+  height: 55px; /* Explicit height setting */
 }
 
 .send-button:hover, .submit-answer-button:hover {
@@ -492,39 +490,50 @@
 }
 
 .mode-controls {
-  padding: 12px 16px;
+  padding: 6px 12px; /* Further reduced padding */
   border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-start;
   position: sticky;
   bottom: 0;
   background-color: var(--bg-secondary);
-  padding: 16px 24px;
   border-top: 1px solid var(--border-color);
   margin-top: auto;
   z-index: 10;
 }
 
 .mode-control-button {
+  padding: 4px 10px; /* Further reduced padding */
+  border-top: 1px solid #eee;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   background-color: transparent;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 4px; /* Reduced from 6px */
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
   color: #555;
-}
-
-.mode-control-button:hover {
-  background-color: #f0f0f0;
-  color: #333;
+  font-size: 0.8rem; /* Further reduced font size */
 }
 
 .mode-control-button span {
-  margin-left: 8px;
-  font-size: 0.9rem;
+  margin-left: 4px; /* Reduced from 6px */
+  font-size: 0.8rem;
+}
+
+/* Reduced padding for chat-input-wrapper to increase chat area */
+.chat-input-wrapper, .quiz-answer-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: sticky;
+  bottom: 0;
+  background-color: var(--bg-secondary);
+  z-index: 10;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+  padding-bottom: 40px; /* Reduced padding */
 }
 
 /* Resources List Styles */
@@ -955,9 +964,8 @@
   z-index: 10;
   border-top: 1px solid var(--border-color);
   margin-top: auto;
-  padding-bottom: 70px;
+  padding-bottom: 40px; /* Reduced padding */
 }
-
 
 .image-preview-container {
   padding: 12px 16px;
@@ -1081,32 +1089,28 @@
 .quiz-answer-container {
   display: flex;
   flex-direction: column;
-  padding: 0 16px 16px;
+  padding: 0 12px 12px; /* Further reduced padding */
   border-top: 1px solid #eee;
-  padding: 20px !important;
+  padding: 12px !important; /* Further reduced padding */
 }
 
 .quiz-instruction {
   display: flex;
   align-items: center;
-  padding: 12px 0;
+  padding: 6px 10px; /* Further reduced padding */
   color: var(--accent-color);
   background-color: var(--bg-tertiary);
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin: 0 20px 16px;
+  border-radius: 4px; /* Further reduced radius */
+  margin: 0 12px 8px; /* Further reduced margins */
   font-weight: 500;
-}
-
-.quiz-instruction svg {
-  margin-right: 8px;
+  font-size: 0.85rem; /* Further reduced font size */
 }
 
 .quiz-input-container {
-  margin-bottom: 60px;
+  margin-bottom: 40px; /* Reduced margin */
   border: 1px solid #4a6bfb;
-  border-radius: 8px;
-  padding: 8px;
+  border-radius: 6px; /* Reduced radius */
+  padding: 6px; /* Reduced padding */
 }
 
 .submit-answer-button {
@@ -2269,6 +2273,28 @@
 .confirm-cancel-button:hover {
   background-color: #e0e0e0;
 }
+/* Fix dark mode styles for activity and back buttons */
+.theme-dark .activity-history-button {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+/* Back Button Dark Mode */
+.theme-dark .back-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.theme-dark .activity-history-button:hover,
+.theme-dark .activity-history-button.active {
+  background-color: var(--hover-bg);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
 
 .theme-dark .confirm-cancel-button {
   background-color: var(--bg-tertiary);
@@ -2301,4 +2327,188 @@
 
 .theme-dark .confirm-delete-button:hover {
   background-color: #444;
+}
+
+/* File Upload Styling */
+.file-preview-container {
+  padding: 12px 16px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #eee;
+  animation: slideDown 0.3s ease;
+}
+
+.file-preview {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.file-preview img {
+  max-height: 200px;
+  max-width: 100%;
+  display: block;
+}
+
+.pdf-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  min-width: 200px;
+  min-height: 150px;
+  text-align: center;
+}
+
+.pdf-preview svg {
+  color: #e74c3c;
+  margin-bottom: 10px;
+}
+
+.pdf-preview span {
+  font-size: 14px;
+  color: #333;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cancel-file-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #dc3545;
+  transition: background-color 0.2s;
+}
+
+.cancel-file-button:hover {
+  background-color: white;
+}
+
+.file-preview-message {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+.upload-file-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  margin-right: 8px;
+  position: relative;
+}
+
+.upload-file-button:hover {
+  background-color: #e0e0e0;
+  color: #4a6bfb;
+}
+
+.upload-file-button .tooltip {
+  position: absolute;
+  top: -30px; /* Changed from bottom to top */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  z-index: 9999; /* Increased z-index to ensure visibility above all elements */
+}
+
+.upload-file-button:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.message-image-container {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.message-image {
+  max-width: 250px;
+  max-height: 200px;
+  display: block;
+}
+
+.message-pdf-container {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Dark mode styles for file uploads */
+.theme-dark .file-preview-container {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.theme-dark .file-preview {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .pdf-preview {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .pdf-preview svg {
+  color: #ff6b6b;
+}
+
+.theme-dark .pdf-preview span {
+  color: var(--text-secondary);
+}
+
+.theme-dark .file-preview-message {
+  color: var(--text-muted);
+}
+
+.theme-dark .upload-file-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.theme-dark .upload-file-button:hover {
+  background-color: var(--bg-elevated);
+  color: var(--accent-color);
+}
+
+.theme-dark .cancel-file-button {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #ff6b6b;
+}
+
+.theme-dark .cancel-file-button:hover {
+  background-color: rgba(0, 0, 0, 0.7);
 }
