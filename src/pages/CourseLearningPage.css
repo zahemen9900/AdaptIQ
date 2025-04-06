@@ -539,7 +539,7 @@
 .chat-input {
   flex: 1;
   border: 1px solid #ddd;
-  border-radius: 24px; /* Making inputs as rounded as the buttons */
+  border-radius: 10px; /* Making inputs as rounded as the buttons */
   padding: 10px 16px; /* Reduced padding */
   font-size: 1rem;
   resize: none;
