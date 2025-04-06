@@ -35,6 +35,8 @@ import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { auth } from '../../firebase';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 // Initialize the Google Generative AI with the API key
 // In production, this should be properly handled with environment variables
@@ -196,10 +198,30 @@ const CourseLearningPage = () => {
   // New function to fetch course assignments
   useEffect(() => {
     async function fetchCourseAssignments() {
-      if (!loading && courseName) {
+      if (!loading && courseName && isUserAuthenticated) {
         try {
-          // Get all assignments
-          const allAssignments = getAssignments();
+          if (!auth.currentUser) {
+            console.warn("No user signed in");
+            return;
+          }
+          
+          // Get user's assignments from Firebase
+          const userId = auth.currentUser.uid;
+          const assignmentsRef = collection(db, "users", userId, "assignments");
+          const assignmentsQuery = query(assignmentsRef);
+          const querySnapshot = await getDocs(assignmentsQuery);
+          
+          // Convert to array of assignment objects
+          const allAssignments = [];
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            allAssignments.push({
+              ...data,
+              firestoreId: doc.id,
+              // Convert Firestore timestamps if necessary
+              createdDate: data.createdAt ? data.createdAt.toDate().toISOString() : data.createdDate
+            });
+          });
           
           // Filter assignments for this course
           const courseSpecificAssignments = allAssignments.filter(assignment => 
@@ -226,8 +248,9 @@ const CourseLearningPage = () => {
         }
       }
     }
+    
     fetchCourseAssignments();
-  }, [courseName, loading]);
+  }, [courseName, loading, isUserAuthenticated]);
 
   // Update progress when completing activities
   const handleCompleteActivity = useCallback(async (incrementAmount = 5) => {
@@ -547,8 +570,39 @@ const CourseLearningPage = () => {
       'General Psychology': basePrompt + "As a Psychology tutor specializing in general concepts, explain psychological theories, research methods, and key studies. Use clear examples from real-world scenarios and avoid clinical diagnoses or therapeutic advice."
     };
     
-    // Return course-specific prompt or a default one
-    return coursePrompts[course] || `${basePrompt}As a knowledgeable tutor in ${course}, provide clear, accurate, and helpful responses to student questions. Use examples where appropriate and break down complex concepts into understandable parts.`;
+    // Get the base prompt either from the course-specific prompts or a default
+    const promptBase = coursePrompts[course] || `${basePrompt}As a knowledgeable tutor in ${course}, provide clear, accurate, and helpful responses to student questions. Use examples where appropriate and break down complex concepts into understandable parts.`;
+    
+    // Add assignment details if available
+    let fullPrompt = promptBase;
+    
+    if (currentAssignment) {
+      // Create a comprehensive assignment context section
+      const assignmentContext = `
+\nASSIGNMENT CONTEXT:
+The student is currently working on an assignment with the following details:
+
+Title: "${currentAssignment.title}"
+Due Date: ${formatAssignmentDate(currentAssignment.dueDate)}
+Status: ${currentAssignment.status}
+Description: ${currentAssignment.description || "No detailed description available."}
+${currentAssignment.estimatedMinutes ? `Estimated Time: ${currentAssignment.estimatedMinutes} minutes` : ""}
+${currentAssignment.category ? `Subject Area: ${currentAssignment.category}` : ""}
+
+${currentAssignment.resources && currentAssignment.resources.length > 0 ? 
+  `Recommended Resources: 
+   ${currentAssignment.resources.map(res => `- ${res.title || 'Resource'} (${res.type})`).join('\n   ')}` 
+  : ""}
+
+When the student asks questions related to this assignment, provide targeted help that will enable them to 
+complete the assignment successfully. Focus on guiding their learning rather than providing direct answers.
+`;
+      
+      // Add the assignment context to the prompt
+      fullPrompt += assignmentContext;
+    }
+    
+    return fullPrompt;
   };
 
   // Update the quiz question generator to include assignment topic
@@ -1524,20 +1578,158 @@ const CourseLearningPage = () => {
                     transition={{ duration: 0.5, ease: "easeInOut" }}
                   >
                     <div className="chat-header">
-                      <div className="chat-title">
-                        <h2>
-                          {mode === 'chat' ? 'Ask Questions' : 
-                           mode === 'quiz' ? 'Knowledge Quiz' : 'Learning Resources'}
-                        </h2>
-                        <p>{courseName}</p>
+                      <div className="chat-header-left">
+                        <motion.button 
+                          className="back-to-menu-button" 
+                          onClick={() => {
+                            // End the current session before returning to menu
+                            endCurrentSession(courseName, mode);
+                            setCurrentSessionId(null);
+                            setMode('select');
+                          }}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          title="Back to menu"
+                        >
+                          <IconArrowLeft size={20} />
+                        </motion.button>
+                        <div className="chat-title">
+                          <h2>
+                            {mode === 'chat' ? 'Ask Questions' : 
+                             mode === 'quiz' ? 'Knowledge Quiz' : 'Learning Resources'}
+                          </h2>
+                          <p>{courseName}</p>
+                        </div>
                       </div>
                       <div className="chat-header-actions">
                         <button 
-                          className="complete-activity-button" 
-                          onClick={() => handleCompleteActivity(mode === 'quiz' ? 10 : 5)}
+                          className="new-chat-button" 
+                          onClick={() => {
+                            // First complete the session (save existing functionality)
+                            handleCompleteActivity(mode === 'quiz' ? 10 : 5);
+                            
+                            // Then start a new conversation
+                            // Create a new session ID
+                            const newSessionId = forceNewSession(courseName, mode);
+                            setCurrentSessionId(newSessionId);
+                            
+                            // Add a transitional animation effect
+                            const chatContainer = document.querySelector('.chat-messages');
+                            if (chatContainer) {
+                              chatContainer.style.opacity = '0';
+                              chatContainer.style.transform = 'scale(0.98)';
+                              
+                              setTimeout(() => {
+                                // Clear the current chat messages
+                                setChatMessages([]);
+                                
+                                // Reset transitions for new messages
+                                chatContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                                
+                                setTimeout(() => {
+                                  // Show the container again
+                                  chatContainer.style.opacity = '1';
+                                  chatContainer.style.transform = 'scale(1)';
+                                  
+                                  // Add initial tutor message for chat mode
+                                  if (mode === 'chat') {
+                                    const initialMessage = {
+                                      sender: 'bot',
+                                      content: `Hi, I'm your ${courseName} tutor. What do you need assistance with today?`,
+                                      timestamp: new Date().toISOString()
+                                    };
+                                    
+                                    setChatMessages([initialMessage]);
+                                    
+                                    // Add assignment context if there is a current assignment
+                                    if (currentAssignment) {
+                                      setTimeout(() => {
+                                        // Add a message about the current assignment
+                                        const assignmentMessage = {
+                                          sender: 'bot',
+                                          content: `I see you have an assignment on "${currentAssignment.title}" due ${formatAssignmentDate(currentAssignment.dueDate)}. Would you like help with this assignment?`,
+                                          timestamp: new Date().toISOString()
+                                        };
+                                        
+                                        setChatMessages(prevMessages => [...prevMessages, assignmentMessage]);
+                                      }, 1000);
+                                    }
+                                  } 
+                                  // Start a new quiz if in quiz mode
+                                  else if (mode === 'quiz') {
+                                    setIsThinking(true);
+                                    
+                                    // Add initial welcome message
+                                    const welcomeMessage = {
+                                      sender: 'bot',
+                                      content: `Welcome to a new ${courseName} quiz! I'll ask you a series of questions to test your knowledge.`,
+                                      timestamp: new Date().toISOString()
+                                    };
+                                    
+                                    const initialMessages = [welcomeMessage];
+                                    
+                                    // Add context about current assignment if available
+                                    if (currentAssignment) {
+                                      const assignmentMessage = {
+                                        sender: 'bot',
+                                        content: `This quiz will focus on topics related to your current assignment: "${currentAssignment.title}".`,
+                                        timestamp: new Date().toISOString()
+                                      };
+                                      
+                                      initialMessages.push(assignmentMessage);
+                                    }
+                                    
+                                    setChatMessages(initialMessages);
+
+                                    // Add a temporary thinking message for the question generation
+                                    const tempBotMessageId = Date.now().toString();
+                                    const thinkingMessage = {
+                                      id: tempBotMessageId,
+                                      sender: 'bot',
+                                      content: '',
+                                      timestamp: new Date().toISOString(),
+                                      isThinking: true
+                                    };
+                                    
+                                    setChatMessages(prevMessages => [...prevMessages, thinkingMessage]);
+                                    
+                                    // Generate first quiz question
+                                    generateQuizQuestion(courseName, currentAssignment ? currentAssignment.title.split(':').pop() : '')
+                                      .then(question => {
+                                        // Replace thinking message with the actual question
+                                        setChatMessages(prevMessages => 
+                                          prevMessages.map(msg => 
+                                            msg.id === tempBotMessageId 
+                                              ? { ...msg, content: question, isThinking: false } 
+                                              : msg
+                                          )
+                                        );
+                                        
+                                        // Save to history
+                                        saveChatHistory(
+                                          courseName,
+                                          'quiz',
+                                          'quiz_question',
+                                          question,
+                                          newSessionId
+                                        );
+                                        
+                                        setIsThinking(false);
+                                      })
+                                      .catch(error => {
+                                        console.error("Error starting new quiz:", error);
+                                        setIsThinking(false);
+                                      });
+                                  }
+                                }, 50);
+                              }, 200);
+                            }
+                          }}
                         >
-                          <IconChartLine size={20} />
-                          <span>Complete {mode === 'chat' ? 'Session' : mode === 'quiz' ? 'Quiz' : 'Study'}</span>
+                          {mode === 'chat' ? <IconMessageCircle size={18} /> : 
+                           mode === 'quiz' ? <IconQuestionMark size={18} /> : 
+                           <IconNotebook size={18} />}
+                          <span>New {mode === 'chat' ? 'Chat' : mode === 'quiz' ? 'Quiz' : 'Resources'}</span>
                         </button>
                         {mode !== 'resources' && (
                           <>
@@ -2044,22 +2236,6 @@ const CourseLearningPage = () => {
                       </motion.div>
                     )}
                     
-                    <div className="mode-controls">
-                      <motion.button 
-                        className="mode-control-button" 
-                        onClick={() => {
-                          // End the current session before returning to menu
-                          endCurrentSession(courseName, mode);
-                          setCurrentSessionId(null);
-                          setMode('select');
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <IconArrowLeft size={20} />
-                        <span>Back to Menu</span>
-                      </motion.button>
-                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

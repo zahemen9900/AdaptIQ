@@ -522,3 +522,31 @@
   border-left: 4px solid #f44336;
   color: #e57373;
 }
+
+/* Grid layout styles for schedule calendar */
+.schedule-calendar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1400px) {
+  .schedule-calendar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .schedule-calendar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .schedule-calendar {
+    grid-template-columns: 1fr;
+  }
+}

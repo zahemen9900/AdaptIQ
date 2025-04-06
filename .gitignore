@@ -25,3 +25,6 @@ willie'sNote.txt
 *.sw?
 .qodo
 .env
+*.env.local
+server.js
+firebase.js

@@ -8,218 +8,209 @@ import { getAssignments } from '../utils/assignmentsUtils';
 import { getProgressFromFirebase } from '../utils/progressTracker';
 import ConfirmationModal from '../components/ConfirmationModal/ConfirmationModal';
 import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../context/UserContext';
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [nickname, setNickname] = useState('');
   const [activeCourseCount, setActiveCourseCount] = useState(0);
   const [completedCourseCount, setCompletedCourseCount] = useState(0);
   const [filterCategory, setFilterCategory] = useState('all');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const { isDarkMode } = useTheme();
+  const { user } = useUser();
   const navigate = useNavigate();
   
-  // Track whether course data has been loaded from progress tracker
   const [progressLoaded, setProgressLoaded] = useState(false);
 
   useEffect(() => {
-    // Load user data and extract courses
+    if (!user.loadingUser) {
+      loadCourses();
+    }
+  }, [user.loadingUser, user.courses]);
+  
+  const loadCourses = () => {
+    setLoading(true);
     const onboardingData = localStorage.getItem('onboardingData');
     if (onboardingData) {
-      const userData = JSON.parse(onboardingData);
-      if (userData.nickname) setNickname(userData.nickname);
-      
-      // Extract courses and create course objects
-      if (userData.courses && Array.isArray(userData.courses)) {
-        setTimeout(() => {
-          const userCourses = userData.courses.map((courseId, index) => {
-            // Parse course ID (format: subject-course)
-            let courseName, category;
-            if (courseId.includes('-')) {
-              const [subjectId, courseCode] = courseId.split('-');
-              
-              // Handle custom courses
-              if (courseCode === 'other' && userData.customCourses && userData.customCourses[subjectId]) {
-                courseName = userData.customCourses[subjectId];
-                category = subjectId;
-              } else {
-                // Get course name from predefined courses
-                const coursesBySubject = {
-                  math: [
-                    { id: 'algebra', label: 'Algebra' },
-                    { id: 'geometry', label: 'Geometry' },
-                    { id: 'calculus', label: 'Calculus' },
-                    { id: 'statistics', label: 'Statistics' },
-                    { id: 'trigonometry', label: 'Trigonometry' }
-                  ],
-                  science: [
-                    { id: 'biology', label: 'Biology' },
-                    { id: 'chemistry', label: 'Chemistry' },
-                    { id: 'physics', label: 'Physics' },
-                    { id: 'environmental', label: 'Environmental Science' },
-                    { id: 'astronomy', label: 'Astronomy' }
-                  ],
-                  history: [
-                    { id: 'world', label: 'World History' },
-                    { id: 'us', label: 'US History' },
-                    { id: 'european', label: 'European History' },
-                    { id: 'ancient', label: 'Ancient Civilizations' },
-                    { id: 'modern', label: 'Modern History' }
-                  ],
-                  language: [
-                    { id: 'composition', label: 'Composition' },
-                    { id: 'literature', label: 'Literature' },
-                    { id: 'grammar', label: 'Grammar' },
-                    { id: 'creative', label: 'Creative Writing' },
-                    { id: 'speech', label: 'Speech & Debate' }
-                  ],
-                  foreign: [
-                    { id: 'spanish', label: 'Spanish' },
-                    { id: 'french', label: 'French' },
-                    { id: 'german', label: 'German' },
-                    { id: 'chinese', label: 'Chinese' },
-                    { id: 'japanese', label: 'Japanese' }
-                  ],
-                  computer: [
-                    { id: 'programming', label: 'Programming' },
-                    { id: 'webdev', label: 'Web Development' },
-                    { id: 'database', label: 'Database Systems' },
-                    { id: 'ai', label: 'Artificial Intelligence' },
-                    { id: 'cybersecurity', label: 'Cybersecurity' }
-                  ],
-                  engineering: [
-                    { id: 'mechanical', label: 'Mechanical Engineering' },
-                    { id: 'electrical', label: 'Electrical Engineering' },
-                    { id: 'civil', label: 'Civil Engineering' },
-                    { id: 'chemical', label: 'Chemical Engineering' },
-                    { id: 'software', label: 'Software Engineering' }
-                  ],
-                  economics: [
-                    { id: 'micro', label: 'Microeconomics' },
-                    { id: 'macro', label: 'Macroeconomics' },
-                    { id: 'international', label: 'International Economics' },
-                    { id: 'business', label: 'Business Economics' },
-                    { id: 'finance', label: 'Finance' }
-                  ],
-                  psychology: [
-                    { id: 'general', label: 'General Psychology' },
-                    { id: 'developmental', label: 'Developmental Psychology' },
-                    { id: 'cognitive', label: 'Cognitive Psychology' },
-                    { id: 'abnormal', label: 'Abnormal Psychology' },
-                    { id: 'social', label: 'Social Psychology' }
-                  ],
-                  art: [
-                    { id: 'drawing', label: 'Drawing' },
-                    { id: 'painting', label: 'Painting' },
-                    { id: 'sculpture', label: 'Sculpture' },
-                    { id: 'digital', label: 'Digital Art' }
-                  ],
-                  music: [
-                    { id: 'theory', label: 'Music Theory' },
-                    { id: 'instrumental', label: 'Instrumental' },
-                    { id: 'vocal', label: 'Vocal' },
-                    { id: 'composition', label: 'Composition' }
-                  ],
-                  physical: [
-                    { id: 'fitness', label: 'Fitness' },
-                    { id: 'sports', label: 'Sports' },
-                    { id: 'nutrition', label: 'Nutrition' },
-                    { id: 'wellness', label: 'Wellness' }
-                  ]
-                };
-                
-                // Find the course in the coursesBySubject
-                if (coursesBySubject[subjectId]) {
-                  const courseObj = coursesBySubject[subjectId].find(c => c.id === courseCode);
-                  if (courseObj) {
-                    courseName = courseObj.label;
-                    category = subjectId;
-                  } else {
-                    courseName = 'Unknown Course';
-                    category = 'other';
-                  }
-                } else {
-                  courseName = 'Unknown Course';
-                  category = 'other';
-                }
-              }
-            } else {
-              // Handle legacy format or malformed course IDs
-              courseName = courseId;
-              category = 'other';
-            }
-            
-            // Map category IDs to display categories
-            const categoryMapping = {
-              math: 'mathematics',
-              science: 'science',
-              history: 'history',
-              language: 'language',
-              foreign: 'language',
-              computer: 'computer-science',
-              engineering: 'engineering',
-              economics: 'economics',
-              psychology: 'psychology',
-              art: 'arts',
-              music: 'arts',
-              physical: 'physical-education',
-              other: 'other'
-            };
-            
-            const displayCategory = categoryMapping[category] || 'other';
-            
-            // Initialize with zero progress - will be updated with actual progress after loading
-            const progress = 0;
-            const status = 'not-started';
-            
-            // Get image URL based on course name and category
-            const imageUrl = getSubjectImageUrl(courseName, displayCategory);
-            
-            // Set a default last accessed date (today's date)
-            const lastAccessed = new Date().toISOString().split('T')[0];
-            
-            return {
-              id: `course-${index}`,
-              courseId,
-              name: courseName,
-              category: displayCategory,
-              progress,
-              status,
-              imageUrl,
-              lastAccessed,
-              difficulty: ['Easy', 'Moderate', 'Challenging'][Math.floor(Math.random() * 3)]
-            };
-          });
-          
-          setCourses(userCourses);
-          
-          // After setting initial course data, fetch actual progress
-          fetchCourseProgress(userCourses);
-        }, 1000); // Simulate loading time
-      } else {
-        // No courses found
+      try {
+        const userData = JSON.parse(onboardingData);
+        if (userData.courses && Array.isArray(userData.courses)) {
+          setTimeout(() => {
+            processUserCourses(userData);
+          }, 1000);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error parsing onboarding data:", error);
         setLoading(false);
       }
     } else {
-      // No user data found
       setLoading(false);
     }
-  }, []);
+  };
   
-  // Function to fetch actual course progress
+  const processUserCourses = (userData) => {
+    const userCourses = userData.courses.map((courseId, index) => {
+      let courseName, category;
+      if (courseId.includes('-')) {
+        const [subjectId, courseCode] = courseId.split('-');
+        if (courseCode === 'other' && userData.customCourses && userData.customCourses[subjectId]) {
+          courseName = userData.customCourses[subjectId];
+          category = subjectId;
+        } else {
+          const coursesBySubject = {
+            math: [
+              { id: 'algebra', label: 'Algebra' },
+              { id: 'geometry', label: 'Geometry' },
+              { id: 'calculus', label: 'Calculus' },
+              { id: 'statistics', label: 'Statistics' },
+              { id: 'trigonometry', label: 'Trigonometry' }
+            ],
+            science: [
+              { id: 'biology', label: 'Biology' },
+              { id: 'chemistry', label: 'Chemistry' },
+              { id: 'physics', label: 'Physics' },
+              { id: 'environmental', label: 'Environmental Science' },
+              { id: 'astronomy', label: 'Astronomy' }
+            ],
+            history: [
+              { id: 'world', label: 'World History' },
+              { id: 'us', label: 'US History' },
+              { id: 'european', label: 'European History' },
+              { id: 'ancient', label: 'Ancient Civilizations' },
+              { id: 'modern', label: 'Modern History' }
+            ],
+            language: [
+              { id: 'composition', label: 'Composition' },
+              { id: 'literature', label: 'Literature' },
+              { id: 'grammar', label: 'Grammar' },
+              { id: 'creative', label: 'Creative Writing' },
+              { id: 'speech', label: 'Speech & Debate' }
+            ],
+            foreign: [
+              { id: 'spanish', label: 'Spanish' },
+              { id: 'french', label: 'French' },
+              { id: 'german', label: 'German' },
+              { id: 'chinese', label: 'Chinese' },
+              { id: 'japanese', label: 'Japanese' }
+            ],
+            computer: [
+              { id: 'programming', label: 'Programming' },
+              { id: 'webdev', label: 'Web Development' },
+              { id: 'database', label: 'Database Systems' },
+              { id: 'ai', label: 'Artificial Intelligence' },
+              { id: 'cybersecurity', label: 'Cybersecurity' }
+            ],
+            engineering: [
+              { id: 'mechanical', label: 'Mechanical Engineering' },
+              { id: 'electrical', label: 'Electrical Engineering' },
+              { id: 'civil', label: 'Civil Engineering' },
+              { id: 'chemical', label: 'Chemical Engineering' },
+              { id: 'software', label: 'Software Engineering' }
+            ],
+            economics: [
+              { id: 'micro', label: 'Microeconomics' },
+              { id: 'macro', label: 'Macroeconomics' },
+              { id: 'international', label: 'International Economics' },
+              { id: 'business', label: 'Business Economics' },
+              { id: 'finance', label: 'Finance' }
+            ],
+            psychology: [
+              { id: 'general', label: 'General Psychology' },
+              { id: 'developmental', label: 'Developmental Psychology' },
+              { id: 'cognitive', label: 'Cognitive Psychology' },
+              { id: 'abnormal', label: 'Abnormal Psychology' },
+              { id: 'social', label: 'Social Psychology' }
+            ],
+            art: [
+              { id: 'drawing', label: 'Drawing' },
+              { id: 'painting', label: 'Painting' },
+              { id: 'sculpture', label: 'Sculpture' },
+              { id: 'digital', label: 'Digital Art' }
+            ],
+            music: [
+              { id: 'theory', label: 'Music Theory' },
+              { id: 'instrumental', label: 'Instrumental' },
+              { id: 'vocal', label: 'Vocal' },
+              { id: 'composition', label: 'Composition' }
+            ],
+            physical: [
+              { id: 'fitness', label: 'Fitness' },
+              { id: 'sports', label: 'Sports' },
+              { id: 'nutrition', label: 'Nutrition' },
+              { id: 'wellness', label: 'Wellness' }
+            ]
+          };
+          if (coursesBySubject[subjectId]) {
+            const courseObj = coursesBySubject[subjectId].find(c => c.id === courseCode);
+            if (courseObj) {
+              courseName = courseObj.label;
+              category = subjectId;
+            } else {
+              courseName = 'Unknown Course';
+              category = 'other';
+            }
+          } else {
+            courseName = 'Unknown Course';
+            category = 'other';
+          }
+        }
+      } else {
+        courseName = courseId;
+        category = 'other';
+      }
+      
+      const categoryMapping = {
+        math: 'mathematics',
+        science: 'science',
+        history: 'history',
+        language: 'language',
+        foreign: 'language',
+        computer: 'computer-science',
+        engineering: 'engineering',
+        economics: 'economics',
+        psychology: 'psychology',
+        art: 'arts',
+        music: 'arts',
+        physical: 'physical-education',
+        other: 'other'
+      };
+      
+      const displayCategory = categoryMapping[category] || 'other';
+      const progress = 0;
+      const status = 'not-started';
+      const imageUrl = getSubjectImageUrl(courseName, displayCategory);
+      const lastAccessed = new Date().toISOString().split('T')[0];
+      
+      return {
+        id: `course-${index}`,
+        courseId,
+        name: courseName,
+        category: displayCategory,
+        progress,
+        status,
+        imageUrl,
+        lastAccessed,
+        difficulty: ['Easy', 'Moderate', 'Challenging'][Math.floor(Math.random() * 3)]
+      };
+    });
+    
+    setCourses(userCourses);
+    if (userCourses.length > 0) {
+      fetchCourseProgress(userCourses);
+    } else {
+      setLoading(false);
+    }
+  };
+  
   const fetchCourseProgress = async (initialCourses) => {
     try {
-      // Create a copy of the courses array to update
       const updatedCourses = [...initialCourses];
-      
-      // For each course, fetch its actual progress
       for (let i = 0; i < updatedCourses.length; i++) {
         const course = updatedCourses[i];
-        // Get progress from progress tracker
         const progress = await getProgressFromFirebase(course.name);
-        
-        // Update course with actual progress
         updatedCourses[i] = {
           ...course,
           progress,
@@ -227,10 +218,7 @@ const CoursesPage = () => {
         };
       }
       
-      // Update courses with actual progress data
       setCourses(updatedCourses);
-      
-      // Calculate course statistics based on actual progress
       const activeCourses = updatedCourses.filter(c => c.status === 'in-progress').length;
       const completedCourses = updatedCourses.filter(c => c.status === 'completed').length;
       
@@ -244,23 +232,18 @@ const CoursesPage = () => {
     }
   };
   
-  // Filter courses by category
   const filteredCourses = filterCategory === 'all' 
     ? courses 
     : courses.filter(course => course.category === filterCategory);
   
-  // Calculate user's overall progress
   const overallProgress = courses.length > 0
     ? Math.round(courses.reduce((sum, course) => sum + course.progress, 0) / courses.length)
     : 0;
 
-  // Function to handle course update confirmation
   const handleUpdateCourses = () => {
-    // User confirmed, navigate to onboarding page
     navigate('/onboarding');
   };
 
-  // Function to render the empty state UI with confirm modal
   const renderEmptyCourses = () => (
     <div className="courses-empty">
       <IconBook size={64} />
@@ -319,8 +302,10 @@ const CoursesPage = () => {
         <div className="dashboard-header">
           <h1>My Courses</h1>
           <div className="user-profile">
-            <span className="user-name">{nickname || 'Guest'}</span>
-            <div className="user-avatar">{nickname ? nickname.substring(0, 2).toUpperCase() : 'G'}</div>
+            <span className="user-name">{user.nickname || 'Student'}</span>
+            <div className="user-avatar">
+              {user.nickname ? user.nickname.substring(0, 2).toUpperCase() : 'ST'}
+            </div>
           </div>
         </div>
         
@@ -484,7 +469,6 @@ const CoursesPage = () => {
         </div>
       </div>
       
-      {/* Confirmation Modal for updating courses */}
       <ConfirmationModal 
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}

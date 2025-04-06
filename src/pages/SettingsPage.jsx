@@ -1,28 +1,68 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import './SettingsPage.css';
 import Logo from '../assets/logo-white.png';
 import { 
   IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, 
   IconClipboard, IconUsers, IconMoon, IconSun, IconBell, 
-  IconMail, IconVolume, IconLanguage, IconCheck, IconLetterA, IconSparkles
+  IconMail, IconVolume, IconLanguage, IconCheck, IconLetterA,
+  IconSparkles, IconLogout, IconAlertCircle, IconX
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../context/UserContext';
+import { signOut } from '@firebase/auth';
+import { auth } from '../../firebase';
+
+// SignOut Confirmation Modal Component
+const SignOutConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+  
+  return (
+    <motion.div
+      className="modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div 
+        className="confirmation-modal"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      >
+        <div className="modal-header">
+          <IconAlertCircle size={24} className="warning-icon" />
+          <h3>Sign Out</h3>
+          <button className="close-modal-button" onClick={onClose}>
+            <IconX size={20} />
+          </button>
+        </div>
+        
+        <div className="modal-content">
+          <p>Are you sure you want to sign out from AdaptIQ?</p>
+        </div>
+        
+        <div className="modal-actions">
+          <button className="modal-button secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="modal-button primary" onClick={onConfirm}>
+            Sign Out
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const SettingsPage = () => {
+  const navigate = useNavigate();
   const { theme, toggleTheme, isDarkMode, settings, updateSetting } = useTheme();
-  const [nickname, setNickname] = useState('');
+  const { user } = useUser(); // Use UserContext instead of local state
   const [saveAnimation, setSaveAnimation] = useState(false);
-
-  // Load user nickname from localStorage
-  useEffect(() => {
-    const onboardingData = localStorage.getItem('onboardingData');
-    if (onboardingData) {
-      const userData = JSON.parse(onboardingData);
-      if (userData.nickname) setNickname(userData.nickname);
-    }
-  }, []);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   // Handle font size change
   const handleFontSizeChange = (size) => {
@@ -49,6 +89,21 @@ const SettingsPage = () => {
     // Show save animation
     setSaveAnimation(true);
     setTimeout(() => setSaveAnimation(false), 1500);
+  };
+
+  // Handle sign out click
+  const handleSignOutClick = () => {
+    setShowSignOutModal(true);
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
@@ -95,8 +150,10 @@ const SettingsPage = () => {
         <div className="dashboard-header">
           <h1>Settings</h1>
           <div className="user-profile">
-            <span className="user-name">{nickname || 'Guest'}</span>
-            <div className="user-avatar">{nickname ? nickname.substring(0, 2).toUpperCase() : 'G'}</div>
+            <span className="user-name">{user.nickname || 'Student'}</span>
+            <div className="user-avatar">
+              {user.nickname ? user.nickname.substring(0, 2).toUpperCase() : 'ST'}
+            </div>
           </div>
         </div>
         
@@ -270,6 +327,29 @@ const SettingsPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Account Section with Sign Out Button */}
+          <div className="settings-section">
+            <h2 className="settings-title">Account</h2>
+            
+            <div className="settings-card">
+              <div className="settings-item">
+                <div className="settings-item-label">
+                  <h3>Sign Out</h3>
+                  <p>Sign out from your AdaptIQ account</p>
+                </div>
+                <div className="sign-out-button-container">
+                  <button 
+                    className="sign-out-button-settings"
+                    onClick={handleSignOutClick}
+                  >
+                    <IconLogout size={20} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Save Animation */}
@@ -288,6 +368,13 @@ const SettingsPage = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutConfirmationModal 
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        onConfirm={handleSignOut}
+      />
     </div>
   );
 };

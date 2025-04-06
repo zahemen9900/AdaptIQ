@@ -30,6 +30,7 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import InspirationPage from './pages/InspirationPage'
 import { ThemeProvider } from './context/ThemeContext'
+import { UserProvider } from './context/UserContext'
 
 // Create a HomePage component to contain all the sections
 const HomePage = () => {
@@ -74,26 +75,28 @@ function App() {
 
   return (
     <ThemeProvider>
-      {!isAuthPage && <Navbar />}
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/pages" element={<FAQPage />} />
-        <Route path="/contactUs" element={<ContactPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/loading" element={<LoadingPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/dashboard/courses" element={<CoursesPage />} />
-        <Route path="/dashboard/schedule" element={<SchedulePage />} />
-        <Route path="/dashboard/assignments" element={<AssignmentsPage />} />
-        <Route path="/dashboard/course/:courseId" element={<CourseLearningPage />} />
-        <Route path="/dashboard/profile" element={<ProfilePage />} />
-        <Route path="/dashboard/settings" element={<SettingsPage />} />
-        <Route path="/dashboard/inspiration" element={<InspirationPage />} />
-      </Routes>
-      {!isAuthPage && <Footer />}
+      <UserProvider>
+        {!isAuthPage && <Navbar />}
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/pages" element={<FAQPage />} />
+          <Route path="/contactUs" element={<ContactPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/loading" element={<LoadingPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard/courses" element={<CoursesPage />} />
+          <Route path="/dashboard/schedule" element={<SchedulePage />} />
+          <Route path="/dashboard/assignments" element={<AssignmentsPage />} />
+          <Route path="/dashboard/course/:courseId" element={<CourseLearningPage />} />
+          <Route path="/dashboard/profile" element={<ProfilePage />} />
+          <Route path="/dashboard/settings" element={<SettingsPage />} />
+          <Route path="/dashboard/inspiration" element={<InspirationPage />} />
+        </Routes>
+        {!isAuthPage && <Footer />}
+      </UserProvider>
     </ThemeProvider>
   )
 }

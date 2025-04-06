@@ -294,3 +294,184 @@ html.theme-dark .user-name {
     justify-content: space-between;
   }
 }
+
+/* Sign Out Button Styling */
+.sign-out-button-container {
+  display: flex;
+  align-items: center;
+}
+
+.sign-out-button-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sign-out-button-settings:hover {
+  background-color: #d32f2f;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.sign-out-button-settings svg {
+  margin-right: 8px;
+}
+
+/* Modal Styling (if not already defined) */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmation-modal {
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eaeaea;
+  position: relative;
+  background-color: #f8f8f8;
+}
+
+.warning-icon {
+  color: #f44336;
+  margin-right: 12px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  flex-grow: 1;
+}
+
+.close-modal-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #666;
+}
+
+.close-modal-button:hover {
+  background-color: #eaeaea;
+  color: #333;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.modal-content p {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid #eaeaea;
+  gap: 12px;
+}
+
+.modal-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.modal-button.secondary {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.modal-button.secondary:hover {
+  background-color: #e5e5e5;
+}
+
+.modal-button.primary {
+  background-color: #f44336;
+  color: white;
+}
+
+.modal-button.primary:hover {
+  background-color: #d32f2f;
+}
+
+/* Dark Theme Support */
+.dark-theme .confirmation-modal {
+  background: #222;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.dark-theme .modal-header {
+  background-color: #2a2a2a;
+  border-bottom: 1px solid #333;
+}
+
+.dark-theme .modal-header h3 {
+  color: #fff;
+}
+
+.dark-theme .close-modal-button {
+  color: #aaa;
+}
+
+.dark-theme .close-modal-button:hover {
+  background-color: #444;
+  color: #fff;
+}
+
+.dark-theme .modal-content p {
+  color: #ddd;
+}
+
+.dark-theme .modal-actions {
+  border-top: 1px solid #333;
+}
+
+.dark-theme .modal-button.secondary {
+  background-color: #333;
+  color: #eee;
+}
+
+.dark-theme .modal-button.secondary:hover {
+  background-color: #444;
+}

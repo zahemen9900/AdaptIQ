@@ -19,6 +19,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from '@firebase/auth';
 import { auth } from '../../firebase';
+import { useUser } from '../context/UserContext';
 
 // SignOut Confirmation Modal Component
 const SignOutConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
@@ -65,8 +66,8 @@ const SignOutConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  // State for user information
-  const [nickname, setNickname] = useState('');
+  const { user, updateUserData } = useUser(); // Use the global user context
+  
   const [courseData, setCourseData] = useState({
     totalCourses: 0,
     activeCourses: 0,
@@ -159,16 +160,11 @@ const DashboardPage = () => {
     setRefreshing(true);
     
     try {
-      // Get user information from local storage
-      const onboardingData = localStorage.getItem('onboardingData');
-      let userData = null;
-      
-      if (onboardingData) {
-        userData = JSON.parse(onboardingData);
-      }
-      
       // Refresh all dashboard data
-      const courseInfo = await fetchCourseData(userData);
+      const courseInfo = await fetchCourseData({
+        courses: user.courses,
+        nickname: user.nickname
+      });
       setCourseData(courseInfo);
       
       // Filter top courses for progress display
@@ -262,17 +258,12 @@ const DashboardPage = () => {
       setLoading(true);
       
       try {
-        // Get user information from local storage
-        const onboardingData = localStorage.getItem('onboardingData');
-        let userData = null;
+        // Get course data using the user data from context
+        const courseInfo = await fetchCourseData({
+          courses: user.courses,
+          nickname: user.nickname
+        });
         
-        if (onboardingData) {
-          userData = JSON.parse(onboardingData);
-          if (userData.nickname) setNickname(userData.nickname);
-        }
-        
-        // Get course data
-        const courseInfo = await fetchCourseData(userData);
         setCourseData(courseInfo);
         
         // Filter top courses for progress display
@@ -291,8 +282,11 @@ const DashboardPage = () => {
       }
     };
     
-    loadData();
-  }, []);
+    // Only load data if user is authenticated and not loading
+    if (!user.loadingUser) {
+      loadData();
+    }
+  }, [user.loadingUser, user.courses, user.nickname]);
   
   // Function to fetch course data
   const fetchCourseData = async (userData) => {
@@ -573,8 +567,10 @@ const DashboardPage = () => {
         <div className="dashboard-header">
           <h1>Dashboard Overview</h1>
           <div className="user-profile">
-            <span className="user-name">{nickname || 'Guest'}</span>
-            <div className="user-avatar">{nickname ? nickname.substring(0, 2).toUpperCase() : 'G'}</div>
+            <span className="user-name">{user.nickname || 'Student'}</span>
+            <div className="user-avatar">
+              {user.nickname ? user.nickname.substring(0, 2).toUpperCase() : 'ST'}
+            </div>
             <button className="sign-out-button" onClick={handleSignOutClick}>
               <IconLogout size={18} />
             </button>

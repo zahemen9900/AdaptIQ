@@ -6,9 +6,11 @@ import { IconArrowRight, IconEye, IconEyeOff } from "@tabler/icons-react";
 import { signInWithEmailAndPassword } from "@firebase/auth";
 import { auth, db } from "../../firebase";
 import { doc, getDoc } from "@firebase/firestore";
+import { useUser } from "../context/UserContext";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { updateUserData } = useUser();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -16,6 +18,7 @@ const LoginPage = () => {
     showPassword: false,
   });
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -45,42 +48,79 @@ const LoginPage = () => {
       setErrors(newErrors);
       return; 
     }  
+
+    setIsLoading(true);
+    
     try {
-      const user = await signIn(formData.email, formData.password); 
-      if(user){
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      setErrors('An error occurred during login');
-      console.error('Login error:', error);
-    }
-    };
-  
-  const signIn = async(email,password) => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password); 
-      const user = userCredential.user
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password); 
+      const user = userCredential.user;
       
       if (user) {
-        
+        // Get user data directly from Firestore
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         
-  
         if (userSnap.exists()) {
-          console.log("User data:", userSnap.data());
-          return true;
+          // Found user in Firestore
+          const userData = userSnap.data();
+          console.log("User data from Firestore:", userData);
+          
+          // Update the user context with Firebase data
+          updateUserData({
+            nickname: userData.nickname || 'Student',
+            isAuthenticated: true,
+            uid: user.uid,
+            courses: userData.courses || [],
+            loadingUser: false
+          });
+          
+          // We don't need to overwrite localStorage data here
+          // as the UserContext is now the source of truth
         } else {
-          console.log("No such user data in Firestore!");
+          // No Firestore data, try to use localStorage as fallback
+          console.log("No user data found in Firestore, using localStorage");
+          const onboardingData = localStorage.getItem('onboardingData');
+          
+          if (onboardingData) {
+            const localData = JSON.parse(onboardingData);
+            updateUserData({
+              nickname: localData.nickname || 'Student',
+              isAuthenticated: true,
+              uid: user.uid,
+              courses: localData.courses || [],
+              loadingUser: false
+            });
+          } else {
+            // No data anywhere, use default values
+            updateUserData({
+              nickname: 'Student',
+              isAuthenticated: true,
+              uid: user.uid,
+              courses: [],
+              loadingUser: false
+            });
+          }
         }
+        
+        // Navigate to dashboard after updating user context
+        navigate('/dashboard');
       }
     } catch (error) {
+      console.error("Login error:", error);
       const errorCode = error.code;
-      const errorMessage = error.message;
-      console.log(errorCode, errorMessage);
+      
+      // Handle specific Firebase auth errors with user-friendly messages
+      if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password') {
+        setErrors({general: 'Invalid email or password'});
+      } else if (errorCode === 'auth/too-many-requests') {
+        setErrors({general: 'Too many failed login attempts. Please try again later.'});
+      } else {
+        setErrors({general: 'An error occurred during login'});
+      }
+    } finally {
+      setIsLoading(false);
     }
-  }
-
+  };
 
   return (
     <div className="login-page">
@@ -104,6 +144,7 @@ const LoginPage = () => {
               onChange={handleChange}
               placeholder="Enter your email address"
               className={errors.email ? "error" : ""}
+              disabled={isLoading}
             />
             {errors.email && (
               <span className="error-message">{errors.email}</span>
@@ -121,6 +162,7 @@ const LoginPage = () => {
                 onChange={handleChange}
                 placeholder="Enter your password"
                 className={errors.password ? "error" : ""}
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -131,6 +173,7 @@ const LoginPage = () => {
                     showPassword: !prev.showPassword,
                   }))
                 }
+                disabled={isLoading}
               >
                 {formData.showPassword ? (
                   <IconEye size={20} />
@@ -144,6 +187,12 @@ const LoginPage = () => {
             )}
           </div>
 
+          {errors.general && (
+            <div className="general-error">
+              <span className="error-message">{errors.general}</span>
+            </div>
+          )}
+
           <div className="form-options">
             <div className="remember-me">
               <input
@@ -152,6 +201,7 @@ const LoginPage = () => {
                 name="rememberMe"
                 checked={formData.rememberMe}
                 onChange={handleChange}
+                disabled={isLoading}
               />
               <label htmlFor="rememberMe">Remember me</label>
             </div>
@@ -160,8 +210,8 @@ const LoginPage = () => {
             </Link>
           </div>
 
-          <button type="submit" className="login-button">
-            Log In <IconArrowRight size={18} />
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? 'Logging In...' : 'Log In'} {!isLoading && <IconArrowRight size={18} />}
           </button>
         </form>
 
