@@ -41,7 +41,7 @@ const subjectImageUrls = {
   'Programming': 'https://img.freepik.com/free-vector/laptop-with-program-code-isometric-icon-software-development-programming-applications-dark-neon_39422-971.jpg',
   'Web Development': 'https://img.freepik.com/premium-photo/side-view-portrait-contemporary-african-american-woman-writing-code-looking-computer-screen-while-working-dim-office-copy-space_236854-25125.jpg?w=996',
   'Database Systems': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRgeL-h9orNjnGD9YE9Sxc7Lbw42DDdeCWaQ&s',
-  'Artificial Intelligence': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMjoB1XueXz3wgyw-OgkteVUFen3hzBazHfw&s',
+  'Artificial Intelligence': 'https://www.keysight.com/content/dam/keysight/en/img/learn/AI-14_1600X900.jpg',
   'Cybersecurity': 'https://www.shutterstock.com/image-photo/glowing-digital-lock-surrounded-by-600nw-2517566697.jpg',
   
   // Arts subjects

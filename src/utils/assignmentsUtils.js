@@ -908,17 +908,47 @@ export const saveAssignmentsToFirestore = async (assignments) => {
     // Reference to the user's assignments collection for this week
     const weekRef = collection(db, "users", userId, "assignments");
     
-    // First, delete existing assignments for this week
+    // First, get existing assignments for this week
     const weekQuery = query(weekRef, where("weekIdentifier", "==", weekIdentifier));
     const existingDocs = await getDocs(weekQuery);
     
-    // Delete existing assignments for this week
+    // Create a map of existing assignments to check against
+    const existingAssignments = {};
+    const completedAssignments = [];
+    
     existingDocs.forEach((document) => {
-      batch.delete(document.ref);
+      const data = document.data();
+      existingAssignments[document.id] = data;
+      
+      // Save completed assignments to preserve them
+      if (data.status === 'completed') {
+        completedAssignments.push({
+          firestoreId: document.id,
+          ...data
+        });
+      } else {
+        // Delete only non-completed assignments
+        batch.delete(document.ref);
+      }
     });
 
-    // Add new assignments
+    // Add new assignments, avoiding duplicates with completed ones
+    const newAssignmentsToAdd = [];
+    
     for (const assignment of assignments) {
+      // Skip if we have an identical completed assignment for the same subject
+      const isDuplicate = completedAssignments.some(completed => 
+        completed.subject === assignment.subject && 
+        completed.title === assignment.title
+      );
+      
+      if (!isDuplicate) {
+        newAssignmentsToAdd.push(assignment);
+      }
+    }
+    
+    // Add both new assignments and preserved completed assignments
+    for (const assignment of newAssignmentsToAdd) {
       const assignmentData = {
         ...assignment,
         userId,
@@ -938,9 +968,20 @@ export const saveAssignmentsToFirestore = async (assignments) => {
     // Commit the batch
     await batch.commit();
     
-    // Also save to localStorage as a fallback for offline support
-    localStorage.setItem('userAssignments', JSON.stringify(assignments));
+    // Combine completed assignments with new ones for localStorage
+    const combinedAssignments = [...completedAssignments.map(a => {
+      // Convert Firestore timestamps to ISO strings for localStorage
+      return {
+        ...a,
+        createdDate: a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().toISOString() : a.createdAt) : a.createdDate,
+        updatedAt: a.updatedAt ? (a.updatedAt.toDate ? a.updatedAt.toDate().toISOString() : a.updatedAt) : null
+      };
+    }), ...newAssignmentsToAdd];
     
+    // Also save to localStorage as a fallback for offline support
+    localStorage.setItem('userAssignments', JSON.stringify(combinedAssignments));
+    
+    console.log(`Saved ${newAssignmentsToAdd.length} new assignments while preserving ${completedAssignments.length} completed assignments`);
     return true;
   } catch (error) {
     console.error("Error saving assignments to Firestore:", error);

@@ -198,7 +198,6 @@
   position: relative;
 }
 
-
 .chat-header {
   display: flex;
   align-items: center;
@@ -221,7 +220,6 @@
   border-bottom: 1px solid rgba(45, 56, 85, 0.4);
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
 }
-
 
 .chat-header-left {
   display: flex;
@@ -2607,4 +2605,265 @@
 
 .theme-dark .cancel-file-button:hover {
   background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Chat message action buttons */
+.message-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  margin-top: 6px;
+  justify-content: flex-start;
+}
+
+.chat-message:hover .message-actions {
+  opacity: 1;
+}
+
+.message-action-btn {
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.message-action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Different hover colors for different actions */
+.message-action-btn:nth-child(1):hover {
+  color: #3b82f6; /* Copy - blue */
+}
+
+.message-action-btn:nth-child(2):hover {
+  color: #10b981; /* Like - green */
+}
+
+.message-action-btn:nth-child(3):hover {
+  color: #ef4444; /* Dislike - red */
+}
+
+.message-action-btn:nth-child(4):hover {
+  color: #8b5cf6; /* Regenerate - purple */
+}
+
+/* Copy notification popup */
+.copy-notification {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #3b82f6;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  animation: fadeInOut 1.5s forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Feedback Popup Modal */
+.feedback-popup-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.feedback-popup-content {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.feedback-popup-content h4 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.feedback-textarea {
+  width: 100%;
+  height: 120px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: none;
+}
+
+.feedback-textarea:focus {
+  outline: none;
+  border-color: #4a6bfb;
+  box-shadow: 0 0 0 2px rgba(74, 107, 251, 0.2);
+}
+
+.feedback-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.feedback-cancel-button {
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.feedback-cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.feedback-submit-button {
+  background-color: #4a6bfb;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.feedback-submit-button:hover {
+  background-color: #3a5be0;
+}
+
+/* Feedback Thanks Message */
+.feedback-thanks-message {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #10b981;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  z-index: 1000;
+}
+
+.feedback-thanks-message p {
+  margin: 0;
+}
+
+/* Dark Theme Styles */
+.theme-dark .feedback-popup-content {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .feedback-popup-content h4 {
+  color: var(--text-primary);
+}
+
+.theme-dark .feedback-textarea {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.theme-dark .feedback-textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(74, 107, 251, 0.2);
+}
+
+.theme-dark .feedback-cancel-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.theme-dark .feedback-cancel-button:hover {
+  background-color: var(--bg-elevated);
+}
+
+/* Responsive Styles for small screens */
+@media (max-width: 480px) {
+  .feedback-popup-content {
+    padding: 16px;
+    width: 95%;
+  }
+  
+  .feedback-textarea {
+    height: 100px;
+  }
+}
+
+/* Liked and disliked button states */
+.message-action-btn.liked {
+  color: #10b981; /* Green for liked state */
+}
+
+.message-action-btn.disliked {
+  color: #ef4444; /* Red for disliked state */
+}
+
+/* Make sure selected states remain visible even when not hovering */
+.chat-message:not(:hover) .message-actions .message-action-btn.liked,
+.chat-message:not(:hover) .message-actions .message-action-btn.disliked {
+  opacity: 1;
+}
+
+.chat-message:not(:hover) .message-actions {
+  opacity: 0;
+}
+
+.chat-message:not(:hover) .message-actions .message-action-btn.liked,
+.chat-message:not(:hover) .message-actions .message-action-btn.disliked {
+  opacity: 0.7; /* Slightly visible when not hovering */
+}
+
+/* Like Thanks Message */
+.like-thanks-message {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #10b981;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  z-index: 1000;
+}
+
+.like-thanks-message p {
+  margin: 0;
 }

@@ -447,7 +447,6 @@ const InspirationPage = () => {
         <div className="header-actions">
           <Link to="/dashboard" className="return-button">
             <IconArrowLeft size={20} />
-            <span>Back to Dashboard</span>
           </Link>
           <button 
             className={`refresh-button ${refreshing ? 'refreshing' : ''}`}
@@ -455,7 +454,6 @@ const InspirationPage = () => {
             disabled={refreshing}
           >
             <IconRefresh size={20} className={refreshing ? 'spin' : ''} />
-            <span>{refreshing ? 'Refreshing...' : 'Refresh Feed'}</span>
           </button>
         </div>
       </div>

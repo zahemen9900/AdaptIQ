@@ -8,7 +8,8 @@ import {
   IconQuestionMark, IconNotebook, IconSend, IconHistory,
   IconChartLine, IconActivity, IconRefresh, IconPhotoUp,
   IconTrash, IconCheck, IconX, IconDownload, IconExternalLink,
-  IconAlertTriangle, IconClock, IconSparkles, IconFileText
+  IconAlertTriangle, IconClock, IconSparkles, IconFileText,
+  IconCopy, IconThumbUp, IconThumbDown
 } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -27,7 +28,8 @@ import {
   getOrCreateSessionId,
   endCurrentSession,
   getConversationSession,
-  forceNewSession
+  forceNewSession,
+  updateMessageFeedback
 } from '../utils/chatHistoryUtils';
 import { getAssignments, formatAssignmentDate } from '../utils/assignmentsUtils';
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -149,6 +151,17 @@ const CourseLearningPage = () => {
 
   // State for confirmation modal
   const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
+
+  // Add these additional state variables after the other state declarations
+  const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackMessageId, setFeedbackMessageId] = useState(null);
+  const [showFeedbackThanks, setShowFeedbackThanks] = useState(false);
+
+  // Add these additional state variables after the existing state declarations
+  const [likedMessages, setLikedMessages] = useState({});
+  const [dislikedMessages, setDislikedMessages] = useState({});
+  const [showLikeThanks, setShowLikeThanks] = useState(false);
 
   // Check for Firebase authentication status
   useEffect(() => {
@@ -1903,9 +1916,286 @@ complete the assignment successfully. Focus on guiding their learning rather tha
                                   </ReactMarkdown>
                                 </div>
                               )}
-                              <span className="message-time">
-                                {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                              </span>
+                              
+                              {/* User message copy button */}
+                              {message.sender === 'user' && !message.isThinking && (
+                                <div className="message-actions user-message-actions">
+                                  <button 
+                                    className="message-action-btn"
+                                    title="Copy to clipboard"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(message.content);
+                                      
+                                      // Visual feedback for copy button
+                                      const button = e.currentTarget;
+                                      const originalIcon = button.innerHTML;
+                                      
+                                      // Change button to checkmark
+                                      button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>';
+                                      button.style.color = '#10b981'; // Success green color
+                                      
+                                      // Record feedback data for copied response (ML training data)
+                                      if (currentSessionId) {
+                                        updateMessageFeedback(
+                                          courseName,
+                                          mode,
+                                          currentSessionId,
+                                          message.timestamp,
+                                          { copied_response: true }
+                                        ).then(success => {
+                                          console.log("Recorded copy feedback:", success);
+                                        });
+                                      }
+                                      
+                                      // Reset after 1.5 seconds
+                                      setTimeout(() => {
+                                        button.innerHTML = originalIcon;
+                                        button.style.color = '';
+                                      }, 1500);
+                                    }}
+                                  >
+                                    <IconCopy size={14} />
+                                  </button>
+                                </div>
+                              )}
+                              
+                              {/* Bot message actions */}
+                              {message.sender === 'bot' && !message.isThinking && !message.isResource && (
+                                <div className="message-actions">
+                                  <button 
+                                    className="message-action-btn"
+                                    title="Copy to clipboard"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(message.content);
+                                      
+                                      // Visual feedback for copy button
+                                      const button = e.currentTarget;
+                                      const originalIcon = button.innerHTML;
+                                      
+                                      // Change button to checkmark
+                                      button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>';
+                                      button.style.color = '#10b981'; // Success green color
+                                      
+                                      // Record feedback data for copied response (ML training data)
+                                      if (currentSessionId) {
+                                        updateMessageFeedback(
+                                          courseName,
+                                          mode,
+                                          currentSessionId,
+                                          message.timestamp,
+                                          { copied_response: true }
+                                        ).then(success => {
+                                          console.log("Recorded copy feedback:", success);
+                                        });
+                                      }
+                                      
+                                      // Reset after 1.5 seconds
+                                      setTimeout(() => {
+                                        button.innerHTML = originalIcon;
+                                        button.style.color = '';
+                                      }, 1500);
+                                    }}
+                                  >
+                                    <IconCopy size={14} />
+                                  </button>
+                                  <button 
+                                    className={`message-action-btn ${likedMessages[message.id] ? 'liked' : ''}`}
+                                    title="Like this response"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      
+                                      // Update UI state
+                                      setLikedMessages(prev => ({ ...prev, [message.id]: true }));
+                                      setDislikedMessages(prev => ({ ...prev, [message.id]: false }));
+                                      
+                                      // Record feedback data for liked response (ML training data)
+                                      if (currentSessionId) {
+                                        updateMessageFeedback(
+                                          courseName,
+                                          mode,
+                                          currentSessionId,
+                                          message.timestamp,
+                                          { 
+                                            liked: true, 
+                                            disliked: false,
+                                            feedback_inferred: "positive"
+                                          }
+                                        ).then(success => {
+                                          console.log("Recorded like feedback:", success);
+                                        });
+                                      }
+                                      
+                                      // Show thanks notification
+                                      setShowLikeThanks(true);
+                                      setTimeout(() => setShowLikeThanks(false), 2000);
+                                    }}
+                                  >
+                                    <IconThumbUp size={14} />
+                                  </button>
+                                  <button 
+                                    className={`message-action-btn ${dislikedMessages[message.id] ? 'disliked' : ''}`}
+                                    title="Dislike this response"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      
+                                      // Set the current message ID for feedback
+                                      setFeedbackMessageId(message.id || Date.now().toString());
+                                      
+                                      // Mark as disliked immediately in UI
+                                      setDislikedMessages(prev => ({ ...prev, [message.id]: true }));
+                                      setLikedMessages(prev => ({ ...prev, [message.id]: false }));
+                                      
+                                      // Record initial feedback data (will be updated when text feedback is submitted)
+                                      if (currentSessionId) {
+                                        updateMessageFeedback(
+                                          courseName,
+                                          mode,
+                                          currentSessionId,
+                                          message.timestamp,
+                                          { 
+                                            disliked: true, 
+                                            liked: false,
+                                            feedback_inferred: "negative"
+                                          }
+                                        ).then(success => {
+                                          console.log("Recorded dislike feedback:", success);
+                                        });
+                                      }
+                                      
+                                      // Show the feedback popup
+                                      setShowFeedbackPopup(true);
+                                    }}
+                                  >
+                                    <IconThumbDown size={14} />
+                                  </button>
+                                  <button 
+                                    className="message-action-btn"
+                                    title="Regenerate response"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      
+                                      // Find the preceding user message
+                                      const messageIndex = chatMessages.findIndex(msg => msg === message);
+                                      let userMessageIndex = -1;
+                                      
+                                      // Look backwards from the current message to find the last user message
+                                      for (let i = messageIndex - 1; i >= 0; i--) {
+                                        if (chatMessages[i].sender === 'user') {
+                                          userMessageIndex = i;
+                                          break;
+                                        }
+                                      }
+                                      
+                                      // Record feedback data for regenerated response (ML training data)
+                                      if (currentSessionId) {
+                                        updateMessageFeedback(
+                                          courseName,
+                                          mode,
+                                          currentSessionId,
+                                          message.timestamp,
+                                          { 
+                                            regenerated: true,
+                                            feedback_inferred: "weak_negative" 
+                                          }
+                                        ).then(success => {
+                                          console.log("Recorded regenerate feedback:", success);
+                                        });
+                                      }
+                                      
+                                      if (userMessageIndex !== -1) {
+                                        // Get the user's question that triggered this response
+                                        const userMessage = chatMessages[userMessageIndex];
+                                        
+                                        // Create a copy of chat messages up to the user message
+                                        const messagesToKeep = chatMessages.slice(0, messageIndex);
+                                        
+                                        // Add a temporary thinking message
+                                        const regeneratingMessage = {
+                                          id: Date.now().toString(),
+                                          sender: 'bot',
+                                          content: '',
+                                          timestamp: new Date().toISOString(),
+                                          isThinking: true
+                                        };
+                                        
+                                        // Smooth animation: add thinking state first
+                                        setChatMessages([...messagesToKeep, regeneratingMessage]);
+                                        
+                                        // Scroll to the bottom
+                                        setTimeout(() => {
+                                          const chatContainer = document.querySelector('.chat-messages');
+                                          if (chatContainer) {
+                                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                                          }
+                                        }, 100);
+                                        
+                                        // Handle streaming updates function
+                                        const handleStreamingUpdate = (text) => {
+                                          setChatMessages(prevMessages => 
+                                            prevMessages.map(msg => 
+                                              msg.id === regeneratingMessage.id 
+                                                ? { ...msg, content: text, isThinking: false } 
+                                                : msg
+                                            )
+                                          );
+                                        };
+                                        
+                                        // Get previous context from the conversation
+                                        const conversationContext = chatMessages
+                                          .slice(0, userMessageIndex)
+                                          .slice(-6) // Get last 6 messages for context
+                                          .map(msg => `${msg.sender === 'user' ? 'Student' : 'AI Tutor'}: ${msg.content}`)
+                                          .join('\n\n');
+                                        
+                                        // Generate new response
+                                        generateChatResponse(
+                                          userMessage.content, 
+                                          courseName, 
+                                          handleStreamingUpdate,
+                                          conversationContext
+                                        ).then(responseContent => {
+                                          // Update the regenerating message with final content
+                                          setChatMessages(prevMessages => 
+                                            prevMessages.map(msg => 
+                                              msg.id === regeneratingMessage.id 
+                                                ? { ...msg, content: responseContent, isThinking: false } 
+                                                : msg
+                                            )
+                                          );
+                                          
+                                          // Save to chat history with [Regenerated] tag
+                                          saveChatHistory(
+                                            courseName,
+                                            mode,
+                                            `[Regenerated] ${userMessage.content}`,
+                                            responseContent,
+                                            currentSessionId
+                                          );
+                                        }).catch(error => {
+                                          console.error("Error regenerating response:", error);
+                                          
+                                          // Handle error case
+                                          setChatMessages(prevMessages => 
+                                            prevMessages.map(msg => 
+                                              msg.id === regeneratingMessage.id 
+                                                ? { 
+                                                    ...msg, 
+                                                    content: "I'm sorry, I encountered an error while regenerating this response. Please try again.", 
+                                                    isThinking: false 
+                                                  } 
+                                                : msg
+                                            )
+                                          );
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <IconRefresh size={14} />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </motion.div>
                         ))}                      </motion.div>
@@ -2243,6 +2533,91 @@ complete the assignment successfully. Focus on guiding their learning rather tha
           )}
         </div>
       </div>
+      
+      {/* Feedback Popup Modal */}
+      <AnimatePresence>
+        {showFeedbackPopup && (
+          <motion.div 
+            className="feedback-popup-modal"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="feedback-popup-content">
+              <h4>Provide Feedback</h4>
+              <textarea 
+                className="feedback-textarea"
+                placeholder="What didn't you like about this response? (optional)"
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+              ></textarea>
+              <div className="feedback-popup-actions">
+                <button 
+                  className="feedback-cancel-button"
+                  onClick={() => {
+                    setShowFeedbackPopup(false);
+                    setFeedbackMessage('');
+                    setFeedbackMessageId(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="feedback-submit-button"
+                  onClick={() => {
+                    // Simulate feedback submission
+                    console.log(`Feedback submitted for message ID ${feedbackMessageId}: ${feedbackMessage}`);
+                    
+                    // Show thank you message
+                    setShowFeedbackThanks(true);
+                    
+                    // Hide popup after 2 seconds
+                    setTimeout(() => {
+                      setShowFeedbackThanks(false);
+                      setShowFeedbackPopup(false);
+                      setFeedbackMessage('');
+                      setFeedbackMessageId(null);
+                    }, 2000);
+                  }}
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Feedback Thanks Message */}
+      <AnimatePresence>
+        {showFeedbackThanks && (
+          <motion.div 
+            className="feedback-thanks-message"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.1 }}
+          >
+            <p>Thank you for your feedback!</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Like Thanks Message */}
+      <AnimatePresence>
+        {showLikeThanks && (
+          <motion.div 
+            className="like-thanks-message"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <p>Thanks for your feedback!</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

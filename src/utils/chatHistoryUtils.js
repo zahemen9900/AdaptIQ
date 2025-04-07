@@ -14,7 +14,8 @@ import {
   updateDoc,
   arrayUnion,
   Timestamp,
-  serverTimestamp 
+  serverTimestamp,
+  increment
 } from 'firebase/firestore';
 
 /**
@@ -23,6 +24,42 @@ import {
  */
 const generateSessionId = () => {
   return `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+};
+
+/**
+ * Add feedback data to message object
+ * @param {Object} messageObj - The message object to add feedback to
+ * @returns {Object} - Message object with feedback data
+ */
+const addFeedbackData = (messageObj) => {
+  // Only add feedback to assistant messages
+  if (messageObj.role === 'assistant') {
+    return {
+      ...messageObj,
+      feedback: {
+        liked: false,
+        disliked: false,
+        regenerated: false,
+        copied_response: false,
+        text_feedback: null,
+        feedback_inferred: "neutral"
+      }
+    };
+  }
+  return messageObj;
+};
+
+/**
+ * Infer feedback sentiment based on user interactions
+ * @param {Object} feedbackObj - The feedback object
+ * @returns {string} - Inferred feedback sentiment
+ */
+const inferFeedbackSentiment = (feedbackObj) => {
+  if (feedbackObj.liked) return "positive";
+  if (feedbackObj.disliked) return "negative";
+  if (feedbackObj.regenerated) return "weak_negative";
+  if (feedbackObj.copied_response) return "positive";
+  return "neutral";
 };
 
 /**
@@ -115,7 +152,7 @@ export const saveChatHistory = async (courseName, modeOrHistory, userMessage, bo
           sessionId: mostRecent.sessionId || generateSessionId(),
           messages: mostRecent.messages || [
             { role: 'user', content: mostRecent.userMessage, timestamp: new Date().toISOString() },
-            { role: 'assistant', content: mostRecent.botResponse, timestamp: new Date().toISOString() }
+            addFeedbackData({ role: 'assistant', content: mostRecent.botResponse, timestamp: new Date().toISOString() })
           ],
           timestamp: serverTimestamp(),
           lastUpdated: serverTimestamp(),
@@ -160,11 +197,11 @@ export const saveChatHistory = async (courseName, modeOrHistory, userMessage, bo
         timestamp: new Date().toISOString()
       };
       
-      const botMessageObj = {
+      const botMessageObj = addFeedbackData({
         role: 'assistant',
         content: botResponse,
         timestamp: new Date().toISOString()
-      };
+      });
       
       // Save to localStorage first
       await addMessageToSession(courseName, mode, currentSessionId, userMessageObj, botMessageObj);
@@ -272,6 +309,134 @@ const addMessageToSession = async (courseName, mode, sessionId, userMessage, bot
     localStorage.setItem(key, JSON.stringify(sessions));
   } catch (error) {
     console.error(`Error adding messages to session in localStorage:`, error);
+  }
+};
+
+/**
+ * Update feedback data for a specific message
+ * @param {string} courseName - The name of the course
+ * @param {string} mode - The learning mode ('chat' or 'quiz')
+ * @param {string} sessionId - The session ID
+ * @param {string} messageTimestamp - The timestamp of the message to update
+ * @param {Object} feedbackUpdate - The feedback data to update
+ * @returns {Promise<boolean>} - Success status
+ */
+export const updateMessageFeedback = async (courseName, mode, sessionId, messageTimestamp, feedbackUpdate) => {
+  try {
+    // First update in localStorage
+    const key = `${mode}Sessions_${courseName}`;
+    const storedSessions = localStorage.getItem(key);
+    
+    if (storedSessions) {
+      const sessions = JSON.parse(storedSessions);
+      const sessionIndex = sessions.findIndex(s => s.sessionId === sessionId);
+      
+      if (sessionIndex >= 0) {
+        const session = sessions[sessionIndex];
+        const messageIndex = session.messages.findIndex(m => 
+          m.role === 'assistant' && m.timestamp === messageTimestamp
+        );
+        
+        if (messageIndex >= 0) {
+          // Update feedback data
+          const message = session.messages[messageIndex];
+          const updatedFeedback = {
+            ...message.feedback || {
+              liked: false,
+              disliked: false,
+              regenerated: false,
+              copied_response: false,
+              text_feedback: null,
+              feedback_inferred: "neutral"
+            },
+            ...feedbackUpdate
+          };
+          
+          // Infer sentiment from interactions
+          updatedFeedback.feedback_inferred = inferFeedbackSentiment(updatedFeedback);
+          
+          // Update message
+          session.messages[messageIndex] = {
+            ...message,
+            feedback: updatedFeedback
+          };
+          
+          // Save back to localStorage
+          localStorage.setItem(key, JSON.stringify(sessions));
+        }
+      }
+    }
+    
+    // If user is authenticated, update in Firebase
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      const courseId = courseName.toLowerCase().replace(/ /g, '-');
+      
+      // Determine which collection to use
+      const collectionName = mode === 'quiz' ? 'quizSessions' : 'chatSessions';
+      
+      // Query for the session
+      const sessionsRef = collection(db, "users", userId, "courses", courseId, collectionName);
+      const sessionQuery = query(sessionsRef, where("sessionId", "==", sessionId));
+      const sessionSnapshot = await getDocs(sessionQuery);
+      
+      if (!sessionSnapshot.empty) {
+        const sessionDoc = sessionSnapshot.docs[0];
+        const sessionData = sessionDoc.data();
+        
+        // Find the message to update
+        if (sessionData.messages && Array.isArray(sessionData.messages)) {
+          const messageIndex = sessionData.messages.findIndex(m => 
+            m.role === 'assistant' && m.timestamp === messageTimestamp
+          );
+          
+          if (messageIndex >= 0) {
+            // Update the message's feedback
+            const message = sessionData.messages[messageIndex];
+            const updatedFeedback = {
+              ...message.feedback || {
+                liked: false,
+                disliked: false,
+                regenerated: false,
+                copied_response: false,
+                text_feedback: null,
+                feedback_inferred: "neutral"
+              },
+              ...feedbackUpdate
+            };
+            
+            // Infer sentiment
+            updatedFeedback.feedback_inferred = inferFeedbackSentiment(updatedFeedback);
+            
+            // Create updated messages array
+            const updatedMessages = [...sessionData.messages];
+            updatedMessages[messageIndex] = {
+              ...message,
+              feedback: updatedFeedback
+            };
+            
+            // Update the document
+            await updateDoc(sessionDoc.ref, {
+              messages: updatedMessages,
+              lastUpdated: serverTimestamp()
+            });
+            
+            // If it's important feedback (liked or disliked), also update a counter
+            if (feedbackUpdate.liked || feedbackUpdate.disliked) {
+              const feedbackType = feedbackUpdate.liked ? 'positive' : 'negative';
+              await updateDoc(sessionDoc.ref, {
+                [`feedbackStats.${feedbackType}`]: increment(1)
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating message feedback:', error);
+    return false;
   }
 };
 
@@ -470,7 +635,7 @@ const convertHistoryToSessions = (history, mode) => {
           title: item.userMessage.substring(0, 30) + '...',
           messages: [
             { role: 'user', content: item.userMessage, timestamp: item.timestamp },
-            { role: 'assistant', content: item.botResponse, timestamp: item.timestamp }
+            addFeedbackData({ role: 'assistant', content: item.botResponse, timestamp: item.timestamp })
           ],
           timestamp: item.timestamp,
           lastUpdated: item.timestamp,
@@ -482,7 +647,7 @@ const convertHistoryToSessions = (history, mode) => {
         // Add to current session
         currentSession.messages.push(
           { role: 'user', content: item.userMessage, timestamp: item.timestamp },
-          { role: 'assistant', content: item.botResponse, timestamp: item.timestamp }
+          addFeedbackData({ role: 'assistant', content: item.botResponse, timestamp: item.timestamp })
         );
         currentSession.lastUpdated = item.timestamp;
       }
@@ -790,5 +955,6 @@ export default {
   getOrCreateSessionId,
   endCurrentSession,
   getConversationSession,
-  forceNewSession
+  forceNewSession,
+  updateMessageFeedback
 };

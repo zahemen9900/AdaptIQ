@@ -130,13 +130,13 @@
 
 /* Dark mode return button */
 .theme-dark .return-button {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
 }
 
 .theme-dark .return-button:hover {
-  background-color: var(--hover-bg);
+  background-color: #334155;
 }
 
 /* Dark mode refresh button */
@@ -203,20 +203,23 @@
 .refresh-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background-color: var(--mantine-color-blue-6);
+  justify-content: center;
+  background-color: #4a6bfb;
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 10px 16px;
+  padding: 8px 12px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.2s;
+  /* height: 36px;
+  width: 36px; */
 }
 
 .refresh-button:hover {
-  background-color: var(--mantine-color-blue-7);
+  background-color: #3a5be0;
+  transform: translateY(-1px);
 }
 
 .refresh-button:disabled {
@@ -490,30 +493,23 @@
 .return-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background-color: var(--mantine-color-gray-2);
-  color: var(--mantine-color-dark-6);
-  border: none;
+  justify-content: center;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
   border-radius: 6px;
-  padding: 10px 16px;
+  padding: 8px 12px;
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.2s;
+  /* height: 36px;
+  width: 36px; */
 }
 
 .return-button:hover {
-  background-color: var(--mantine-color-gray-3);
-}
-
-/* Dark mode styles for return button */
-body[data-theme="dark"] .return-button {
-  background-color: var(--mantine-color-dark-5);
-  color: var(--mantine-color-gray-2);
-}
-
-body[data-theme="dark"] .return-button:hover {
-  background-color: var(--mantine-color-dark-4);
+  background-color: #e0e0e0;
+  transform: translateY(-1px);
 }
 
 /* Dark mode adjustments */
