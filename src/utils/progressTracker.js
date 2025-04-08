@@ -78,7 +78,7 @@ const getProgressFromLocalStorage = (courseName) => {
   try {
     const progressKey = `course-progress-${courseName.toLowerCase().replace(/ /g, '-')}`;
     const storedProgress = localStorage.getItem(progressKey);
-    return storedProgress ? parseInt(storedProgress, 5) : 0;
+    return storedProgress ? parseInt(storedProgress, 10) : 0;
   } catch (error) {
     console.error("Error fetching progress from localStorage:", error);
     return 0;
@@ -443,8 +443,8 @@ const getAllCoursesProgressFromLocalStorage = () => {
           .replace(/-/g, ' ')
           .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize words
         
-        // Get progress value
-        const progressValue = parseInt(localStorage.getItem(key) || '0', 5);
+        // Get progress value (fixed radix from 5 to 10)
+        const progressValue = parseInt(localStorage.getItem(key) || '0', 10);
         
         // Add to results
         allProgress[courseName] = progressValue;

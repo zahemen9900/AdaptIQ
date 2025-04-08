@@ -44,11 +44,12 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [achievements, setAchievements] = useState([]);
   const [statistics, setStatistics] = useState({
-    totalStudyHours: 0,
+    totalStudyMinutes: 0,
     completedAssignments: 0,
     averageScore: 0,
     streakDays: 0,
-    subjectsProgress: []
+    subjectsProgress: [],
+    schedulingStyle: 'Balanced'
   });
   const [activityHistory, setActivityHistory] = useState([]);
   const [badges, setBadges] = useState([]);
@@ -95,19 +96,13 @@ const ProfilePage = () => {
           // Map courses to subject names
           const subjectMap = {
             'math': 'Mathematics',
-            'algebra': 'Algebra',
-            'geometry': 'Geometry',
-            'calculus': 'Calculus',
             'science': 'Science',
-            'biology': 'Biology',
-            'chemistry': 'Chemistry',
-            'physics': 'Physics',
             'history': 'History',
-            'worldHistory': 'World History',
-            'language': 'Language',
             'english': 'English',
-            'programming': 'Programming',
-            'computerScience': 'Computer Science'
+            'language': 'Language',
+            'engineering': 'Engineering',
+            'computer': 'Computer Science',
+            'economics': 'Economics',
           };
           
           firebaseUserData.courses.forEach(courseId => {
@@ -166,19 +161,13 @@ const ProfilePage = () => {
                 // Map subject IDs to display names
                 const subjectMap = {
                   'math': 'Mathematics',
-                  'algebra': 'Algebra',
-                  'geometry': 'Geometry',
-                  'calculus': 'Calculus',
                   'science': 'Science',
-                  'biology': 'Biology',
-                  'chemistry': 'Chemistry',
-                  'physics': 'Physics',
                   'history': 'History',
-                  'worldHistory': 'World History',
                   'language': 'Language',
                   'english': 'English',
-                  'programming': 'Programming',
-                  'computerScience': 'Computer Science'
+                  'engineering': 'Engineering',
+                  'computer': 'Computer Science',
+                  'economics': 'Economics',
                 };
                 
                 const subjectName = subjectMap[subjectId] || subjectId;
@@ -234,15 +223,218 @@ const ProfilePage = () => {
   // Fetch user statistics
   const fetchProfileStatistics = async (subjects, streakDays = 0, completedAssignments = 0) => {
     try {
-      // Get course progress data
-      const coursesProgress = await getAllCoursesProgress();
+      // Get user ID for database operations
+      const userId = auth.currentUser ? auth.currentUser.uid : null;
+      let studyDuration = 0;
+      let schedulingStyle = 'Balanced';
+      let userCourses = [];
+      let subjectProgressMap = {};
+
+      // Get additional user data from Firebase if authenticated
+      if (userId) {
+        try {
+          // Get user document for basic metadata
+          const userDocRef = doc(db, "users", userId);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            // Get study duration (in minutes)
+            studyDuration = userData.studyDuration || 0;
+            // Get scheduling/study preference
+            schedulingStyle = userData.schedulingStyle || 'Balanced';
+          }
+
+          // Directly query the "courses" subcollection to get actual progress values
+          const coursesRef = collection(db, "users", userId, "courses");
+          const coursesSnapshot = await getDocs(coursesRef);
+          
+          if (!coursesSnapshot.empty) {
+            // Process each course document to get progress data
+            coursesSnapshot.forEach(courseDoc => {
+              const courseData = courseDoc.data();
+              
+              // Only process courses with valid data
+              if (courseData && courseData.courseId && courseData.courseName) {
+                // Add to our courses collection
+                userCourses.push({
+                  id: courseData.courseId,
+                  name: courseData.courseName,
+                  progress: courseData.progress || 0
+                });
+
+                // Map the course to its related subject
+                const subjectName = mapCourseToSubject(courseData.courseName || courseData.courseId);
+                
+                // Initialize the subject entry if it doesn't exist
+                if (!subjectProgressMap[subjectName]) {
+                  subjectProgressMap[subjectName] = {
+                    totalProgress: 0,
+                    courseCount: 0
+                  };
+                }
+                
+                // Add this course's progress to the subject
+                subjectProgressMap[subjectName].totalProgress += (courseData.progress || 0);
+                subjectProgressMap[subjectName].courseCount++;
+              }
+            });
+            
+            console.log("Retrieved courses from Firebase:", userCourses);
+          } else {
+            console.log("No courses found in user's subcollection, falling back to general progress data");
+          }
+        } catch (error) {
+          console.error("Error fetching course data from Firebase:", error);
+        }
+      }
       
-      // Generate subject progress data
+      // If we didn't get any courses from Firebase, use the general progress tracker as fallback
+      if (userCourses.length === 0) {
+        const coursesProgress = await getAllCoursesProgress();
+        console.log("Using fallback progress data:", coursesProgress);
+        
+        // Convert to our format and map courses to subjects
+        for (const [courseName, progress] of Object.entries(coursesProgress)) {
+          const subjectName = mapCourseToSubject(courseName);
+          
+          if (!subjectProgressMap[subjectName]) {
+            subjectProgressMap[subjectName] = {
+              totalProgress: 0,
+              courseCount: 0
+            };
+          }
+          
+          subjectProgressMap[subjectName].totalProgress += progress;
+          subjectProgressMap[subjectName].courseCount++;
+        }
+      }
+      
+      // Function to map a course to its subject using the subject mappings
+      function mapCourseToSubject(courseName) {
+        // First try an exact subject match
+        if (subjects.includes(courseName)) {
+          return courseName;
+        }
+        
+        // Normalized course name for matching
+        const normalizedCourseName = courseName.toLowerCase();
+        
+        // Subject category mapping
+        const subjectCategoryMapping = {
+          'Algebra': 'mathematics',
+          'Geometry': 'mathematics',
+          'Calculus': 'mathematics',
+          'Statistics': 'mathematics',
+          'Trigonometry': 'mathematics',
+          'Biology': 'science',
+          'Chemistry': 'science',
+          'Physics': 'science',
+          'Environmental Science': 'science',
+          'Astronomy': 'science',
+          'World History': 'history',
+          'US History': 'history',
+          'European History': 'history',
+          'Ancient Civilizations': 'history',
+          'Modern History': 'history',
+          'Spanish': 'foreign',
+          'French': 'foreign',
+          'German': 'foreign',
+          'Chinese': 'foreign',
+          'Japanese': 'foreign',
+          'Programming': 'computer-science',
+          'Web Development': 'computer-science',
+          'Database Systems': 'computer-science',
+          'Artificial Intelligence': 'computer-science',
+          'Cybersecurity': 'computer-science',
+          'Mechanical Engineering': 'engineering',
+          'Electrical Engineering': 'engineering',
+          'Civil Engineering': 'engineering',
+          'Chemical Engineering': 'engineering',
+          'Software Engineering': 'engineering',
+          'Microeconomics': 'economics',
+          'Macroeconomics': 'economics',
+          'International Economics': 'economics',
+          'Business Economics': 'economics',
+          'Financial Economics': 'economics',
+          'Clinical Psychology': 'psychology',
+          'Cognitive Psychology': 'psychology',
+          'Developmental Psychology': 'psychology',
+          'Social Psychology': 'psychology',
+          'Abnormal Psychology': 'psychology',
+          'Drawing': 'art',
+          'Painting': 'art',
+          'Sculpture': 'art',
+          'Digital Art': 'art',
+          'Music Theory': 'music',
+          'Instrumental': 'music',
+          'Vocal': 'music',
+          'Composition': 'music',
+          'Other': 'general',
+          'Mathematics': 'mathematics',
+          'Science': 'science',
+          'History': 'history',
+          'Language Arts': 'language',
+          'Foreign Languages': 'foreign',
+          'Computer Science': 'computer-science',
+          'Art & Design': 'art',
+          'Music': 'music',
+          'Physical Education': 'physical',
+          'Economics': 'economics',
+          'Psychology': 'psychology',
+          'Engineering': 'engineering'
+        };
+        
+        // Try to match by course ID/name
+        for (const [courseKey, subjectName] of Object.entries(subjectCategoryMapping)) {
+          if (normalizedCourseName.includes(courseKey)) {
+            return subjectName;
+          }
+        }
+        
+        // Subject specific mappings
+        const idToSubjectMap = {
+          'math': 'Mathematics',
+          'algebra': 'Mathematics',
+          'geometry': 'Mathematics',
+          'calculus': 'Mathematics',
+          'science': 'Science',
+          'biology': 'Science',
+          'chemistry': 'Science',
+          'physics': 'Science',
+          'history': 'History',
+          'worldhistory': 'History',
+          'language': 'Language',
+          'english': 'Language',
+          'computer': 'Computer Science',
+          'computerscience': 'Computer Science'
+        };
+        
+        // If we still don't have a match, try the ID mapping
+        for (const [id, subjectName] of Object.entries(idToSubjectMap)) {
+          if (normalizedCourseName.includes(id)) {
+            return subjectName;
+          }
+        }
+        
+        // Default to the course name itself as a fallback
+        return courseName;
+      }
+      
+      // Calculate average progress for each subject
       const subjectsProgress = subjects.map(subject => {
-        // Get progress value if it exists, otherwise generate a random value
-        const progress = coursesProgress[subject] || 
-                          coursesProgress[subject.toLowerCase()] || 
-                          Math.floor(Math.random() * 100);
+        let progress = 0;
+        
+        // If we have progress data for this subject, calculate the average
+        if (subjectProgressMap[subject] && subjectProgressMap[subject].courseCount > 0) {
+          progress = Math.round(
+            subjectProgressMap[subject].totalProgress / subjectProgressMap[subject].courseCount
+          );
+        } else {
+          // Fallback if no course progress data is available for this subject
+          // Use a small non-zero value to show that the subject exists but has minimal progress
+          progress = 0; 
+        }
         
         return {
           name: subject,
@@ -251,19 +443,19 @@ const ProfilePage = () => {
         };
       });
       
-      // Use actual streakDays from Firebase if available
+      // Use actual study minutes from user data
+      const totalStudyMinutes = studyDuration;
       
-      // For study hours and average score, we'll still use random values
-      // These would be calculated from actual user activity in a fully implemented system
-      const totalStudyHours = Math.floor(Math.random() * 100) + 10;
-      const averageScore = Math.floor(Math.random() * 20) + 80; // 80-100 range
+      // For average score, use data if available, otherwise generate placeholder
+      const averageScore = Math.floor(Math.random() * 20) + 80; // 80-100 range for average score
       
       setStatistics({
-        totalStudyHours,
+        totalStudyMinutes,
         completedAssignments,
         averageScore,
         streakDays,
-        subjectsProgress
+        subjectsProgress,
+        schedulingStyle
       });
     } catch (error) {
       console.error('Error fetching profile statistics:', error);
@@ -1011,7 +1203,7 @@ const ProfilePage = () => {
                       </div>
                       <div className="profile-meta-item">
                         <IconCalendar size={20} />
-                        <span>Prefers {userData.studyPreference} Study Sessions</span>
+                        <span>Prefers {statistics.schedulingStyle || 'Balanced'} Study Schedule</span>
                       </div>
                     </div>
                     
@@ -1073,8 +1265,8 @@ const ProfilePage = () => {
                           <IconClock size={24} />
                         </div>
                         <div className="stat-content">
-                          <h3>{statistics.totalStudyHours}</h3>
-                          <p>Study Hours</p>
+                          <h3>{statistics.totalStudyMinutes}</h3>
+                          <p>Study Minutes</p>
                         </div>
                       </div>
                       <div className="profile-stat-card">

@@ -1,0 +1,289 @@
+/* AILearningRecommendation component styling */
+.ai-recommendation-card {
+  background: linear-gradient(120deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  margin-bottom: 30px;
+  position: relative;
+  box-shadow: 0 4px 12px var(--card-shadow);
+}
+
+.ai-recommendation-header {
+  background-color: var(--primary-color, #4a6bfb);
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.ai-recommendation-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.ai-recommendation-header .refresh-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-recommendation-header .refresh-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(45deg);
+}
+
+.ai-recommendation-body {
+  padding: 24px;
+  font-size: 1rem;
+  line-height: 1.7;
+  position: relative;
+  min-height: 200px;
+}
+
+.ai-recommendation-body.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 32px 24px;
+}
+
+.ai-recommendation-body.error h3 {
+  margin: 10px 0 0 0;
+  color: var(--text-primary);
+}
+
+.ai-recommendation-body.error p {
+  margin: 0 0 20px 0;
+  color: var(--text-secondary);
+}
+
+.retry-button {
+  background-color: var(--primary-color, #4a6bfb);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: var(--primary-hover, #3a5be0);
+}
+
+.ai-recommendation-footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.generated-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-recommendation-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 24px;
+}
+
+.ai-recommendation-loading p {
+  margin-top: 16px;
+  color: var(--text-secondary);
+}
+
+.recommendation-text {
+  white-space: pre-wrap;
+}
+
+/* Sparkle Animation */
+.sparkle-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.sparkle {
+  position: absolute;
+  background-color: #fff;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: sparkle 1.5s ease-in-out infinite;
+  box-shadow: 0 0 5px 1px rgba(255, 255, 255, 0.5);
+}
+
+.sparkle::before, .sparkle::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #fff;
+}
+
+.sparkle::before {
+  transform: translateX(-50%) scaleX(0.3);
+}
+
+.sparkle::after {
+  transform: translateY(-50%) scaleY(0.3);
+}
+
+/* Generate multiple sparkles with different positions and delays */
+.sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
+.sparkle:nth-child(2) { top: 30%; left: 70%; animation-delay: 0.3s; }
+.sparkle:nth-child(3) { top: 60%; left: 40%; animation-delay: 0.5s; }
+.sparkle:nth-child(4) { top: 75%; left: 80%; animation-delay: 0.7s; }
+.sparkle:nth-child(5) { top: 45%; left: 15%; animation-delay: 0.2s; }
+.sparkle:nth-child(6) { top: 25%; left: 50%; animation-delay: 0.6s; }
+.sparkle:nth-child(7) { top: 80%; left: 30%; animation-delay: 0.4s; }
+.sparkle:nth-child(8) { top: 10%; left: 85%; animation-delay: 0.1s; }
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Loading spinner with sparkling effect */
+.sparkle-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--primary-color, #4a6bfb);
+  border-right-color: #80b0ff;
+  animation: sparkle-spin 1s linear infinite;
+  position: relative;
+}
+
+.sparkle-spinner::before, .sparkle-spinner::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.7;
+  width: 8px;
+  height: 8px;
+  animation: sparkle-pulse 1.5s ease-in-out infinite;
+}
+
+.sparkle-spinner::before {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0s;
+}
+
+.sparkle-spinner::after {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0.75s;
+}
+
+@keyframes sparkle-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.3; transform: translateX(-50%) scale(0.5); }
+  50% { opacity: 0.7; transform: translateX(-50%) scale(1.2); }
+}
+
+/* Dark mode support */
+.theme-dark .ai-recommendation-card,
+.dark-theme .ai-recommendation-card {
+  background: linear-gradient(120deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-color: var(--border-color);
+}
+
+.theme-dark .ai-recommendation-footer,
+.dark-theme .ai-recommendation-footer {
+  border-top-color: var(--border-color);
+}
+
+/* Add sparkle animation for generated text - improved version */
+.sparkle-text {
+  position: relative;
+  overflow: hidden;
+}
+
+.sparkle-text:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 80%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  animation: shine-sweep 3s ease-in-out infinite;
+}
+
+@keyframes shine-sweep {
+  0% {
+    left: -150%;
+  }
+  50% {
+    left: 150%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+/* Adjust for dark mode */
+.theme-dark .sparkle-text:after,
+.dark-theme .sparkle-text:after {
+  background: linear-gradient(
+    90deg,
+    rgba(76, 110, 245, 0) 0%,
+    rgba(76, 110, 245, 0.15) 50%,
+    rgba(76, 110, 245, 0) 100%
+  );
+}

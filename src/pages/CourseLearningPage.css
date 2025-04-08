@@ -422,7 +422,8 @@
   display: flex;
   gap: 12px;
   max-width: 80%;
-  margin-bottom: 24px;
+  margin-bottom: 36px; /* Increased to accommodate action buttons below */
+  position: relative; /* Added to position the action buttons */
 }
 
 .user-message {
@@ -446,13 +447,15 @@
 }
 
 .user-message .message-avatar {
-  background-color: var(--accent-color);
-  color: white;
+  background-color: #2C3E50; /* Changed to a nice dark blue-grey color */
+  color: #ffffff; /* Changed to solid white for better contrast */
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Added border for better visibility in light mode */
 }
 
 .bot-message .message-avatar {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Added border for better visibility in light mode */
 }
 
 .message-content {
@@ -461,6 +464,7 @@
   border-radius: 12px;
   position: relative;
   box-shadow: 0 2px 8px var(--card-shadow);
+  margin-bottom: 8px; /* Added spacing between message content and buttons */
 }
 
 .user-message .message-content {
@@ -2613,8 +2617,20 @@
   gap: 8px;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
-  margin-top: 6px;
+  margin-top: 8px;
   justify-content: flex-start;
+  position: absolute;
+  bottom: -32px;
+  left: 0;
+}
+
+.bot-message .message-actions {
+  left: 16px; /* Reduced from 52px to position buttons farther to the left */
+}
+
+.user-message .message-actions {
+  right: 16px; /* Reduced from 52px to position buttons farther to the right */
+  left: auto;
 }
 
 .chat-message:hover .message-actions {

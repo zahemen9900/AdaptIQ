@@ -146,23 +146,208 @@
   background-color: rgba(0, 0, 0, 0.2);
 }
 
+/* Ensure the dashboard header is fully transparent */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 1rem 1.5rem;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px var(--card-shadow);
+  padding: 1.5rem 0 1rem;
+  margin-bottom: 1rem;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none;
+  box-shadow: none;
 }
 
-.dashboard-header h1 {
+.theme-dark .dashboard-header,
+.dark-theme .dashboard-header {
+  background: transparent !important;
+  background-color: #0f172a !important;
   color: var(--text-primary);
-  font-size: 1.5rem;
-  font-weight: 600;
+}
+
+/* Enhanced styling for the welcome greeting with advanced glowing animation */
+.welcome-greeting {
+  text-align: center;
+  margin: 0.5rem 0 5rem;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Calligraphic text with enhanced animations */
+.welcome-greeting h1 {
+  /* font-family: 'Playfair Display', serif; */
+  font-size: 20rem;
+  font-weight: 900;
   margin: 0;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: transparent;
+  position: relative;
+  filter: drop-shadow(0 0 2px rgba(74, 107, 251, 0.2));
+}
+
+/* Primary animation layer with gradient and tracing effect */
+.welcome-greeting h1::before {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: transparent;
+  background: linear-gradient(135deg, 
+    #4a6bfb 0%, 
+    #7e57c2 25%, 
+    #4568dc 50%,
+    #7e57c2 75%,
+    #4a6bfb 100%);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  clip-path: polygon(0 0, 0 100%, 0 100%, 0 0);
+  animation: textReveal 2.2s cubic-bezier(0.19, 1, 0.22, 1) forwards,
+             gradientFlow 8s linear infinite;
+}
+
+/* Secondary animation layer with shimmer effect */
+.welcome-greeting h1::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 45%,
+    rgba(255, 255, 255, 0.7) 50%,
+    transparent 55%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  opacity: 0;
+  color: transparent;
+  animation: shimmerReveal 1.5s ease 2s forwards,
+             shimmerEffect 3s ease-in-out infinite;
+}
+
+/* Ambient glow effect */
+.welcome-greeting::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(74, 107, 251, 0.15) 0%,
+    rgba(126, 87, 194, 0.1) 40%,
+    rgba(126, 87, 194, 0) 70%
+  );
+  z-index: -1;
+  opacity: 0;
+  filter: blur(15px);
+  animation: ambienceReveal 2s ease 2.5s forwards;
+}
+
+/* Text reveal animation that draws the text from left to right with a natural curve */
+@keyframes textReveal {
+  0% {
+    clip-path: polygon(0 0, 0 100%, 0 100%, 0 0);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+}
+
+/* Flowing gradient animation */
+@keyframes gradientFlow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Shimmer effect reveal */
+@keyframes shimmerReveal {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+/* Shimmer effect animation */
+@keyframes shimmerEffect {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Ambient glow reveal */
+@keyframes ambienceReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Make greeting responsive */
+@media (max-width: 1200px) {
+  .welcome-greeting h1 {
+    font-size: 10rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-greeting h1 {
+    font-size: 7rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .welcome-greeting h1 {
+    font-size: 5rem;
+  }
+  
+  .welcome-greeting {
+    margin-bottom: 3rem;
+    padding: 1rem;
+  }
+}
+
+/* Add responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2.4rem;
+    margin-bottom: 1rem;
+  }
+  
+  .dashboard-header .user-profile {
+    margin-top: 1rem;
+  }
 }
 
 /* Headers and text elements in main content */
@@ -1356,4 +1541,238 @@
 .dark-theme .loading-spinner-dashboard {
   border-color: rgba(76, 110, 245, 0.2);
   border-top-color: var(--primary-color, #4c6ef5);
+}
+
+/* AI Recommendation Card Styles */
+.ai-recommendation-card {
+  background: linear-gradient(120deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.ai-recommendation-header {
+  background-color: var(--primary-color, #4a6bfb);
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.ai-recommendation-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.ai-recommendation-header .refresh-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-recommendation-header .refresh-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(45deg);
+}
+
+.ai-recommendation-body {
+  padding: 24px;
+  font-size: 1rem;
+  line-height: 1.7;
+  position: relative;
+}
+
+.ai-recommendation-footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.generated-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-recommendation-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 24px;
+}
+
+.ai-recommendation-loading p {
+  margin-top: 16px;
+  color: var(--text-secondary);
+}
+
+/* Sparkle Animation */
+.sparkle-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.sparkle {
+  position: absolute;
+  background-color: #fff;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: sparkle 1.5s ease-in-out infinite;
+}
+
+.sparkle::before, .sparkle::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #fff;
+}
+
+.sparkle::before {
+  transform: translateX(-50%) scaleX(0.3);
+}
+
+.sparkle::after {
+  transform: translateY(-50%) scaleY(0.3);
+}
+
+/* Generate multiple sparkles with different positions and delays */
+.sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
+.sparkle:nth-child(2) { top: 30%; left: 70%; animation-delay: 0.3s; }
+.sparkle:nth-child(3) { top: 60%; left: 40%; animation-delay: 0.5s; }
+.sparkle:nth-child(4) { top: 75%; left: 80%; animation-delay: 0.7s; }
+.sparkle:nth-child(5) { top: 45%; left: 15%; animation-delay: 0.2s; }
+.sparkle:nth-child(6) { top: 25%; left: 50%; animation-delay: 0.6s; }
+.sparkle:nth-child(7) { top: 80%; left: 30%; animation-delay: 0.4s; }
+.sparkle:nth-child(8) { top: 10%; left: 85%; animation-delay: 0.1s; }
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Loading spinner with sparkling effect */
+.sparkle-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--primary-color, #4a6bfb);
+  border-right-color: #80b0ff;
+  animation: sparkle-spin 1s linear infinite;
+  position: relative;
+}
+
+.sparkle-spinner::before, .sparkle-spinner::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.7;
+  width: 8px;
+  height: 8px;
+  animation: sparkle-pulse 1.5s ease-in-out infinite;
+}
+
+.sparkle-spinner::before {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0s;
+}
+
+.sparkle-spinner::after {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0.75s;
+}
+
+@keyframes sparkle-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.3; transform: translateX(-50%) scale(0.5); }
+  50% { opacity: 0.7; transform: translateX(-50%) scale(1.2); }
+}
+
+/* Dark mode support for AI recommendation card */
+.theme-dark .ai-recommendation-card,
+.dark-theme .ai-recommendation-card {
+  background: linear-gradient(120deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-color: var(--border-color);
+}
+
+.theme-dark .ai-recommendation-header,
+.dark-theme .ai-recommendation-header {
+  background-color: var(--primary-color, #4c6ef5);
+}
+
+.theme-dark .ai-recommendation-footer,
+.dark-theme .ai-recommendation-footer {
+  border-top-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+/* Add sparkle animation for generated text */
+.sparkle-text {
+  position: relative;
+}
+
+.sparkle-text:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  background-size: 200% 100%;
+  animation: sparkle-wave 2s linear infinite;
+}
+
+@keyframes sparkle-wave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }

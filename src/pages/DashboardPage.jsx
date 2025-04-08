@@ -8,7 +8,7 @@ import {
   IconBrandZoom, IconNotebook, IconClock, IconCheck, IconRefresh,
   IconArrowRight, IconEye, IconActivity, IconBulb, IconTrophy, 
   IconTargetArrow, IconMessageCircle, IconX, IconPlus, IconSparkles,
-  IconLogout, IconAlertCircle
+  IconLogout, IconAlertCircle, IconRobot, IconBrain
 } from '@tabler/icons-react';
 import { getAssignmentsFromFirestore, formatAssignmentDate, sortAssignments } from '../utils/assignmentsUtils';
 import { 
@@ -16,10 +16,12 @@ import {
   getAllCoursesProgress, 
   getActivityHistory 
 } from '../utils/progressTracker';
+import AILearningRecommendation from '../components/AILearningRecommendation/AILearningRecommendation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from '@firebase/auth';
-import { auth } from '../../firebase';
+import { auth, db, getUserData } from '../../firebase';
 import { useUser } from '../context/UserContext';
+import { doc, getDoc } from 'firebase/firestore';
 
 // SignOut Confirmation Modal Component
 const SignOutConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
@@ -102,6 +104,10 @@ const DashboardPage = () => {
     { id: 2, title: 'Math Quiz', date: new Date(Date.now() + 259200000), type: 'quiz' }
   ]);
 
+  // State for user data to be passed to AI recommendations
+  const [completeUserData, setCompleteUserData] = useState(null);
+
+
   // Toggle goal completion
   const toggleGoalCompletion = (goalId) => {
     setTodayGoals(todayGoals.map(goal => 
@@ -177,9 +183,10 @@ const DashboardPage = () => {
       const assignments = await fetchAssignments();
       setUpcomingAssignments(assignments);
       
-      // Generate new streak
-      const streak = Math.floor(Math.random() * 30) + 1;
-      setStudyStreakDays(streak);
+      // Use the actual study streak from user data
+      if (user && user.studyStreak !== undefined) {
+        setStudyStreakDays(user.studyStreak);
+      }
       
       // Show success message (could add a toast notification here)
       console.log("Dashboard refreshed successfully!");
@@ -197,17 +204,74 @@ const DashboardPage = () => {
     }
   };
 
-  // Calculate study streak
+  // Get user's study streak
   useEffect(() => {
     const calculateStudyStreak = () => {
-      // In a real app, this would query the backend for actual streak data
-      // For now, we'll simulate it with a random value between 1-30
-      const streak = Math.floor(Math.random() * 30) + 1;
-      setStudyStreakDays(streak);
+      // Use the actual study streak from user data instead of random value
+      if (user && user.studyStreak !== undefined) {
+        setStudyStreakDays(user.studyStreak);
+      }
     };
 
     calculateStudyStreak();
-  }, []);
+  }, [user]);
+
+  // Generate greeting based on time of day and add variety
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const nickname = user?.nickname || 'Student';
+    
+    // Different greeting variations
+    const morningGreetings = [
+      `Good Morning, ${nickname}!`,
+      `Rise and Shine, ${nickname}!`,
+      `Hello ${nickname}, Ready for a productive day?`,
+      `Morning Study Time with ${nickname}`,
+      `Fresh Day, Fresh Mind, ${nickname}`,
+    ];
+    
+    const afternoonGreetings = [
+      `Good Afternoon, ${nickname}!`,
+      `Keep Going Strong, ${nickname}!`,
+      `Study Break with ${nickname}`,
+      `Halfway There, ${nickname}!`,
+      `Learning and Growing with ${nickname}`,
+    ];
+    
+    const eveningGreetings = [
+      `Good Evening, ${nickname}!`,
+      `Wrapping Up Today, ${nickname}?`,
+      `Evening Study Session with ${nickname}`,
+      `Final Push, ${nickname}!`,
+      `Reflect and Review with ${nickname}`,
+    ];
+
+    const specialGreetings = [
+      `AdaptIQ and ${nickname} Time`,
+      `Let's Crush Some Goals, ${nickname}!`,
+      `${nickname}'s Learning Dashboard`,
+      `Ready to Learn Something New, ${nickname}?`,
+      `${studyStreakDays} Day Streak! Amazing, ${nickname}!`,
+      `Today's Insights for ${nickname}`,
+    ];
+    
+    // Select greeting based on time of day
+    let greetings;
+    if (hour < 12) {
+      greetings = morningGreetings;
+    } else if (hour < 17) {
+      greetings = afternoonGreetings;
+    } else {
+      greetings = eveningGreetings;
+    }
+    
+    // 30% chance of showing a special greeting instead of time-based one
+    if (Math.random() < 0.3) {
+      return specialGreetings[Math.floor(Math.random() * specialGreetings.length)];
+    }
+    
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  };
 
   // Load suggested topics based on courses
   useEffect(() => {
@@ -288,6 +352,26 @@ const DashboardPage = () => {
     }
   }, [user.loadingUser, user.courses, user.nickname]);
   
+  // Prepare complete user data for AI recommendations
+  useEffect(() => {
+    if (user && !user.loadingUser && courseData) {
+      const enrichedUserData = {
+        ...user,
+        studyStreak: studyStreakDays,
+        schedule: upcomingEvents.reduce((acc, event) => {
+          const dateStr = event.date.toISOString().split('T')[0];
+          if (!acc[dateStr]) acc[dateStr] = [];
+          acc[dateStr].push(event);
+          return acc;
+        }, {}),
+        overallProgress: courseData.overallProgress,
+        courseDetails: courseData.courses
+      };
+      
+      setCompleteUserData(enrichedUserData);
+    }
+  }, [user, courseData, studyStreakDays, upcomingEvents]);
+
   // Function to fetch course data
   const fetchCourseData = async (userData) => {
     // Extract courses from user data
@@ -585,6 +669,10 @@ const DashboardPage = () => {
             </div>
           ) : (
             <>
+              <div className="welcome-greeting">
+                <h1 data-text={getGreeting()}>{getGreeting()}</h1>
+              </div>
+
               <div className="stats-grid">
                 <div className="stat-card">
                   <h3>Active Courses</h3>
@@ -800,6 +888,9 @@ const DashboardPage = () => {
                   )}
                 </div>
               </div>
+
+              {/* AI Learning Recommendations */}
+              <AILearningRecommendation userData={completeUserData} />
 
               {/* All Caught Up Section */}
               <motion.div 
