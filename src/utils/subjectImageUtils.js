@@ -48,7 +48,7 @@ const subjectImageUrls = {
   'Drawing': 'https://fullbloomclub.net/wp-content/uploads/2024/03/realisitc-drawing.jpg',
   'Painting': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStbzkER6AehGYwVBoRYZvTrnkzN27GjCGHHg&s',
   'Sculpture': 'https://d7hftxdivxxvm.cloudfront.net/?quality=80&resize_to=width&src=https%3A%2F%2Fartsy-media-uploads.s3.amazonaws.com%2FQIxqHZiK1Kq492cxbjpArg%252F4098790549_378aea8dcb_o.jpg&width=910',
-  'Digital Art': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRo-jC8pDEDnpf9V17QYFHP7ZlF3HkBm17Vkg&s',
+  'Digital Art': 'https://i.ytimg.com/vi/aymYgvIbduY/maxresdefault.jpg',
   'Music Theory': 'https://splice.com/blog/wp-content/uploads/2019/12/Why_music_theory_important_BlogPost.png',
   'Instrumental': 'https://img.freepik.com/free-vector/gradient-background-world-music-day-celebration_23-2150377079.jpg',
   'Vocal': 'https://www.roadiemusic.com/blog/wp-content/uploads/2023/08/pexels-pixabay-164960.jpg',
