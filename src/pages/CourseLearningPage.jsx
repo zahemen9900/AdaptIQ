@@ -40,6 +40,8 @@ import remarkGfm from 'remark-gfm';
 import { auth } from '../../firebase';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { useUser } from '../context/UserContext'; // Import useUser
+import { useTheme } from '../context/ThemeContext'; // <-- Add this import
 
 // Initialize the Google Generative AI with the API key
 // In production, this should be properly handled with environment variables
@@ -125,6 +127,8 @@ const resourceCardVariants = {
 const CourseLearningPage = () => {
   const { courseId } = useParams();
   const courseName = decodeURIComponent(courseId);
+  const { user } = useUser(); // Get user data from context
+  const { isDarkMode } = useTheme(); // <-- Get theme state
   const [loading, setLoading] = useState(true);
   const [nickname, setNickname] = useState('');
   const [mode, setMode] = useState('select'); // 'select', 'chat', 'quiz', 'resources'
@@ -142,6 +146,7 @@ const CourseLearningPage = () => {
   const [showActivityPanel, setShowActivityPanel] = useState(false);
   const fileInputRef = useRef(null);
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  const chatEndRef = useRef(null); // Add this ref for scrolling
   
   // New state for course assignments
   const [currentAssignment, setCurrentAssignment] = useState(null);
@@ -322,6 +327,85 @@ const CourseLearningPage = () => {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Fetch course image using UserContext data
+  useEffect(() => {
+    if (!user.loadingUser && (user.courses || user.customCourses)) {
+      let category = 'other'; // Default category
+
+      // Find the courseId format (e.g., 'math-algebra' or custom name)
+      const userCourseEntry = user.courses?.find(cId => {
+        if (cId.includes('-')) {
+          const [subjectId, courseCode] = cId.split('-');
+          if (courseCode === 'other' && user.customCourses && user.customCourses[subjectId] === courseName) {
+            return true; // Found custom course by name match
+          }
+          // Add logic here to map standard course IDs back to names if needed,
+          // similar to processUserCourses in CoursesPage.jsx, to match courseName
+          // This part might need refinement based on how courseName relates to cId
+          // For now, we'll primarily rely on custom course name matching
+        }
+        return cId === courseName; // Direct match for non-standard IDs?
+      });
+
+      let courseIdentifier = courseName; // Use courseName as default identifier
+
+      if (userCourseEntry) {
+         courseIdentifier = userCourseEntry; // Use the ID from context if found
+      } else {
+         // Attempt to find based on custom course name match if not found directly
+         const customMatch = Object.entries(user.customCourses || {}).find(([key, name]) => name === courseName);
+         if (customMatch) {
+            courseIdentifier = `${customMatch[0]}-other`; // Reconstruct identifier like 'subjectId-other'
+         }
+      }
+
+
+      // Determine category based on the identifier
+       if (courseIdentifier.includes('-')) {
+         const [subjectId, courseCode] = courseIdentifier.split('-');
+         const categoryMapping = {
+            math: 'mathematics',
+            science: 'science',
+            history: 'history',
+            language: 'language',
+            foreign: 'language',
+            computer: 'computer-science',
+            engineering: 'engineering',
+            economics: 'economics',
+            psychology: 'psychology',
+            art: 'arts',
+            music: 'arts',
+            physical: 'physical-education',
+            other: 'other'
+          };
+          category = categoryMapping[subjectId] || 'other';
+
+          // If it's a custom course, use the subjectId as category base
+          if (courseCode === 'other' && user.customCourses && user.customCourses[subjectId] === courseName) {
+             category = categoryMapping[subjectId] || 'other';
+          }
+
+       } else {
+         // Fallback or handle cases where courseName doesn't have a standard ID format
+         // This might need more robust logic depending on possible courseName values
+         console.warn(`Could not determine category reliably for course: ${courseName}. Defaulting to 'other'.`);
+       }
+
+
+      const imageUrl = getSubjectImageUrl(courseName, category);
+      setCourseImage(imageUrl);
+      setLoading(false); // Consider moving loading state update if other async ops depend on user data
+    } else if (!user.loadingUser) {
+       // Handle case where user data is loaded but no courses found or context is empty
+       console.warn("User data loaded, but couldn't determine course category for image.");
+       setLoading(false); // Ensure loading stops
+    }
+
+    // Dependency on user loading state and potentially courses/customCourses
+  }, [user.loadingUser, user.courses, user.customCourses, courseName]);
+
+  // REMOVE or COMMENT OUT the old useEffect that uses localStorage for image loading
+  /*
   useEffect(() => {
     // Load user data and course details
     const onboardingData = localStorage.getItem('onboardingData');
@@ -393,6 +477,7 @@ const CourseLearningPage = () => {
       setLoading(false);
     }
   }, [courseName]);
+  */
 
   // Function to handle starting a chat
   const handleStartChat = () => {
@@ -821,6 +906,7 @@ complete the assignment successfully. Focus on guiding their learning rather tha
     
     // Create user message object - include file if available
     const newUserMessage = {
+      id: Date.now().toString() + '-user', // Add unique ID
       sender: 'user',
       content: currentMessage,
       timestamp: new Date().toISOString(),
@@ -852,9 +938,9 @@ complete the assignment successfully. Focus on guiding their learning rather tha
     }
     
     // Add a temporary placeholder for the bot's response with thinking indicator
-    const tempBotMessageId = Date.now().toString();
+    const tempBotMessageId = Date.now().toString() + '-bot'; // Use unique ID
     const tempBotMessage = {
-      id: tempBotMessageId,
+      id: tempBotMessageId, // Assign unique ID
       sender: 'bot',
       content: '',
       timestamp: new Date().toISOString(),
@@ -1274,9 +1360,15 @@ complete the assignment successfully. Focus on guiding their learning rather tha
     }
   };
 
+  // Scroll to bottom effect
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]); // Add this useEffect
+
   return (
     <motion.div
-      className="dashboard-page"
+      // Apply the theme class here
+      className={`dashboard-page ${isDarkMode ? 'dark-theme' : ''}`} 
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -1453,7 +1545,41 @@ complete the assignment successfully. Focus on guiding their learning rather tha
                 View All
               </Link>
             </div>
-            <div className="current-assignment-content">
+<div className="current-assignment-content">
+              <div className="assignment-icon">
+                <IconClipboard size={24} />
+              </div>
+              <div className="assignment-details">
+                <h4>{currentAssignment.title}</h4>
+                <div className="assignment-meta">
+                  <span className="assignment-due">
+                    <IconClock size={16} />
+                    Due: {formatAssignmentDate(currentAssignment.dueDate)}
+                  </span>
+                  <span className={`assignment-status status-${currentAssignment.status}`}>
+                    {currentAssignment.status === 'pending' ? 'Not Started' : 
+                    currentAssignment.status === 'in-progress' ? 'In Progress' : 
+                    currentAssignment.status === 'completed' ? 'Completed' : 'Overdue'}
+                  </span>
+                </div>
+              </div>
+              {(currentAssignment.status === 'pending' || currentAssignment.status === 'in-progress') && (
+                <motion.div 
+                  className="assignment-warning"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <IconAlertTriangle size={16} color="#ff9800" />
+                  <span>
+                    {new Date(currentAssignment.dueDate) < new Date() 
+                      ? 'This assignment is overdue!' 
+                      : `${Math.ceil((new Date(currentAssignment.dueDate) - new Date()) / (1000 * 60 * 60 * 24))} days remaining`}
+                  </span>
+                </motion.div>
+              )}
+            </div>
+<div className="current-assignment-content">
               <div className="assignment-icon">
                 <IconClipboard size={24} />
               </div>
@@ -1489,7 +1615,7 @@ complete the assignment successfully. Focus on guiding their learning rather tha
             </div>
           </motion.div>
         )}
-        
+
         <div className="course-learning-content">
           {loading ? (
             <div className="course-loading">
@@ -1501,9 +1627,9 @@ complete the assignment successfully. Focus on guiding their learning rather tha
               <p>We're preparing your personalized learning experience</p>
             </div>
           ) : (
-            <div className="course-learning-container">
+        <div className="course-learning-container">
               <AnimatePresence mode="wait">
-                {mode === 'select' ? (
+          {mode === 'select' ? (
                   <motion.div 
                     key="mode-selector"
                     className="learning-mode-selector"
@@ -1523,9 +1649,9 @@ complete the assignment successfully. Focus on guiding their learning rather tha
                         <h2>Welcome to {courseName}</h2>
                         <p>Select a learning mode to begin your personalized education journey</p>
                       </div>
-                    </div>
-                    
-                    <div className="learning-options">
+        </div>
+
+      <div className="learning-options">
                       <motion.div 
                         className="learning-option-card"
                         onClick={handleStartChat}
@@ -1777,51 +1903,8 @@ complete the assignment successfully. Focus on guiding their learning rather tha
                           >
                             <div className="history-panel-header">
                               <h3>Recent {mode === 'chat' ? 'Conversations' : 'Quiz Sessions'}</h3>
-                              <button
-                                className="clear-history-header-button"
-                                onClick={() => setShowClearHistoryConfirm(true)}
-                                aria-label="Clear history"
-                              >
-                                <IconTrash size={16} />
-                              </button>
                             </div>
                             
-                            {/* Confirmation Modal */}
-                            <AnimatePresence>
-                              {showClearHistoryConfirm && (
-                                <motion.div
-                                  className="clear-history-confirm-modal"
-                                  initial={{ opacity: 0, scale: 0.9 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  exit={{ opacity: 0, scale: 0.9 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <div className="confirm-modal-content">
-                                    <IconAlertTriangle size={24} color="#ff4d4d" />
-                                    <h4>Clear History</h4>
-                                    <p>Are you sure you want to clear all your {mode === 'chat' ? 'conversation' : 'quiz'} history? This action cannot be undone.</p>
-                                    <div className="confirm-modal-buttons">
-                                      <button 
-                                        className="confirm-cancel-button"
-                                        onClick={() => setShowClearHistoryConfirm(false)}
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button 
-                                        className="confirm-delete-button"
-                                        onClick={() => {
-                                          clearConversationHistory();
-                                          setShowClearHistoryConfirm(false);
-                                        }}
-                                      >
-                                        Delete
-                                      </button>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-
                             {/* Use the appropriate history based on mode */}
                             {(mode === 'chat' ? chatHistory : quizHistory).length > 0 ? (
                               <div className="history-list">
@@ -1869,7 +1952,7 @@ complete the assignment successfully. Focus on guiding their learning rather tha
                       >
                         {chatMessages.map((message, index) => (
                           <motion.div 
-                            key={index}
+                            key={message.id || index} // Use unique ID if available
                             variants={itemVariants}
                             className={`chat-message ${message.sender === 'user' ? 'user-message' : 'bot-message'} ${mode === 'quiz' ? 'quiz-message' : ''}`}
                           >
@@ -2204,7 +2287,9 @@ complete the assignment successfully. Focus on guiding their learning rather tha
                               )}
                             </div>
                           </motion.div>
-                        ))}                      </motion.div>
+                        ))}
+                        <div ref={chatEndRef} /> {/* Add this empty div for scrolling */}
+                      </motion.div>
                     )}
                     
                     {/* Chat Input - Only for chat mode */}

@@ -187,14 +187,14 @@
 
 /* Chat Interface Styles */
 .chat-interface {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 120px) !important;
-  min-height: 700px !important;
+  display: flex; /* Use flexbox */
+  flex-direction: column; /* Stack children vertically */
+  height: calc(100vh - 120px); /* Adjust height calculation as needed */
+  min-height: 600px; /* Adjust min-height */
   background-color: var(--bg-secondary);
   border-radius: 16px;
   box-shadow: 0 4px 16px var(--card-shadow);
-  overflow: hidden;
+  overflow: hidden; /* Prevent overall interface scroll */
   position: relative;
 }
 
@@ -207,6 +207,10 @@
   -webkit-backdrop-filter: blur(15px);
   border-bottom: 1px solid rgba(233, 236, 239, 0.4);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+  flex-shrink: 0; /* Prevent header from shrinking */
+  z-index: 20; /* Ensure header stays above scrolling content and history panel */
+  position: sticky; /* Make header sticky */
+  top: 0; /* Stick to the top of the container */
 }
 
 .dark-theme .chat-header {
@@ -266,13 +270,14 @@
 .new-chat-button {
   display: flex;
   align-items: center;
-  background-color: #4a6bfb;
+  background-color: #3563E9; /* Vibrant blue color */
   color: white;
   border: none;
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.2s;
+  box-shadow: 0 2px 6px rgba(53, 99, 233, 0.3); /* Subtle shadow */
 }
 
 .new-chat-button:hover {
@@ -289,12 +294,24 @@
 }
 
 .dark-theme .new-chat-button {
-  background-color: #4299e1;
+  background-color: #3563E9; /* Bright blue color */
   color: #fff;
+  box-shadow: 0 2px 6px rgba(53, 99, 233, 0.3); /* Added subtle shadow */
 }
 
 .dark-theme .new-chat-button:hover {
-  background-color: #3182ce;
+  background-color: #2851db; /* Slightly darker blue on hover */
+}
+
+.theme-dark .new-chat-button {
+  background-color: #3563E9; /* Same bright blue for theme-dark */
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(53, 99, 233, 0.4); /* Slightly stronger shadow in dark theme */
+}
+
+.theme-dark .new-chat-button:hover {
+  background-color: #2851db; /* Same hover color for consistency */
+  transform: translateY(-2px); /* Subtle lift effect on hover */
 }
 
 .chat-title h2 {
@@ -332,17 +349,20 @@
 
 .chat-history-panel {
   position: absolute;
-  top: 72px;
+  top: 0; /* Align with the top of chat-interface */
   right: 0;
   width: 320px;
-  height: calc(100% - 72px) !important;
-  max-height: calc(100vh - 192px) !important;
+  height: 100%; /* Take full height of the parent */
   background-color: white;
   border-left: 1px solid #e5e5e5;
-  z-index: 10;
+  z-index: 10; /* Below header (z-index 20) but above messages/input */
   overflow-y: auto;
-  padding: 16px;
   animation: slideIn 0.3s ease;
+  padding-top: 72px; /* Adjust based on actual header height */
+  padding-bottom: 16px; /* Restore bottom padding */
+  padding-left: 16px; /* Restore left padding */
+  padding-right: 16px; /* Restore right padding */
+  box-sizing: border-box; /* Include padding in height calculation */
 }
 
 @keyframes slideIn {
@@ -407,15 +427,12 @@
 }
 
 .chat-messages {
-  flex: 1;
-  overflow-y: auto;
+  flex-grow: 1; /* Allow message area to take remaining space */
+  overflow-y: auto; /* Enable vertical scrolling ONLY for messages */
   padding: 12px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  height: calc(100vh - 200px) !important;
-  min-height: 550px !important;
-  margin-bottom: auto; /* Push content to the top */
 }
 
 .chat-message, .quiz-message {
@@ -1756,7 +1773,7 @@
 
 /* Enhanced Resource Cards */
 .theme-dark .resource-card {
-  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-tertiary));
+  background: linear-gradient(145deg, var (--bg-secondary), var(--bg-tertiary));
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 12px var(--card-shadow);
 }
@@ -2882,4 +2899,213 @@
 
 .like-thanks-message p {
   margin: 0;
+}
+
+/* Markdown content styling with improved code blocks */
+.markdown-content {
+  font-family: inherit;
+  line-height: 1.5;
+  width: 100%;
+}
+
+.markdown-content h1, 
+.markdown-content h2, 
+.markdown-content h3, 
+.markdown-content h4, 
+.markdown-content h5, 
+.markdown-content h6 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-content h1 {
+  font-size: 1.8rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.5rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.3rem;
+}
+
+.markdown-content p {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+/* Improved code styling with better contrast */
+.markdown-content code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  padding: 2px 4px;
+  font-size: 0.9em;
+  background-color: #f5f7fa;
+  border-radius: 3px;
+  color: #24292e;
+}
+
+.markdown-content pre {
+  background-color: #f5f7fa;
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 12px 0;
+  border: 1px solid #e1e4e8;
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.85rem;
+  color: #24292e;
+  display: block;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+/* Dark theme code styling with higher contrast */
+.dark-theme .markdown-content code,
+.theme-dark .markdown-content code {
+  background-color: #1a2234;
+  color: #e2e8f0;
+  border: 1px solid #2d3855;
+}
+
+.dark-theme .markdown-content pre,
+.theme-dark .markdown-content pre {
+  background-color: #1a2234;
+  border: 1px solid #2d3855;
+}
+
+.dark-theme .markdown-content pre code,
+.theme-dark .markdown-content pre code {
+  color: #e2e8f0;
+}
+
+/* Syntax highlighting for different languages */
+/* JavaScript/TypeScript */
+.language-js .token.keyword,
+.language-ts .token.keyword,
+.language-javascript .token.keyword,
+.language-typescript .token.keyword { 
+  color: #569cd6; 
+}
+
+.language-js .token.string,
+.language-ts .token.string,
+.language-javascript .token.string,
+.language-typescript .token.string { 
+  color: #ce9178; 
+}
+
+.language-js .token.function,
+.language-ts .token.function,
+.language-javascript .token.function,
+.language-typescript .token.function { 
+  color: #dcdcaa; 
+}
+
+.language-js .token.comment,
+.language-ts .token.comment,
+.language-javascript .token.comment,
+.language-typescript .token.comment { 
+  color: #6a9955; 
+}
+
+/* Python */
+.language-python .token.keyword { 
+  color: #ff79c6; 
+}
+
+.language-python .token.string { 
+  color: #f1fa8c; 
+}
+
+.language-python .token.function { 
+  color: #50fa7b; 
+}
+
+.language-python .token.comment { 
+  color: #6272a4; 
+}
+
+/* HTML/XML */
+.language-html .token.tag,
+.language-xml .token.tag { 
+  color: #569cd6; 
+}
+
+.language-html .token.attr-name,
+.language-xml .token.attr-name { 
+  color: #9cdcfe; 
+}
+
+.language-html .token.attr-value,
+.language-xml .token.attr-value { 
+  color: #ce9178; 
+}
+
+.language-html .token.comment,
+.language-xml .token.comment { 
+  color: #6a9955; 
+}
+
+/* CSS */
+.language-css .token.property { 
+  color: #9cdcfe; 
+}
+
+.language-css .token.selector { 
+  color: #d7ba7d; 
+}
+
+.language-css .token.value { 
+  color: #ce9178; 
+}
+
+/* Dark theme overrides for syntax highlighting */
+.dark-theme .language-js .token.keyword,
+.dark-theme .language-ts .token.keyword,
+.dark-theme .language-javascript .token.keyword,
+.dark-theme .language-typescript .token.keyword,
+.theme-dark .language-js .token.keyword,
+.theme-dark .language-ts .token.keyword,
+.theme-dark .language-javascript .token.keyword,
+.theme-dark .language-typescript .token.keyword { 
+  color: #569cd6; 
+}
+
+.dark-theme .language-js .token.string,
+.dark-theme .language-ts .token.string,
+.dark-theme .language-javascript .token.string,
+.dark-theme .language-typescript .token.string,
+.theme-dark .language-js .token.string,
+.theme-dark .language-ts .token.string,
+.theme-dark .language-javascript .token.string,
+.theme-dark .language-typescript .token.string { 
+  color: #ce9178; 
+}
+
+.dark-theme .language-js .token.function,
+.dark-theme .language-ts .token.function,
+.dark-theme .language-javascript .token.function,
+.dark-theme .language-typescript .token.function,
+.theme-dark .language-js .token.function,
+.theme-dark .language-ts .token.function,
+.theme-dark .language-javascript .token.function,
+.theme-dark .language-typescript .token.function { 
+  color: #dcdcaa; 
+}
+
+.dark-theme .language-python .token.keyword,
+.theme-dark .language-python .token.keyword { 
+  color: #ff79c6; 
+}
+
+.dark-theme .language-python .token.string,
+.theme-dark .language-python .token.string { 
+  color: #f1fa8c; 
 }

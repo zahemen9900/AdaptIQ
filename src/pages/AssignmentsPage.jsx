@@ -32,6 +32,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AssignmentSubmission from '../components/AssignmentSubmission/AssignmentSubmission';
+import { useTheme } from '../context/ThemeContext'; // Import useTheme hook
 import { auth, db } from '../../firebase';
 import { doc, getDoc } from '@firebase/firestore';
 
@@ -229,6 +230,9 @@ const PastAssignmentModal = ({ isOpen, onClose, pastAssignments }) => {
 };
 
 const AssignmentsPage = () => {
+  // Theme context
+  const { isDarkMode } = useTheme();
+
   // State for user info
   const [nickname, setNickname] = useState('');
   const [subjects, setSubjects] = useState([]);
@@ -538,7 +542,7 @@ const AssignmentsPage = () => {
 
   return (
     <motion.div
-      className="dashboard-page"
+      className={`dashboard-page ${isDarkMode ? 'dark-theme' : ''}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}

@@ -24,6 +24,13 @@
   flex-direction: column;
 }
 
+/* Dark theme for assignment submission content */
+.dark-theme .assignment-submission-content {
+  background-color: #1f2942; /* Dark blue background */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid #2d3855; /* Subtle border */
+}
+
 .assignment-submission-header {
   display: flex;
   justify-content: space-between;
@@ -35,10 +42,21 @@
   border-top-right-radius: 12px;
 }
 
+/* Dark theme for submission header */
+.dark-theme .assignment-submission-header {
+  background-color: #141b2d; /* Darker blue for header */
+  border-bottom: 1px solid #2d3855;
+}
+
 .assignment-submission-header h2 {
   margin: 0;
   font-size: 1.5rem;
   color: #333;
+}
+
+/* Dark theme for header text */
+.dark-theme .assignment-submission-header h2 {
+  color: #e2e8f0; /* Light gray text */
 }
 
 .close-button {
@@ -59,6 +77,16 @@
   color: #333;
 }
 
+/* Dark theme close button */
+.dark-theme .close-button {
+  color: #94a3b8; /* Muted text color */
+}
+
+.dark-theme .close-button:hover {
+  background-color: #2a3655; /* Slightly lighter blue for hover */
+  color: #fff;
+}
+
 .assignment-submission-content {
   padding: 24px;
 }
@@ -73,6 +101,11 @@
   color: #333;
 }
 
+/* Dark theme for section headings */
+.dark-theme .assignment-details h3 {
+  color: #fff;
+}
+
 .assignment-description {
   background-color: #f5f7ff;
   padding: 16px;
@@ -82,6 +115,13 @@
   color: #333;
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+/* Dark theme for assignment description */
+.dark-theme .assignment-description {
+  background-color: #2a3655; /* Slightly lighter blue */
+  color: #e2e8f0;
+  border-left: 4px solid #4a6bfb; /* Keep the accent color */
 }
 
 .submission-form,
@@ -98,6 +138,12 @@
   margin: 0 0 12px 0;
   font-size: 1.1rem;
   color: #444;
+}
+
+/* Dark theme section headings */
+.dark-theme .submission-input-section h4,
+.dark-theme .file-upload-section h4 {
+  color: #e2e8f0;
 }
 
 .submission-textarea {
@@ -120,6 +166,24 @@
 .submission-textarea:disabled {
   background-color: #f9f9f9;
   cursor: not-allowed;
+}
+
+/* Dark theme text area */
+.dark-theme .submission-textarea {
+  background-color: #141b2d;
+  border-color: #2d3855;
+  color: #e2e8f0;
+}
+
+.dark-theme .submission-textarea:focus {
+  border-color: #4a6bfb;
+  box-shadow: 0 0 0 2px rgba(74, 107, 251, 0.2);
+}
+
+.dark-theme .submission-textarea:disabled {
+  background-color: #0a0d1f; /* Darker shade when disabled */
+  border-color: #2d3855;
+  color: #94a3b8;
 }
 
 .file-upload-section {
@@ -150,6 +214,21 @@
   color: #666;
 }
 
+/* Dark theme file upload area */
+.dark-theme .file-upload-label {
+  border: 2px dashed #2d3855;
+  background-color: #141b2d;
+}
+
+.dark-theme .file-upload-label:hover {
+  border-color: #4a6bfb;
+  background-color: #1a2234; /* Slightly lighter on hover */
+}
+
+.dark-theme .file-upload-label span {
+  color: #94a3b8;
+}
+
 .uploaded-file {
   display: flex;
   align-items: center;
@@ -159,11 +238,22 @@
   border: 1px solid #ddd;
 }
 
+/* Dark theme uploaded file */
+.dark-theme .uploaded-file {
+  background-color: #2a3655; 
+  border-color: #2d3855;
+}
+
 .file-name {
   margin-left: 8px;
   flex: 1;
   color: #333;
   font-size: 0.95rem;
+}
+
+/* Dark theme file name */
+.dark-theme .file-name {
+  color: #e2e8f0;
 }
 
 .remove-file-button {
@@ -188,6 +278,15 @@
   cursor: not-allowed;
 }
 
+/* Dark theme remove button */
+.dark-theme .remove-file-button {
+  color: #ff6b6b; /* Brighter red for dark background */
+}
+
+.dark-theme .remove-file-button:hover {
+  background-color: rgba(255, 107, 107, 0.2);
+}
+
 .submission-error {
   display: flex;
   align-items: center;
@@ -201,6 +300,12 @@
 .submission-error svg {
   margin-right: 8px;
   flex-shrink: 0;
+}
+
+/* Dark theme error messages */
+.dark-theme .submission-error {
+  background-color: rgba(244, 67, 54, 0.15);
+  color: #ff6b6b;
 }
 
 .submission-actions {
@@ -234,6 +339,17 @@
   color: #333;
 }
 
+/* Dark theme buttons */
+.dark-theme .cancel-button {
+  border-color: #2d3855;
+  color: #94a3b8;
+}
+
+.dark-theme .cancel-button:hover {
+  background-color: #2a3655;
+  color: #e2e8f0;
+}
+
 .submit-button,
 .complete-button {
   background-color: #4a6bfb;
@@ -248,6 +364,26 @@
 
 .submit-button:disabled {
   background-color: #b0bec5;
+  cursor: not-allowed;
+}
+
+/* Dark theme primary buttons */
+.dark-theme .submit-button,
+.dark-theme .complete-button {
+  background: linear-gradient(135deg, #4a6bfb, #3a5be0);
+  box-shadow: 0 4px 12px rgba(74, 107, 251, 0.3);
+}
+
+.dark-theme .submit-button:hover,
+.dark-theme .complete-button:hover {
+  background: linear-gradient(135deg, #5a7bff, #4a6bfb);
+  transform: translateY(-2px);
+}
+
+.dark-theme .submit-button:disabled {
+  background: #2d3855;
+  color: #94a3b8;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -297,10 +433,17 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* Dark theme grade circle - no need to change as it has its own colors */
+
 .grade-label {
   font-size: 1.3rem;
   font-weight: 600;
   color: #333;
+}
+
+/* Dark theme grade label */
+.dark-theme .grade-label {
+  color: #e2e8f0;
 }
 
 .feedback-content {
@@ -312,6 +455,64 @@
   font-size: 0.95rem;
   line-height: 1.6;
   color: #333;
+}
+
+/* Dark theme feedback content */
+.dark-theme .feedback-content {
+  background-color: #2a3655;
+  color: #e2e8f0;
+  border: 1px solid #2d3855;
+}
+
+/* Dark theme markdown content in feedback */
+.dark-theme .feedback-content h1,
+.dark-theme .feedback-content h2,
+.dark-theme .feedback-content h3 {
+  color: #fff;
+}
+
+.dark-theme .feedback-content p,
+.dark-theme .feedback-content li {
+  color: #e2e8f0;
+}
+
+.dark-theme .feedback-content code {
+  background-color: #141b2d;
+  color: #e2e8f0;
+  border: 1px solid #2d3855;
+}
+
+.dark-theme .feedback-content pre {
+  background-color: #141b2d;
+  border: 1px solid #2d3855;
+}
+
+.dark-theme .feedback-content a {
+  color: #4a6bfb;
+}
+
+.dark-theme .feedback-content blockquote {
+  border-left-color: #4a6bfb;
+  background-color: rgba(74, 107, 251, 0.1);
+}
+
+/* Enhanced dark theme scrollbar */
+.dark-theme .assignment-submission-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark-theme .assignment-submission-content::-webkit-scrollbar-track {
+  background: #141b2d;
+  border-radius: 4px;
+}
+
+.dark-theme .assignment-submission-content::-webkit-scrollbar-thumb {
+  background: #2d3855;
+  border-radius: 4px;
+}
+
+.dark-theme .assignment-submission-content::-webkit-scrollbar-thumb:hover {
+  background: #3a5be0;
 }
 
 /* Adapt to responsive layouts */

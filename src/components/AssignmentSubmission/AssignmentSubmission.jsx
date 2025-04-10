@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTheme } from '../../context/ThemeContext';
 
 // Initialize the Google Generative AI with the API key
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
@@ -20,6 +21,7 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 const AssignmentSubmission = ({ assignment, onSubmit, onCancel }) => {
+  const { isDarkMode } = useTheme(); // Get the dark mode state
   const [submissionText, setSubmissionText] = useState('');
   const [fileContent, setFileContent] = useState(null);
   const [fileName, setFileName] = useState('');

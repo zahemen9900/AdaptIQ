@@ -389,14 +389,8 @@ const ChatPage = () => {
       const newSessionId = forceNewSession(CHAT_CONTEXT_ID, 'chat');
       setCurrentSessionId(newSessionId);
       
-      // Clear messages and add initial greeting
-      const initialMessage = {
-          id: Date.now().toString(),
-          sender: 'bot',
-          content: `Starting a new chat. Hello ${user.nickname || 'there'}, how can I assist you?`,
-          timestamp: new Date().toISOString()
-      };
-      setChatMessages([initialMessage]);
+      // Clear messages to show welcome screen
+      setChatMessages([]);
       
       // Close history panel if open
       setShowChatHistory(false);
@@ -617,36 +611,15 @@ const ChatPage = () => {
             >
               <div className="history-panel-header">
                 <h3>Chat History</h3>
-                 <button
-                    className="clear-history-header-button"
-                    onClick={() => setShowClearHistoryConfirm(true)}
-                    aria-label="Clear history"
-                    title="Clear All History"
-                  >
-                    <IconTrash size={16} />
-                  </button>
+                <button
+                  className="close-history-button"
+                  onClick={() => setShowChatHistory(false)}
+                  aria-label="Close history"
+                  title="Close History"
+                >
+                  <IconX size={18} />
+                </button>
               </div>
-              {/* Confirmation Modal */}
-                <AnimatePresence>
-                  {showClearHistoryConfirm && (
-                    <motion.div
-                      className="clear-history-confirm-modal" // Reuse styling
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                    >
-                      <div className="confirm-modal-content">
-                        <IconAlertTriangle size={24} color="#ff4d4d" />
-                        <h4>Clear Chat History</h4>
-                        <p>Are you sure you want to clear all your general chat history? This cannot be undone.</p>
-                        <div className="confirm-modal-buttons">
-                          <button className="confirm-cancel-button" onClick={() => setShowClearHistoryConfirm(false)}>Cancel</button>
-                          <button className="confirm-delete-button" onClick={clearConversationHistory}>Delete</button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               {chatHistory.length > 0 ? (
                 <div className="history-list">
                   {chatHistory.map((item, index) => (
@@ -719,8 +692,10 @@ const ChatPage = () => {
                         )}
                       </div>
                     )}
-                    {/* Display text content */}
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    {/* Display text content - Wrapped in markdown-content div */}
+                    <div className="markdown-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    </div>
                   </>
                 )}
                  {/* Actions for Bot Messages (Copy, Like, Dislike, Regenerate) */}

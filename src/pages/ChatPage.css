@@ -174,25 +174,163 @@
   margin-bottom: 0;
 }
 
+/* Improved code styling with better contrast */
 .message-content .markdown-content code {
-  background-color: var(--code-background-color);
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  padding: 2px 4px;
   font-size: 0.9em;
+  background-color: #f5f7fa;
+  border-radius: 3px;
+  color: #24292e;
 }
 
 .message-content .markdown-content pre {
-  background-color: var(--code-background-color);
-  padding: 0.75rem;
+  background-color: #f5f7fa;
   border-radius: 6px;
+  padding: 16px;
   overflow-x: auto;
-  margin: 0.5em 0;
+  margin: 12px 0;
+  border: 1px solid #e1e4e8;
 }
 
 .message-content .markdown-content pre code {
   background-color: transparent;
   padding: 0;
+  font-size: 0.85rem;
+  color: #24292e;
+  display: block;
+  line-height: 1.5;
+  tab-size: 2;
 }
+
+/* Dark theme code styling with higher contrast */
+.dark-theme .message-content .markdown-content code {
+  background-color: #1a2234;
+  color: #e2e8f0;
+  border: 1px solid #2d3855;
+}
+
+.dark-theme .message-content .markdown-content pre {
+  background-color: #1a2234;
+  border: 1px solid #2d3855;
+}
+
+.dark-theme .message-content .markdown-content pre code {
+  color: #e2e8f0;
+}
+
+/* Syntax highlighting for different languages */
+/* JavaScript/TypeScript */
+.language-js .token.keyword,
+.language-ts .token.keyword,
+.language-javascript .token.keyword,
+.language-typescript .token.keyword { 
+  color: #569cd6; 
+}
+
+.language-js .token.string,
+.language-ts .token.string,
+.language-javascript .token.string,
+.language-typescript .token.string { 
+  color: #ce9178; 
+}
+
+.language-js .token.function,
+.language-ts .token.function,
+.language-javascript .token.function,
+.language-typescript .token.function { 
+  color: #dcdcaa; 
+}
+
+.language-js .token.comment,
+.language-ts .token.comment,
+.language-javascript .token.comment,
+.language-typescript .token.comment { 
+  color: #6a9955; 
+}
+
+/* Python */
+.language-python .token.keyword { 
+  color: #ff79c6; 
+}
+
+.language-python .token.string { 
+  color: #f1fa8c; 
+}
+
+.language-python .token.function { 
+  color: #50fa7b; 
+}
+
+.language-python .token.comment { 
+  color: #6272a4; 
+}
+
+/* HTML/XML */
+.language-html .token.tag,
+.language-xml .token.tag { 
+  color: #569cd6; 
+}
+
+.language-html .token.attr-name,
+.language-xml .token.attr-name { 
+  color: #9cdcfe; 
+}
+
+.language-html .token.attr-value,
+.language-xml .token.attr-value { 
+  color: #ce9178; 
+}
+
+.language-html .token.comment,
+.language-xml .token.comment { 
+  color: #6a9955; 
+}
+
+/* CSS */
+.language-css .token.property { 
+  color: #9cdcfe; 
+}
+
+.language-css .token.selector { 
+  color: #d7ba7d; 
+}
+
+.language-css .token.value { 
+  color: #ce9178; 
+}
+
+/* Dark theme overrides for syntax highlighting */
+.dark-theme .language-js .token.keyword,
+.dark-theme .language-ts .token.keyword,
+.dark-theme .language-javascript .token.keyword,
+.dark-theme .language-typescript .token.keyword { 
+  color: #569cd6; 
+}
+
+.dark-theme .language-js .token.string,
+.dark-theme .language-ts .token.string,
+.dark-theme .language-javascript .token.string,
+.dark-theme .language-typescript .token.string { 
+  color: #ce9178; 
+}
+
+.dark-theme .language-js .token.function,
+.dark-theme .language-ts .token.function,
+.dark-theme .language-javascript .token.function,
+.dark-theme .language-typescript .token.function { 
+  color: #dcdcaa; 
+}
+
+.dark-theme .language-python .token.keyword { 
+  color: #ff79c6; 
+}
+
+.dark-theme .language-python .token.string { 
+  color: #f1fa8c; 
+}
+
+/* ... Add more dark theme overrides for other languages/tokens as needed ... */
 
 /* Thinking Indicator */
 .thinking-indicator {
@@ -449,6 +587,23 @@
 }
 .clear-history-header-button:hover {
     color: var(--error-color);
+}
+
+.close-history-button {
+    background: none;
+    border: none;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+.close-history-button:hover {
+    background-color: var(--button-secondary-hover-bg);
+    color: var(--text-color-primary);
 }
 
 .history-list {
