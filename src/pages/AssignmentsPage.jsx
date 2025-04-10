@@ -876,7 +876,7 @@ const AssignmentsPage = () => {
                 {calendarDates.map((day, index) => {
                   const dateKey = day.date.toISOString().split('T')[0];
                   const dayAssignments = assignmentsByDate[dateKey] || [];
-                  const hasAssignments = dayAssignments.length > 0;
+                  // const hasAssignments = dayAssignments.length > 0;
                   const hasOverdue = dayAssignments.some(a => a.status === 'overdue');
                   const hasDueToday = dayAssignments.some(a => a.priority === 4); // Due today
                   

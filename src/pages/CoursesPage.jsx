@@ -4,7 +4,7 @@ import './CoursesPage.css';
 import Logo from '../assets/logo-white.png';
 import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEye, IconPlayerPlay, IconSparkles } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
-import { getAssignments } from '../utils/assignmentsUtils';
+// import { getAssignments } from '../utils/assignmentsUtils';
 import { getProgressFromFirebase } from '../utils/progressTracker';
 import ConfirmationModal from '../components/ConfirmationModal/ConfirmationModal';
 import { useTheme } from '../context/ThemeContext';

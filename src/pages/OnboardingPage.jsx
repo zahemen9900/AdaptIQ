@@ -4,7 +4,7 @@ import './OnboardingPage.css';
 import Logo from '../assets/Logo.png';
 import { IconArrowRight, IconArrowLeft, IconBulb, IconBook, IconCalendar, IconSchool, IconUser } from '@tabler/icons-react';
 import { auth, updateUserData } from '../../firebase';
-import { motion } from 'framer-motion';
+// import { motion } from 'framer-motion';
 
 const OnboardingPage = () => {
   const navigate = useNavigate();

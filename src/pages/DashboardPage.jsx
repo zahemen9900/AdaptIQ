@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from '@firebase/auth';
 import { auth, db, getUserData } from '../../firebase';
 import { useUser } from '../context/UserContext';
-import { doc, getDoc } from 'firebase/firestore';
+// import { doc, getDoc } from 'firebase/firestore';
 
 // SignOut Confirmation Modal Component
 const SignOutConfirmationModal = ({ isOpen, onClose, onConfirm }) => {

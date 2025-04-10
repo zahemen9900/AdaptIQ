@@ -12,7 +12,6 @@ import {
   orderBy, 
   limit, 
   getDocs,
-  arrayUnion,
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';

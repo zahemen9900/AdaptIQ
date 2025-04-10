@@ -1136,7 +1136,7 @@ export const submitAssignmentToFirestore = async (assignmentId, submissionData) 
       return false;
     }
 
-    const userId = auth.currentUser.uid;
+    // const userId = auth.currentUser.uid;
     const updates = {
       status: 'completed',
       submission: submissionData,
@@ -1328,6 +1328,7 @@ export const getRandomTopicForSubject = (subject) => {
     'Music Theory': ['Scales', 'Chords', 'Harmony', 'Counterpoint', 'Form and Analysis', 'Ear Training', 'Sight Singing', 'Composition', 'Orchestration', 'Jazz Theory'],
     'Instrumental': ['Technique', 'Repertoire', 'Performance Practice', 'Chamber Music', 'Orchestra', 'Band', 'Solo Performance', 'Sight Reading', 'Interpretation', 'Music History'],
     'Vocal': ['Vocal Technique', 'Repertoire', 'Diction', 'Choral Singing', 'Opera', 'Art Song', 'Popular Vocal Styles', 'Vocal Health', 'Performance Practice', 'Sight Singing'],
+    // eslint-disable-next-line no-dupe-keys
     'Composition': ['Melody Writing', 'Harmony', 'Counterpoint', 'Orchestration', 'Form', 'Contemporary Techniques', 'Film Scoring', 'Song Writing', 'Electronic Music', 'Arranging'],
     
     // Physical Education
