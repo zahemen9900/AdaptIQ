@@ -6,7 +6,9 @@ import {
   IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, 
   IconClipboard, IconListDetails, IconFilter, IconSearch, IconChevronLeft, 
   IconChevronRight, IconCheck, IconPlus, IconArrowUpRight, IconX,
-  IconLayoutGrid, IconAlertCircle, IconSparkles
+  IconLayoutGrid, IconAlertCircle, IconSparkles,
+  IconLayoutDashboard, // Added for Overview
+  IconMessageCircle, // Added for Chat
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -547,8 +549,13 @@ const AssignmentsPage = () => {
         </div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className="nav-item">
-            <IconChartBar size={24} />
+            <IconLayoutDashboard size={24} /> {/* Changed Icon */}
             <span>Overview</span>
+          </Link>
+          {/* Added Chat Link */}
+          <Link to="/dashboard/chat" className="nav-item">
+            <IconMessageCircle size={24} />
+            <span>Chat</span>
           </Link>
           <Link to="/dashboard/courses" className="nav-item">
             <IconBook size={24} />
@@ -754,87 +761,90 @@ const AssignmentsPage = () => {
           {viewMode === 'list' && (
             <div className="assignments-list-view">
               {filteredAssignments.length > 0 ? (
-                filteredAssignments.map(assignment => {
-                  const priorityInfo = getPriorityInfo(assignment.priority);
-                  
-                  return (
-                    <motion.div 
-                      key={assignment.id}
-                      className={`assignment-card status-${assignment.status}`}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.2 }}
-                      onClick={() => handleViewDetails(assignment)}
-                    >
-                      <div className="assignment-priority" style={{ backgroundColor: priorityInfo.color }}></div>
-                      <div className="assignment-content">
-                        <div className="assignment-header">
-                          <h3>{assignment.title}</h3>
-                          <div 
-                            className="priority-badge"
-                            style={{ 
-                              color: priorityInfo.color,
-                              backgroundColor: priorityInfo.bgColor
-                            }}
-                          >
-                            {priorityInfo.label}
-                          </div>
-                        </div>
-                        
-                        <div className="assignment-details">
-                          <div className="assignment-subject">
-                            <IconBook size={16} />
-                            <span>{assignment.subject}</span>
-                          </div>
-                          <div className="assignment-due-date">
-                            <IconCalendar size={16} />
-                            <span>{formatAssignmentDate(assignment.dueDate)}</span>
-                          </div>
-                          <div className="assignment-time">
-                            <IconClock size={16} />
-                            <span>{assignment.estimatedMinutes} min</span>
-                          </div>
-                        </div>
-                        
-                        <p className="assignment-description">
-                          {assignment.description.length > 120 ? 
-                            `${assignment.description.substring(0, 120)}...` : 
-                            assignment.description}
-                        </p>
-                        
-                        <div className="assignment-actions">
-                          <div className="assignment-status">
-                            <span>Status:</span>
-                            <select 
-                              value={assignment.status}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(assignment.id, e.target.value);
+                // Add a container for the grid layout
+                <div className="assignments-grid-container">
+                  {filteredAssignments.map(assignment => {
+                    const priorityInfo = getPriorityInfo(assignment.priority);
+                    
+                    return (
+                      <motion.div 
+                        key={assignment.id}
+                        className={`assignment-card status-${assignment.status}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={{ scale: 1.02 }}
+                        transition={{ duration: 0.2 }}
+                        onClick={() => handleViewDetails(assignment)}
+                      >
+                        <div className="assignment-priority" style={{ backgroundColor: priorityInfo.color }}></div>
+                        <div className="assignment-content">
+                          <div className="assignment-header">
+                            <h3>{assignment.title}</h3>
+                            <div 
+                              className="priority-badge"
+                              style={{ 
+                                color: priorityInfo.color,
+                                backgroundColor: priorityInfo.bgColor
                               }}
-                              onClick={(e) => e.stopPropagation()}
                             >
-                              <option value="pending">Pending</option>
-                              <option value="in-progress">In Progress</option>
-                              <option value="completed">Completed</option>
-                            </select>
+                              {priorityInfo.label}
+                            </div>
                           </div>
                           
-                          <button 
-                            className="view-details-button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewDetails(assignment);
-                            }}
-                          >
-                            <IconArrowUpRight size={16} />
-                            <span>View Details</span>
-                          </button>
+                          <div className="assignment-details">
+                            <div className="assignment-subject">
+                              <IconBook size={16} />
+                              <span>{assignment.subject}</span>
+                            </div>
+                            <div className="assignment-due-date">
+                              <IconCalendar size={16} />
+                              <span>{formatAssignmentDate(assignment.dueDate)}</span>
+                            </div>
+                            <div className="assignment-time">
+                              <IconClock size={16} />
+                              <span>{assignment.estimatedMinutes} min</span>
+                            </div>
+                          </div>
+                          
+                          <p className="assignment-description">
+                            {assignment.description.length > 120 ? 
+                              `${assignment.description.substring(0, 120)}...` : 
+                              assignment.description}
+                          </p>
+                          
+                          <div className="assignment-actions">
+                            <div className="assignment-status">
+                              <span>Status:</span>
+                              <select 
+                                value={assignment.status}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(assignment.id, e.target.value);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                              </select>
+                            </div>
+                            
+                            <button 
+                              className="view-details-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewDetails(assignment);
+                              }}
+                            >
+                              <IconArrowUpRight size={16} />
+                              <span>View Details</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })
+                      </motion.div>
+                    );
+                  })}
+                </div> // End of grid container
               ) : (
                 <div className="no-assignments">
                   <IconClipboard size={48} />

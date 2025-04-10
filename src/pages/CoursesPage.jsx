@@ -2,13 +2,26 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './CoursesPage.css';
 import Logo from '../assets/logo-white.png';
-import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconUsers, IconEye, IconPlayerPlay, IconSparkles } from '@tabler/icons-react';
+import { 
+  IconCalendar, 
+  IconUser, 
+  IconBook, 
+  IconSettings, 
+  IconChartBar, 
+  IconClipboard, 
+  IconUsers, 
+  IconEye, 
+  IconPlayerPlay, 
+  IconSparkles,
+  IconLayoutDashboard, // Added for Overview
+  IconMessageCircle, // Added for Chat
+} from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
-// import { getAssignments } from '../utils/assignmentsUtils';
+import { getAssignments } from '../utils/assignmentsUtils';
 import { getProgressFromFirebase } from '../utils/progressTracker';
 import ConfirmationModal from '../components/ConfirmationModal/ConfirmationModal';
 import { useTheme } from '../context/ThemeContext';
-import { useUser } from '../context/UserContext';
+import { useUser } from '../context/UserContext'; // Import useUser
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
@@ -18,48 +31,55 @@ const CoursesPage = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const { isDarkMode } = useTheme();
-  const { user } = useUser();
+  const { user } = useUser(); // Get user data from context
   const navigate = useNavigate();
   
   const [progressLoaded, setProgressLoaded] = useState(false);
 
   useEffect(() => {
-    if (!user.loadingUser) {
-      loadCourses();
+    // Load courses when user data is available from context
+    if (!user.loadingUser && user.courses) {
+      loadCoursesFromContext();
+    } else if (!user.loadingUser && !user.courses) {
+      // Handle case where user has no courses in context (e.g., new user)
+      setLoading(false);
+      setCourses([]);
     }
-  }, [user.loadingUser, user.courses]);
+    // Dependency array includes user object to react to changes
+  }, [user.loadingUser, user.courses]); 
   
-  const loadCourses = () => {
+  // New function to load courses primarily from UserContext
+  const loadCoursesFromContext = () => {
     setLoading(true);
-    const onboardingData = localStorage.getItem('onboardingData');
-    if (onboardingData) {
-      try {
-        const userData = JSON.parse(onboardingData);
-        if (userData.courses && Array.isArray(userData.courses)) {
-          setTimeout(() => {
-            processUserCourses(userData);
-          }, 1000);
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error parsing onboarding data:", error);
+    if (user.courses && Array.isArray(user.courses)) {
+      // Process courses using the data from context
+      const processedCourses = processUserCourses(user.courses, user.customCourses || {});
+      setCourses(processedCourses);
+      if (processedCourses.length > 0) {
+        fetchCourseProgress(processedCourses);
+      } else {
         setLoading(false);
       }
     } else {
+      // Fallback or handle case where context has no courses
+      console.log("No courses found in user context.");
+      setCourses([]);
       setLoading(false);
     }
   };
-  
-  const processUserCourses = (userData) => {
-    const userCourses = userData.courses.map((courseId, index) => {
+
+  // Modify processUserCourses to accept courses array and customCourses directly
+  const processUserCourses = (userCourseIds, customCoursesMap = {}) => {
+    return userCourseIds.map((courseId, index) => {
       let courseName, category;
       if (courseId.includes('-')) {
         const [subjectId, courseCode] = courseId.split('-');
-        if (courseCode === 'other' && userData.customCourses && userData.customCourses[subjectId]) {
-          courseName = userData.customCourses[subjectId];
+        // Use customCoursesMap passed from context/user object
+        if (courseCode === 'other' && customCoursesMap && customCoursesMap[subjectId]) {
+          courseName = customCoursesMap[subjectId];
           category = subjectId;
         } else {
+          // ... (rest of the existing mapping logic remains the same)
           const coursesBySubject = {
             math: [
               { id: 'algebra', label: 'Algebra' },
@@ -158,10 +178,11 @@ const CoursesPage = () => {
           }
         }
       } else {
-        courseName = courseId;
+        courseName = courseId; // Assume it's a direct name if no hyphen
         category = 'other';
       }
       
+      // ... (rest of the mapping logic remains the same)
       const categoryMapping = {
         math: 'mathematics',
         science: 'science',
@@ -179,38 +200,33 @@ const CoursesPage = () => {
       };
       
       const displayCategory = categoryMapping[category] || 'other';
-      const progress = 0;
-      const status = 'not-started';
+      const progress = 0; // Progress will be fetched later
+      const status = 'not-started'; // Status will be updated after fetching progress
       const imageUrl = getSubjectImageUrl(courseName, displayCategory);
-      const lastAccessed = new Date().toISOString().split('T')[0];
+      const lastAccessed = new Date().toISOString().split('T')[0]; // Placeholder
       
       return {
         id: `course-${index}`,
-        courseId,
+        courseId, // Keep original ID
         name: courseName,
         category: displayCategory,
         progress,
         status,
         imageUrl,
         lastAccessed,
-        difficulty: ['Easy', 'Moderate', 'Challenging'][Math.floor(Math.random() * 3)]
+        difficulty: ['Easy', 'Moderate', 'Challenging'][Math.floor(Math.random() * 3)] // Placeholder
       };
     });
-    
-    setCourses(userCourses);
-    if (userCourses.length > 0) {
-      fetchCourseProgress(userCourses);
-    } else {
-      setLoading(false);
-    }
   };
-  
+
+  // fetchCourseProgress remains largely the same, but ensures it uses the correct course names
   const fetchCourseProgress = async (initialCourses) => {
     try {
       const updatedCourses = [...initialCourses];
       for (let i = 0; i < updatedCourses.length; i++) {
         const course = updatedCourses[i];
-        const progress = await getProgressFromFirebase(course.name);
+        // Use course.name which should now be correctly processed
+        const progress = await getProgressFromFirebase(course.name); 
         updatedCourses[i] = {
           ...course,
           progress,
@@ -268,8 +284,13 @@ const CoursesPage = () => {
         </div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className="nav-item">
-            <IconChartBar size={24} />
+            <IconLayoutDashboard size={24} /> {/* Changed Icon */}
             <span>Overview</span>
+          </Link>
+          {/* Added Chat Link */}
+          <Link to="/dashboard/chat" className="nav-item">
+            <IconMessageCircle size={24} />
+            <span>Chat</span>
           </Link>
           <Link to="/dashboard/courses" className="nav-item active">
             <IconBook size={24} />

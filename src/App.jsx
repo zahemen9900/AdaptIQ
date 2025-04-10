@@ -29,6 +29,7 @@ import CourseLearningPage from './pages/CourseLearningPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import InspirationPage from './pages/InspirationPage'
+import ChatPage from './pages/ChatPage'; // Import the new ChatPage
 import { ThemeProvider } from './context/ThemeContext'
 import { UserProvider } from './context/UserContext'
 
@@ -87,6 +88,7 @@ function App() {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/loading" element={<LoadingPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard/chat" element={<ChatPage />} /> {/* Add the route for ChatPage */}
           <Route path="/dashboard/courses" element={<CoursesPage />} />
           <Route path="/dashboard/schedule" element={<SchedulePage />} />
           <Route path="/dashboard/assignments" element={<AssignmentsPage />} />

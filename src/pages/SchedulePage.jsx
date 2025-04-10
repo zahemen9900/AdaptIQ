@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './SchedulePage.css';
 import Logo from '../assets/logo-white.png';
-import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconEdit, IconCheck, IconDragDrop, IconDownload, IconRefresh, IconFileText, IconFile, IconSparkles, IconAlertCircle } from '@tabler/icons-react';
+import { IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, IconClipboard, IconEdit, IconCheck, IconDragDrop, IconDownload, IconRefresh, IconFileText, IconFile, IconSparkles, IconAlertCircle, IconLayoutDashboard, IconMessageCircle } from '@tabler/icons-react';
 import SubjectPopup from '../components/SubjectPopup/SubjectPopup';
 import { exportScheduleToPDF } from '../utils/scheduleExporter';
 import { exportScheduleToODF } from '../utils/odfExporter';
@@ -559,8 +559,13 @@ const SchedulePage = () => {
         </div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className="nav-item">
-            <IconChartBar size={24} />
+            <IconLayoutDashboard size={24} /> {/* Changed Icon */}
             <span>Overview</span>
+          </Link>
+          {/* Added Chat Link */}
+          <Link to="/dashboard/chat" className="nav-item">
+            <IconMessageCircle size={24} />
+            <span>Chat</span>
           </Link>
           <Link to="/dashboard/courses" className="nav-item">
             <IconBook size={24} />

@@ -196,6 +196,41 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding: 1rem 0; /* Add some padding */
+}
+
+/* New Grid Container Styles */
+.assignments-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive columns */
+  gap: 1.5rem; /* Spacing between cards */
+}
+
+/* Adjust Assignment Card for Grid */
+.assignment-card {
+  /* Remove fixed width/margin if previously set */
+  /* width: auto; */
+  /* margin-bottom: 0; */ /* Gap handles spacing */
+  display: flex; /* Use flexbox for internal layout */
+  flex-direction: column; /* Stack content vertically */
+  height: 100%; /* Make cards fill grid cell height */
+  /* ... existing card styles like background, border-radius, box-shadow ... */
+}
+
+.assignment-content {
+  flex-grow: 1; /* Allow content to fill available space */
+  display: flex;
+  flex-direction: column;
+}
+
+.assignment-description {
+  flex-grow: 1; /* Allow description to take up remaining space */
+  margin-bottom: 1rem; /* Add space before actions */
+}
+
+.assignment-actions {
+  margin-top: auto; /* Push actions to the bottom */
+  /* ... existing action styles ... */
 }
 
 .assignment-card {

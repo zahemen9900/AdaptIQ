@@ -6,7 +6,9 @@ import {
   IconCalendar, IconUser, IconBook, IconSettings, IconChartBar, 
   IconClipboard, IconUsers, IconMoon, IconSun, IconBell, 
   IconMail, IconVolume, IconLanguage, IconCheck, IconLetterA,
-  IconSparkles, IconLogout, IconAlertCircle, IconX
+  IconSparkles, IconLogout, IconAlertCircle, IconX,
+  IconLayoutDashboard, // Added for Overview
+  IconMessageCircle, // Added for Chat
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
@@ -115,8 +117,13 @@ const SettingsPage = () => {
         </div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className="nav-item">
-            <IconChartBar size={24} />
+            <IconLayoutDashboard size={24} /> {/* Changed Icon */}
             <span>Overview</span>
+          </Link>
+          {/* Added Chat Link */}
+          <Link to="/dashboard/chat" className="nav-item">
+            <IconMessageCircle size={24} />
+            <span>Chat</span>
           </Link>
           <Link to="/dashboard/courses" className="nav-item">
             <IconBook size={24} />

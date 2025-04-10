@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   IconBulb, IconStar, IconSparkles, IconHeart, IconHeartFilled, 
-  IconRefresh, IconMessageCircle, IconBooks, IconArrowRight, IconQuote, IconArrowLeft
+  IconRefresh, IconMessageCircle, IconBooks, IconArrowRight, IconQuote, IconArrowLeft,
+  IconLayoutDashboard, // Added for Overview
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { GoogleGenerativeAI } from "@google/generative-ai";

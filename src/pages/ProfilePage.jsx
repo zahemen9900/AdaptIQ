@@ -9,7 +9,7 @@ import {
   IconBadge, IconChevronRight, IconClock, IconBrain,
   IconCheck, IconX, IconPencil, IconDeviceAnalytics, IconTrophy,
   IconPalette, IconHeart, IconStar, IconCertificate, IconSparkles,
-  IconAlertCircle, IconCircleCheck
+  IconAlertCircle, IconCircleCheck, IconLayoutDashboard, IconMessageCircle
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAllCoursesProgress } from '../utils/progressTracker';
@@ -965,8 +965,12 @@ const ProfilePage = () => {
         </div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className="nav-item">
-            <IconChartBar size={24} />
+            <IconLayoutDashboard size={24} />
             <span>Overview</span>
+          </Link>
+          <Link to="/dashboard/chat" className="nav-item">
+            <IconMessageCircle size={24} />
+            <span>Chat</span>
           </Link>
           <Link to="/dashboard/courses" className="nav-item">
             <IconBook size={24} />

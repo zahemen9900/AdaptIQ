@@ -64,13 +64,13 @@ const inferFeedbackSentiment = (feedbackObj) => {
 
 /**
  * Get or create a session ID for the current conversation
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier (e.g., course name or '_general_chat_')
  * @param {string} mode - The learning mode ('chat'/'quiz')
  * @param {boolean} forceNew - Whether to force creation of a new session ID
  * @returns {string} - The session ID
  */
-export const getOrCreateSessionId = (courseName, mode, forceNew = false) => {
-  const sessionKey = `${mode}_session_${courseName}`;
+export const getOrCreateSessionId = (contextId, mode, forceNew = false) => {
+  const sessionKey = `${mode}_session_${contextId}`;
   let sessionId = localStorage.getItem(sessionKey);
   
   // Create a new session ID if none exists or if forced to create a new one
@@ -85,12 +85,12 @@ export const getOrCreateSessionId = (courseName, mode, forceNew = false) => {
 /**
  * Force creation of a new session ID regardless of any existing one
  * This ensures each conversation is truly separate
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier
  * @param {string} mode - The learning mode ('chat'/'quiz')
  * @returns {string} - A new session ID
  */
-export const forceNewSession = (courseName, mode) => {
-  const sessionKey = `${mode}_session_${courseName}`;
+export const forceNewSession = (contextId, mode) => {
+  const sessionKey = `${mode}_session_${contextId}`;
   // Always generate a new session ID
   const newSessionId = generateSessionId();
   // Store it in localStorage
@@ -100,165 +100,111 @@ export const forceNewSession = (courseName, mode) => {
 
 /**
  * End the current session
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier
  * @param {string} mode - The learning mode ('chat'/'quiz')
  */
-export const endCurrentSession = (courseName, mode) => {
-  const sessionKey = `${mode}_session_${courseName}`;
+export const endCurrentSession = (contextId, mode) => {
+  const sessionKey = `${mode}_session_${contextId}`;
   localStorage.removeItem(sessionKey);
 };
 
 /**
  * Save a chat conversation to Firebase (and localStorage as fallback)
- * This function supports two calling patterns:
- * 1. saveChatHistory(courseName, mode, userMessage, botResponse) - For individual messages
- * 2. saveChatHistory(courseName, historyArray) - For saving an array of history items
  * 
- * @param {string} courseName - The name of the course
- * @param {string|Array} modeOrHistory - Either the learning mode ('chat'/'quiz') or array of history items
- * @param {string} [userMessage] - The user's message (optional if modeOrHistory is array)
- * @param {string} [botResponse] - The bot's response (optional if modeOrHistory is array)
- * @param {string} [sessionId] - Optional session ID to group conversation turns (if not provided, will use or create one)
- * @returns {Promise<Object|Array>} - The saved conversation object or array of objects
+ * @param {string} contextId - The context identifier (e.g., course name or '_general_chat_')
+ * @param {string} mode - The learning mode ('chat'/'quiz')
+ * @param {string} userMessage - The user's message
+ * @param {string} botResponse - The bot's response
+ * @param {string} [sessionId] - Optional session ID to group conversation turns
+ * @returns {Promise<Object|null>} - The saved conversation object or null on error
  */
-export const saveChatHistory = async (courseName, modeOrHistory, userMessage, botResponse, sessionId) => {
+export const saveChatHistory = async (contextId, mode, userMessage, botResponse, sessionId) => {
   try {
-    // Check if we're dealing with the array format (backward compatibility)
-    if (Array.isArray(modeOrHistory)) {
-      // Handle array of history items
-      const historyArray = modeOrHistory;
+    // Get or create session ID
+    const currentSessionId = sessionId || getOrCreateSessionId(contextId, mode);
+    
+    // Create message objects
+    const userMessageObj = {
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date().toISOString()
+    };
+    
+    const botMessageObj = addFeedbackData({
+      role: 'assistant',
+      content: botResponse,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Save to localStorage first
+    await addMessageToSession(contextId, mode, currentSessionId, userMessageObj, botMessageObj);
+    
+    // If user is authenticated, save to Firebase
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      // Use contextId directly as the document ID within a 'contexts' collection
+      // Or keep the 'courses' structure and use contextId as the courseId
+      // Let's stick to the 'courses' structure for simplicity, using contextId as the key
+      const firestoreContextId = contextId.toLowerCase().replace(/ /g, '-');
       
-      // Save to localStorage
-      const key = `chatHistory_${courseName}`;
-      localStorage.setItem(key, JSON.stringify(historyArray));
+      // Determine which collection to use based on mode
+      const collectionName = mode === 'quiz' ? 'quizSessions' : 'chatSessions';
       
-      // If user is authenticated, save to Firebase
-      if (auth.currentUser && historyArray.length > 0) {
-        const userId = auth.currentUser.uid;
-        const courseId = courseName.toLowerCase().replace(/ /g, '-');
-        
-        // Save only the most recent item to Firebase
-        const mostRecent = historyArray[0];
-        
-        // Determine the mode (defaults to 'chat' if not specified)
-        const mode = mostRecent.mode || 'chat';
-        
-        // Create conversation object for Firestore
-        const conversationData = {
+      // Path: users/{userId}/courses/{firestoreContextId}/{collectionName}
+      const sessionsRef = collection(db, "users", userId, "courses", firestoreContextId, collectionName);
+      const sessionQuery = query(sessionsRef, where("sessionId", "==", currentSessionId));
+      const sessionSnapshot = await getDocs(sessionQuery);
+      
+      if (sessionSnapshot.empty) {
+        // Create new session document
+        const title = userMessage.length > 30 ? userMessage.substring(0, 30) + '...' : userMessage;
+        const newSessionData = {
           userId,
-          courseId,
-          courseName,
+          courseId: firestoreContextId, // Store the contextId here
+          courseName: contextId, // Store original contextId as name
           mode,
-          sessionId: mostRecent.sessionId || generateSessionId(),
-          messages: mostRecent.messages || [
-            { role: 'user', content: mostRecent.userMessage, timestamp: new Date().toISOString() },
-            addFeedbackData({ role: 'assistant', content: mostRecent.botResponse, timestamp: new Date().toISOString() })
-          ],
+          sessionId: currentSessionId,
+          messages: [userMessageObj, botMessageObj],
           timestamp: serverTimestamp(),
           lastUpdated: serverTimestamp(),
-          title: mostRecent.title || mostRecent.userMessage.substring(0, 30) + '...'
+          title
         };
         
-        // Save to appropriate collection based on mode
-        const collectionName = mode === 'quiz' ? 'quizSessions' : 'chatSessions';
-        
-        // Store in user > courses > courseId > conversations collection
-        const sessionsRef = collection(
-          db, 
-          "users", 
-          userId, 
-          "courses", 
-          courseId, 
-          collectionName
-        );
-        
-        await addDoc(sessionsRef, conversationData);
-        
-        // Update the course document to show recent activity
-        const courseRef = doc(db, "users", userId, "courses", courseId);
-        await updateDoc(courseRef, {
-          [`last${mode.charAt(0).toUpperCase() + mode.slice(1)}Activity`]: serverTimestamp(),
-          lastActive: serverTimestamp()
-        }, { merge: true });
+        await addDoc(sessionsRef, newSessionData);
+      } else {
+        // Update existing session document with new messages
+        const sessionDoc = sessionSnapshot.docs[0];
+        await updateDoc(sessionDoc.ref, {
+          messages: arrayUnion(userMessageObj, botMessageObj),
+          lastUpdated: serverTimestamp()
+        });
       }
       
-      return historyArray;
-    } else {
-      // Handle individual message format
-      const mode = modeOrHistory;
-      
-      // Get or create session ID
-      const currentSessionId = sessionId || getOrCreateSessionId(courseName, mode);
-      
-      // Create message objects
-      const userMessageObj = {
-        role: 'user',
-        content: userMessage,
-        timestamp: new Date().toISOString()
-      };
-      
-      const botMessageObj = addFeedbackData({
-        role: 'assistant',
-        content: botResponse,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Save to localStorage first
-      await addMessageToSession(courseName, mode, currentSessionId, userMessageObj, botMessageObj);
-      
-      // If user is authenticated, save to Firebase
-      if (auth.currentUser) {
-        const userId = auth.currentUser.uid;
-        const courseId = courseName.toLowerCase().replace(/ /g, '-');
-        
-        // Determine which collection to use based on mode
-        const collectionName = mode === 'quiz' ? 'quizSessions' : 'chatSessions';
-        
-        // Query to find existing session document
-        const sessionsRef = collection(db, "users", userId, "courses", courseId, collectionName);
-        const sessionQuery = query(sessionsRef, where("sessionId", "==", currentSessionId));
-        const sessionSnapshot = await getDocs(sessionQuery);
-        
-        if (sessionSnapshot.empty) {
-          // Create new session document
-          const title = userMessage.length > 30 ? userMessage.substring(0, 30) + '...' : userMessage;
-          const newSessionData = {
-            userId,
-            courseId,
-            courseName,
-            mode,
-            sessionId: currentSessionId,
-            messages: [userMessageObj, botMessageObj],
-            timestamp: serverTimestamp(),
-            lastUpdated: serverTimestamp(),
-            title
-          };
-          
-          await addDoc(sessionsRef, newSessionData);
-        } else {
-          // Update existing session document with new messages
-          const sessionDoc = sessionSnapshot.docs[0];
-          await updateDoc(sessionDoc.ref, {
-            messages: arrayUnion(userMessageObj, botMessageObj),
-            lastUpdated: serverTimestamp()
-          });
-        }
-        
-        // Update the course document to reflect recent activity
-        const courseRef = doc(db, "users", userId, "courses", courseId);
-        await updateDoc(courseRef, {
-          [`last${mode.charAt(0).toUpperCase() + mode.slice(1)}Activity`]: serverTimestamp(),
-          lastActive: serverTimestamp()
-        }, { merge: true });
+      // Update the context document (e.g., course or general chat) to reflect recent activity
+      const contextRef = doc(db, "users", userId, "courses", firestoreContextId);
+      // Ensure the context document exists
+      const contextDoc = await getDoc(contextRef);
+      if (!contextDoc.exists()) {
+          await setDoc(contextRef, {
+              courseName: contextId, // Use original contextId
+              courseId: firestoreContextId,
+              lastUpdated: serverTimestamp(),
+              dateCreated: serverTimestamp()
+          }, { merge: true });
       }
-      
-      // Return the session ID for future use
-      return {
-        sessionId: currentSessionId,
-        userMessage,
-        botResponse
-      };
+      await updateDoc(contextRef, {
+        [`last${mode.charAt(0).toUpperCase() + mode.slice(1)}Activity`]: serverTimestamp(),
+        lastActive: serverTimestamp()
+      }, { merge: true });
     }
+    
+    // Return the session ID for future use
+    return {
+      sessionId: currentSessionId,
+      userMessage,
+      botResponse
+    };
+
   } catch (error) {
     console.error(`Error saving chat history:`, error);
     return null;
@@ -267,15 +213,15 @@ export const saveChatHistory = async (courseName, modeOrHistory, userMessage, bo
 
 /**
  * Add messages to a conversation session in localStorage
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier
  * @param {string} mode - The learning mode ('chat' or 'quiz')
  * @param {string} sessionId - The session ID
  * @param {Object} userMessage - The user message object
  * @param {Object} botMessage - The bot message object
  */
-const addMessageToSession = async (courseName, mode, sessionId, userMessage, botMessage) => {
+const addMessageToSession = async (contextId, mode, sessionId, userMessage, botMessage) => {
   try {
-    const key = `${mode}Sessions_${courseName}`;
+    const key = `${mode}Sessions_${contextId}`;
     const storedSessions = localStorage.getItem(key);
     const sessions = storedSessions ? JSON.parse(storedSessions) : [];
     
@@ -292,7 +238,7 @@ const addMessageToSession = async (courseName, mode, sessionId, userMessage, bot
       const title = userMessage.content.length > 30 ? userMessage.content.substring(0, 30) + '...' : userMessage.content;
       sessions.unshift({
         sessionId,
-        courseName,
+        courseName: contextId,
         mode,
         title,
         messages: [userMessage, botMessage],
@@ -314,17 +260,17 @@ const addMessageToSession = async (courseName, mode, sessionId, userMessage, bot
 
 /**
  * Update feedback data for a specific message
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier
  * @param {string} mode - The learning mode ('chat' or 'quiz')
  * @param {string} sessionId - The session ID
  * @param {string} messageTimestamp - The timestamp of the message to update
  * @param {Object} feedbackUpdate - The feedback data to update
  * @returns {Promise<boolean>} - Success status
  */
-export const updateMessageFeedback = async (courseName, mode, sessionId, messageTimestamp, feedbackUpdate) => {
+export const updateMessageFeedback = async (contextId, mode, sessionId, messageTimestamp, feedbackUpdate) => {
   try {
     // First update in localStorage
-    const key = `${mode}Sessions_${courseName}`;
+    const key = `${mode}Sessions_${contextId}`;
     const storedSessions = localStorage.getItem(key);
     
     if (storedSessions) {
@@ -370,13 +316,13 @@ export const updateMessageFeedback = async (courseName, mode, sessionId, message
     // If user is authenticated, update in Firebase
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
-      const courseId = courseName.toLowerCase().replace(/ /g, '-');
+      const firestoreContextId = contextId.toLowerCase().replace(/ /g, '-');
       
       // Determine which collection to use
       const collectionName = mode === 'quiz' ? 'quizSessions' : 'chatSessions';
       
       // Query for the session
-      const sessionsRef = collection(db, "users", userId, "courses", courseId, collectionName);
+      const sessionsRef = collection(db, "users", userId, "courses", firestoreContextId, collectionName);
       const sessionQuery = query(sessionsRef, where("sessionId", "==", sessionId));
       const sessionSnapshot = await getDocs(sessionQuery);
       
@@ -441,43 +387,43 @@ export const updateMessageFeedback = async (courseName, mode, sessionId, message
 };
 
 /**
- * Get chat or quiz history for a course from Firebase
- * @param {string} courseName - The name of the course
+ * Get chat or quiz history for a context from Firebase
+ * @param {string} contextId - The context identifier
  * @param {string} [mode='chat'] - The learning mode ('chat' or 'quiz'), defaults to 'chat'
  * @param {number} [maxItems=20] - Maximum number of items to return
  * @returns {Promise<Array>} - Array of conversation session objects
  */
-export const getChatHistory = async (courseName, mode = 'chat', maxItems = 20) => {
+export const getChatHistory = async (contextId, mode = 'chat', maxItems = 20) => {
   try {
     // Check if user is authenticated
     if (!auth.currentUser) {
       console.warn("No user signed in, using localStorage fallback");
-      return getSessionsFromLocalStorage(courseName, mode);
+      return getSessionsFromLocalStorage(contextId, mode);
     }
 
     const userId = auth.currentUser.uid;
-    const courseId = courseName.toLowerCase().replace(/ /g, '-');
+    const firestoreContextId = contextId.toLowerCase().replace(/ /g, '-');
     
     // Determine which collection to query based on mode
     const collectionName = mode === 'quiz' ? 'quizSessions' : 'chatSessions';
     
-    // Initialize or get course document if it doesn't exist
-    const courseRef = doc(db, "users", userId, "courses", courseId);
-    const courseDoc = await getDoc(courseRef);
+    // Initialize or get context document if it doesn't exist
+    const contextRef = doc(db, "users", userId, "courses", firestoreContextId);
+    const contextDoc = await getDoc(contextRef);
     
-    if (!courseDoc.exists()) {
-      // Create the course document if it doesn't exist
-      await setDoc(courseRef, {
-        courseName,
-        courseId,
-        progress: 0,
+    if (!contextDoc.exists()) {
+      // Create the context document if it doesn't exist
+      await setDoc(contextRef, {
+        courseName: contextId, // Use original contextId
+        courseId: firestoreContextId,
+        progress: 0, // Default progress for contexts
         lastUpdated: serverTimestamp(),
         dateCreated: serverTimestamp()
       });
     }
     
     // Query Firestore for conversation history
-    const sessionsRef = collection(db, "users", userId, "courses", courseId, collectionName);
+    const sessionsRef = collection(db, "users", userId, "courses", firestoreContextId, collectionName);
     const sessionsQuery = query(
       sessionsRef,
       orderBy("lastUpdated", "desc"),
@@ -512,7 +458,7 @@ export const getChatHistory = async (courseName, mode = 'chat', maxItems = 20) =
     
     if (sessions.length === 0) {
       // If no sessions in Firestore, check localStorage
-      const localSessions = getSessionsFromLocalStorage(courseName, mode);
+      const localSessions = getSessionsFromLocalStorage(contextId, mode);
       
       // If there's local session data, sync it to Firebase
       if (localSessions.length > 0) {
@@ -521,8 +467,8 @@ export const getChatHistory = async (courseName, mode = 'chat', maxItems = 20) =
           if (session.messages && session.messages.length >= 2) {
             const newSessionData = {
               userId,
-              courseId,
-              courseName,
+              courseId: firestoreContextId,
+              courseName: contextId,
               mode: session.mode || mode,
               sessionId: session.sessionId,
               messages: session.messages,
@@ -542,20 +488,20 @@ export const getChatHistory = async (courseName, mode = 'chat', maxItems = 20) =
     return sessions;
   } catch (error) {
     console.error(`Error fetching ${mode} history from Firebase:`, error);
-    return getSessionsFromLocalStorage(courseName, mode);
+    return getSessionsFromLocalStorage(contextId, mode);
   }
 };
 
 /**
- * Get combined history for both chat and quiz modes
- * @param {string} courseName - The name of the course
+ * Get combined history for both chat and quiz modes for a context
+ * @param {string} contextId - The context identifier
  * @param {number} [maxItems=20] - Maximum number of items to return from each mode
  * @returns {Promise<Object>} - Object with chat and quiz history arrays
  */
-export const getAllChatHistory = async (courseName, maxItems = 20) => {
+export const getAllChatHistory = async (contextId, maxItems = 20) => {
   try {
-    const chatSessions = await getChatHistory(courseName, 'chat', maxItems);
-    const quizSessions = await getChatHistory(courseName, 'quiz', maxItems);
+    const chatSessions = await getChatHistory(contextId, 'chat', maxItems);
+    const quizSessions = await getChatHistory(contextId, 'quiz', maxItems);
     
     return {
       chat: chatSessions,
@@ -564,21 +510,21 @@ export const getAllChatHistory = async (courseName, maxItems = 20) => {
   } catch (error) {
     console.error(`Error fetching all chat history:`, error);
     return {
-      chat: getSessionsFromLocalStorage(courseName, 'chat'),
-      quiz: getSessionsFromLocalStorage(courseName, 'quiz')
+      chat: getSessionsFromLocalStorage(contextId, 'chat'),
+      quiz: getSessionsFromLocalStorage(contextId, 'quiz')
     };
   }
 };
 
 /**
  * Get conversation sessions from localStorage
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier
  * @param {string} mode - The learning mode ('chat' or 'quiz')
  * @returns {Array} - Array of conversation session objects
  */
-const getSessionsFromLocalStorage = (courseName, mode) => {
+const getSessionsFromLocalStorage = (contextId, mode) => {
   try {
-    const key = `${mode}Sessions_${courseName}`;
+    const key = `${mode}Sessions_${contextId}`;
     const storedSessions = localStorage.getItem(key);
     
     if (storedSessions) {
@@ -586,7 +532,7 @@ const getSessionsFromLocalStorage = (courseName, mode) => {
     }
     
     // Try to convert old format if no sessions found
-    const oldKey = `${mode}History_${courseName}`;
+    const oldKey = `${mode}History_${contextId}`;
     const oldHistory = localStorage.getItem(oldKey);
     
     if (oldHistory) {
@@ -614,9 +560,10 @@ const getSessionsFromLocalStorage = (courseName, mode) => {
  * Convert old history format to new session format
  * @param {Array} history - Old format history array
  * @param {string} mode - The learning mode ('chat' or 'quiz')
+ * @param {string} contextId - The context identifier
  * @returns {Array} - Array of session objects
  */
-const convertHistoryToSessions = (history, mode) => {
+const convertHistoryToSessions = (history, mode, contextId) => {
   try {
     const sessions = [];
     let currentSession = null;
@@ -630,7 +577,7 @@ const convertHistoryToSessions = (history, mode) => {
         // Start new session
         currentSession = {
           sessionId: generateSessionId(),
-          courseName: item.courseName,
+          courseName: item.courseName || contextId, // Use contextId if courseName missing
           mode: item.mode || mode,
           title: item.userMessage.substring(0, 30) + '...',
           messages: [
@@ -803,27 +750,27 @@ const getRecentSessionsFromLocalStorage = () => {
 
 /**
  * Get a specific conversation session
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier
  * @param {string} mode - The learning mode ('chat' or 'quiz')
  * @param {string} sessionId - The session ID to retrieve
  * @returns {Promise<Object|null>} - The conversation session or null if not found
  */
-export const getConversationSession = async (courseName, mode, sessionId) => {
+export const getConversationSession = async (contextId, mode, sessionId) => {
   try {
     // Check if user is authenticated
     if (!auth.currentUser) {
       console.warn("No user signed in, using localStorage fallback");
-      return getSessionFromLocalStorage(courseName, mode, sessionId);
+      return getSessionFromLocalStorage(contextId, mode, sessionId);
     }
 
     const userId = auth.currentUser.uid;
-    const courseId = courseName.toLowerCase().replace(/ /g, '-');
+    const firestoreContextId = contextId.toLowerCase().replace(/ /g, '-');
     
     // Determine which collection to query based on mode
     const collectionName = mode === 'quiz' ? 'quizSessions' : 'chatSessions';
     
     // Query Firestore for the specific session
-    const sessionsRef = collection(db, "users", userId, "courses", courseId, collectionName);
+    const sessionsRef = collection(db, "users", userId, "courses", firestoreContextId, collectionName);
     const sessionQuery = query(sessionsRef, where("sessionId", "==", sessionId));
     const querySnapshot = await getDocs(sessionQuery);
     
@@ -844,23 +791,23 @@ export const getConversationSession = async (courseName, mode, sessionId) => {
     }
     
     // If not found in Firestore, try localStorage
-    return getSessionFromLocalStorage(courseName, mode, sessionId);
+    return getSessionFromLocalStorage(contextId, mode, sessionId);
   } catch (error) {
     console.error(`Error fetching conversation session:`, error);
-    return getSessionFromLocalStorage(courseName, mode, sessionId);
+    return getSessionFromLocalStorage(contextId, mode, sessionId);
   }
 };
 
 /**
  * Get a specific session from localStorage
- * @param {string} courseName - The name of the course
+ * @param {string} contextId - The context identifier
  * @param {string} mode - The learning mode ('chat' or 'quiz')
  * @param {string} sessionId - The session ID to retrieve
  * @returns {Object|null} - The conversation session or null if not found
  */
-const getSessionFromLocalStorage = (courseName, mode, sessionId) => {
+const getSessionFromLocalStorage = (contextId, mode, sessionId) => {
   try {
-    const key = `${mode}Sessions_${courseName}`;
+    const key = `${mode}Sessions_${contextId}`;
     const storedSessions = localStorage.getItem(key);
     
     if (storedSessions) {
@@ -876,30 +823,30 @@ const getSessionFromLocalStorage = (courseName, mode, sessionId) => {
 };
 
 /**
- * Delete all chat history for a course
- * @param {string} courseName - The name of the course
+ * Delete all chat history for a context
+ * @param {string} contextId - The context identifier
  * @param {string} [mode] - Optional mode to clear ('chat' or 'quiz'), if omitted clears both
  * @returns {Promise<boolean>} - Success status
  */
-export const clearChatHistory = async (courseName, mode) => {
+export const clearChatHistory = async (contextId, mode) => {
   try {
     // Clear from localStorage
     if (!mode || mode === 'chat') {
-      localStorage.removeItem(`chatSessions_${courseName}`);
-      localStorage.removeItem(`chatHistory_${courseName}`); // Old format
-      localStorage.removeItem(`chat_session_${courseName}`); // Current session
+      localStorage.removeItem(`chatSessions_${contextId}`);
+      localStorage.removeItem(`chatHistory_${contextId}`); // Old format
+      localStorage.removeItem(`chat_session_${contextId}`); // Current session
     }
     
     if (!mode || mode === 'quiz') {
-      localStorage.removeItem(`quizSessions_${courseName}`);
-      localStorage.removeItem(`quizHistory_${courseName}`); // Old format
-      localStorage.removeItem(`quiz_session_${courseName}`); // Current session
+      localStorage.removeItem(`quizSessions_${contextId}`);
+      localStorage.removeItem(`quizHistory_${contextId}`); // Old format
+      localStorage.removeItem(`quiz_session_${contextId}`); // Current session
     }
     
     // If user is authenticated, clear from Firebase
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
-      const courseId = courseName.toLowerCase().replace(/ /g, '-');
+      const firestoreContextId = contextId.toLowerCase().replace(/ /g, '-');
       
       // Determine which collections to clear
       const collectionsToClear = [];
@@ -914,7 +861,7 @@ export const clearChatHistory = async (courseName, mode) => {
       
       // Clear Firestore collections
       for (const collectionName of collectionsToClear) {
-        const historyRef = collection(db, "users", userId, "courses", courseId, collectionName);
+        const historyRef = collection(db, "users", userId, "courses", firestoreContextId, collectionName);
         const snapshot = await getDocs(historyRef);
         
         // This approach has limits - in a production app with many conversations,
@@ -929,9 +876,9 @@ export const clearChatHistory = async (courseName, mode) => {
         }
       }
       
-      // Update course document to reflect cleared history
-      const courseRef = doc(db, "users", userId, "courses", courseId);
-      await updateDoc(courseRef, {
+      // Update context document to reflect cleared history
+      const contextRef = doc(db, "users", userId, "courses", firestoreContextId);
+      await updateDoc(contextRef, {
         historyCleared: serverTimestamp()
       }, { merge: true });
     }

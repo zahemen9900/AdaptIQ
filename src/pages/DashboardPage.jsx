@@ -8,7 +8,7 @@ import {
   IconBrandZoom, IconNotebook, IconClock, IconCheck, IconRefresh,
   IconArrowRight, IconEye, IconActivity, IconBulb, IconTrophy, 
   IconTargetArrow, IconMessageCircle, IconX, IconPlus, IconSparkles,
-  IconLogout, IconAlertCircle, IconRobot, IconBrain
+  IconLogout, IconAlertCircle, IconRobot, IconBrain, IconLayoutDashboard
 } from '@tabler/icons-react';
 import { getAssignmentsFromFirestore, formatAssignmentDate, sortAssignments } from '../utils/assignmentsUtils';
 import { 
@@ -617,8 +617,12 @@ const DashboardPage = () => {
         </div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className="nav-item active">
-            <IconChartBar size={24} />
+            <IconLayoutDashboard size={24} />
             <span>Overview</span>
+          </Link>
+          <Link to="/dashboard/chat" className="nav-item">
+            <IconMessageCircle size={24} />
+            <span>Chat</span>
           </Link>
           <Link to="/dashboard/courses" className="nav-item">
             <IconBook size={24} />

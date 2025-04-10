@@ -9,7 +9,8 @@ import {
   IconChartLine, IconActivity, IconRefresh, IconPhotoUp,
   IconTrash, IconCheck, IconX, IconDownload, IconExternalLink,
   IconAlertTriangle, IconClock, IconSparkles, IconFileText,
-  IconCopy, IconThumbUp, IconThumbDown
+  IconCopy, IconThumbUp, IconThumbDown,
+  IconLayoutDashboard // Added for Overview
 } from '@tabler/icons-react';
 import { getSubjectImageUrl } from '../utils/subjectImageUtils';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -1287,8 +1288,13 @@ complete the assignment successfully. Focus on guiding their learning rather tha
         </div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className="nav-item">
-            <IconChartBar size={24} />
+            <IconLayoutDashboard size={24} /> {/* Changed Icon */}
             <span>Overview</span>
+          </Link>
+          {/* Added Chat Link */}
+          <Link to="/dashboard/chat" className="nav-item">
+            <IconMessageCircle size={24} />
+            <span>Chat</span>
           </Link>
           <Link to="/dashboard/courses" className="nav-item">
             <IconBook size={24} />
