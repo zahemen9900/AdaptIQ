@@ -598,14 +598,14 @@ const AssignmentsPage = () => {
                 className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                 onClick={() => setViewMode('list')}
               >
-                <IconListDetails size={20} />
-                <span>List</span>
+                <IconLayoutGrid size={20} />
+                <span>Grid</span>
               </button>
               <button 
                 className={`view-toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
                 onClick={() => setViewMode('calendar')}
               >
-                <IconLayoutGrid size={20} />
+                <IconCalendar size={20} />
                 <span>Calendar</span>
               </button>
             </div>

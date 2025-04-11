@@ -206,10 +206,31 @@ const DashboardPage = () => {
 
   // Get user's study streak
   useEffect(() => {
-    const calculateStudyStreak = () => {
+    const calculateStudyStreak = async () => {
       // Use the actual study streak from user data instead of random value
-      if (user && user.studyStreak !== undefined) {
-        setStudyStreakDays(user.studyStreak);
+      if (user && !user.loadingUser) {
+        try {
+          if (auth.currentUser) {
+            // Get fresh user data directly from Firebase
+            const userId = auth.currentUser.uid;
+            const userResult = await getUserData(userId);
+            
+            if (userResult.success && userResult.userData && userResult.userData.studyStreak !== undefined) {
+              console.log("Study streak from database:", userResult.userData.studyStreak);
+              setStudyStreakDays(userResult.userData.studyStreak);
+            } else if (user.studyStreak !== undefined) {
+              // Fallback to context if direct fetch fails
+              console.log("Study streak from context:", user.studyStreak);
+              setStudyStreakDays(user.studyStreak);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching study streak:", error);
+          // Still try to use the value from context as fallback
+          if (user.studyStreak !== undefined) {
+            setStudyStreakDays(user.studyStreak);
+          }
+        }
       }
     };
 

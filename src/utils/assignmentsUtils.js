@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { auth, db } from '../../firebase';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from '@firebase/firestore';
 import { getSubjectImageUrl } from './subjectImageUtils';
+import { incrementProgress } from './progressTracker';
 
 // Initialize the Google Generative AI with the API key
 // In production, this should be properly handled with environment variables
@@ -1128,7 +1129,7 @@ export const updateAssignmentInFirestore = async (assignmentId, updates) => {
   }
 };
 
-// Submit an assignment in Firestore
+// Submit an assignment in Firestore and update course progress
 export const submitAssignmentToFirestore = async (assignmentId, submissionData) => {
   try {
     if (!auth.currentUser) {
@@ -1136,15 +1137,76 @@ export const submitAssignmentToFirestore = async (assignmentId, submissionData) 
       return false;
     }
 
-    // const userId = auth.currentUser.uid;
+    // 1. First, get the assignment details to access the subject and check current status
+    const assignment = await getAssignmentById(assignmentId);
+    
+    if (!assignment) {
+      console.error(`Assignment with ID ${assignmentId} not found for submission`);
+      return false;
+    }
+    
+    // Check if the assignment was already completed to avoid double-counting progress
+    const wasAlreadyCompleted = assignment.status === 'completed';
+    
+    // 2. Prepare updates for the assignment
     const updates = {
       status: 'completed',
       submission: submissionData,
       submittedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      // Include firestoreId if available to make update more efficient
+      ...(assignment.firestoreId && { firestoreId: assignment.firestoreId })
     };
     
-    return await updateAssignmentInFirestore(assignmentId, updates);
+    // 3. Update the assignment status and submission data
+    const updateSuccess = await updateAssignmentInFirestore(assignmentId, updates);
+    
+    // 4. If update was successful AND this is the first time the assignment is being completed,
+    //    increment the course progress based on the subject
+    if (updateSuccess && !wasAlreadyCompleted) {
+      try {
+        // Get subject from the assignment resources
+        let subject = null;
+        if (assignment.subject) {
+          // If subject is directly available in the assignment
+          subject = assignment.subject;
+        } else if (assignment.resources && assignment.resources.subject) {
+          // If subject is in resources
+          subject = assignment.resources.subject;
+        }
+        
+        if (!subject) {
+          console.error(`Cannot increment progress: No subject found for assignment ${assignmentId}`);
+          return updateSuccess; // Still return success for the assignment update
+        }
+        
+        // Format subject name to match course ID format (lowercase with hyphens)
+        const courseId = subject.toLowerCase().replace(/ /g, '-');
+        
+        // Calculate progress increment based on submission grade (if available)
+        let progressIncrement = 5; // Default increment
+        
+        if (submissionData && submissionData.grade) {
+          // If grade is a percentage (0-100), use a proportional value (1-10)
+          const grade = parseFloat(submissionData.grade);
+          if (!isNaN(grade) && grade >= 0 && grade <= 100) {
+            progressIncrement = Math.max(1, Math.floor(grade / 10)); // Convert to 1-10 scale
+          }
+        }
+        
+        console.log(`Incrementing progress for course "${subject}" (${courseId}) by ${progressIncrement} points`);
+        
+        // Call incrementProgress with the formatted subject name
+        await incrementProgress(subject, progressIncrement);
+      } catch (progressError) {
+        console.error("Error incrementing course progress:", progressError);
+        // We still return true because the assignment was successfully updated
+      }
+    } else if (wasAlreadyCompleted) {
+      console.log(`Assignment ${assignmentId} was already completed. Progress not incremented.`);
+    }
+    
+    return updateSuccess;
   } catch (error) {
     console.error("Error submitting assignment:", error);
     return false;
@@ -1418,4 +1480,60 @@ export const getRandomTopicForSubject = (subject) => {
   const defaultTopics = ['Fundamentals', 'Advanced Concepts', 'Applied Methods', 'Current Research', 'Historical Development', 'Problem Solving'];
   const randomIndex = Math.floor(Math.random() * defaultTopics.length);
   return defaultTopics[randomIndex];
+};
+
+// Helper function to get assignment by ID from Firestore
+const getAssignmentById = async (assignmentId) => {
+  try {
+    if (!auth.currentUser) {
+      console.warn("No user signed in, using localStorage fallback");
+      return getAssignmentFromLocalStorage(assignmentId);
+    }
+
+    const userId = auth.currentUser.uid;
+    
+    // Query to find the assignment by its generated ID
+    const assignmentsRef = collection(db, "users", userId, "assignments");
+    const q = query(assignmentsRef, where("id", "==", assignmentId));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const assignmentDoc = querySnapshot.docs[0];
+      const data = assignmentDoc.data();
+      
+      // Return the assignment with Firestore ID
+      return {
+        ...data,
+        firestoreId: assignmentDoc.id,
+        // Convert Firestore timestamps if necessary
+        createdDate: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate().toISOString() : data.createdDate) : data.createdDate,
+        updatedAt: data.updatedAt ? (data.updatedAt.toDate ? data.updatedAt.toDate().toISOString() : null) : null,
+        submittedAt: data.submittedAt ? (data.submittedAt.toDate ? data.submittedAt.toDate().toISOString() : null) : null
+      };
+    }
+    
+    console.warn(`Assignment with ID ${assignmentId} not found in Firestore, using localStorage fallback`);
+    return getAssignmentFromLocalStorage(assignmentId);
+  } catch (error) {
+    console.error(`Error retrieving assignment ${assignmentId}:`, error);
+    return getAssignmentFromLocalStorage(assignmentId);
+  }
+};
+
+// Get assignment by ID from localStorage
+const getAssignmentFromLocalStorage = (assignmentId) => {
+  try {
+    const assignments = getLocalAssignments();
+    const assignment = assignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+      console.error(`Assignment with ID ${assignmentId} not found in localStorage`);
+      return null;
+    }
+    
+    return assignment;
+  } catch (error) {
+    console.error(`Error retrieving assignment ${assignmentId} from localStorage:`, error);
+    return null;
+  }
 };

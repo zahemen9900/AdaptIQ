@@ -47,7 +47,7 @@ const ProfilePage = () => {
     totalStudyMinutes: 0,
     completedAssignments: 0,
     averageScore: 0,
-    streakDays: 0,
+    studyStreak: 0,
     subjectsProgress: [],
     schedulingStyle: 'Balanced'
   });
@@ -82,9 +82,8 @@ const ProfilePage = () => {
         
         const firebaseUserData = userResult.userData;
         
-        // Get streak information
-        const streakResult = await getUserStreakInfo(userId);
-        const streakDays = streakResult.success ? streakResult.currentStreak : 0;
+        // Get streak from user data directly
+        const studyStreak = firebaseUserData.studyStreak || 0;
         
         // Get completed assignments count
         const assignmentsResult = await getCompletedAssignmentsCount(userId);
@@ -103,6 +102,10 @@ const ProfilePage = () => {
             'engineering': 'Engineering',
             'computer': 'Computer Science',
             'economics': 'Economics',
+            'music': 'Music',
+            'art': 'Art',
+            'psychology': 'Psychology',
+            'foreign': 'Foreign Languages',
           };
           
           firebaseUserData.courses.forEach(courseId => {
@@ -136,9 +139,9 @@ const ProfilePage = () => {
         setEditData(profileData);
         
         // Fetch additional profile data
-        await fetchProfileStatistics(subjects, streakDays, completedAssignments);
+        await fetchProfileStatistics(subjects, studyStreak, completedAssignments);
         await fetchActivityHistory();
-        generateAchievements(subjects, streakDays, completedAssignments);
+        generateAchievements(subjects, studyStreak, completedAssignments);
         generateBadges();
         
       } catch (error) {
@@ -168,6 +171,10 @@ const ProfilePage = () => {
                   'engineering': 'Engineering',
                   'computer': 'Computer Science',
                   'economics': 'Economics',
+                  'music': 'Music',
+                  'art': 'Art',
+                  'psychology': 'Psychology',
+                  'foreign': 'Foreign Languages',
                 };
                 
                 const subjectName = subjectMap[subjectId] || subjectId;
@@ -221,7 +228,7 @@ const ProfilePage = () => {
   }, [notification]);
   
   // Fetch user statistics
-  const fetchProfileStatistics = async (subjects, streakDays = 0, completedAssignments = 0) => {
+  const fetchProfileStatistics = async (subjects, studyStreak = 0, completedAssignments = 0) => {
     try {
       // Get user ID for database operations
       const userId = auth.currentUser ? auth.currentUser.uid : null;
@@ -245,6 +252,15 @@ const ProfilePage = () => {
             schedulingStyle = userData.schedulingStyle || 'Balanced';
           }
 
+          // Create subject-to-course mapping to organize courses by subject
+          const subjectCourseMap = {};
+          subjects.forEach(subject => {
+            subjectCourseMap[subject] = {
+              courses: [],
+              totalProgress: 0
+            };
+          });
+          
           // Directly query the "courses" subcollection to get actual progress values
           const coursesRef = collection(db, "users", userId, "courses");
           const coursesSnapshot = await getDocs(coursesRef);
@@ -255,16 +271,20 @@ const ProfilePage = () => {
               const courseData = courseDoc.data();
               
               // Only process courses with valid data
-              if (courseData && courseData.courseId && courseData.courseName) {
+              if (courseData && courseData.courseName) {
+                const courseName = courseData.courseName;
+                const courseId = courseData.courseId || courseName.toLowerCase().replace(/ /g, '-');
+                const progress = courseData.progress || 0;
+                
                 // Add to our courses collection
                 userCourses.push({
-                  id: courseData.courseId,
-                  name: courseData.courseName,
-                  progress: courseData.progress || 0
+                  id: courseId,
+                  name: courseName,
+                  progress: progress
                 });
 
                 // Map the course to its related subject
-                const subjectName = mapCourseToSubject(courseData.courseName || courseData.courseId);
+                const subjectName = mapCourseToSubject(courseName);
                 
                 // Initialize the subject entry if it doesn't exist
                 if (!subjectProgressMap[subjectName]) {
@@ -275,12 +295,24 @@ const ProfilePage = () => {
                 }
                 
                 // Add this course's progress to the subject
-                subjectProgressMap[subjectName].totalProgress += (courseData.progress || 0);
+                subjectProgressMap[subjectName].totalProgress += progress;
                 subjectProgressMap[subjectName].courseCount++;
+                
+                // Add course to the subject-course mapping
+                if (subjectCourseMap[subjectName]) {
+                  subjectCourseMap[subjectName].courses.push({
+                    id: courseId,
+                    name: courseName,
+                    progress: progress
+                  });
+                  subjectCourseMap[subjectName].totalProgress += progress;
+                }
               }
             });
             
             console.log("Retrieved courses from Firebase:", userCourses);
+            console.log("Subject progress mapping:", subjectProgressMap);
+            console.log("Subject-course mapping:", subjectCourseMap);
           } else {
             console.log("No courses found in user's subcollection, falling back to general progress data");
           }
@@ -319,9 +351,9 @@ const ProfilePage = () => {
         
         // Normalized course name for matching
         const normalizedCourseName = courseName.toLowerCase();
-        
-        // Subject category mapping
-        const subjectCategoryMapping = {
+
+        // Direct course to subject mapping 
+        const directCourseToSubjectMap = {
           'Algebra': 'mathematics',
           'Geometry': 'mathematics',
           'Calculus': 'mathematics',
@@ -342,11 +374,11 @@ const ProfilePage = () => {
           'German': 'foreign',
           'Chinese': 'foreign',
           'Japanese': 'foreign',
-          'Programming': 'computer-science',
-          'Web Development': 'computer-science',
-          'Database Systems': 'computer-science',
-          'Artificial Intelligence': 'computer-science',
-          'Cybersecurity': 'computer-science',
+          'Programming': 'computer',
+          'Web Development': 'computer',
+          'Database Systems': 'computer',
+          'Artificial Intelligence': 'computer',
+          'Cybersecurity': 'computer',
           'Mechanical Engineering': 'engineering',
           'Electrical Engineering': 'engineering',
           'Civil Engineering': 'engineering',
@@ -376,17 +408,17 @@ const ProfilePage = () => {
           'History': 'history',
           'Language Arts': 'language',
           'Foreign Languages': 'foreign',
-          'Computer Science': 'computer-science',
           'Art & Design': 'art',
           'Music': 'music',
           'Physical Education': 'physical',
           'Economics': 'economics',
           'Psychology': 'psychology',
-          'Engineering': 'engineering'
+          'Engineering': 'engineering',
+          'Computer Science': 'computer',
         };
         
         // Try to match by course ID/name
-        for (const [courseKey, subjectName] of Object.entries(subjectCategoryMapping)) {
+        for (const [courseKey, subjectName] of Object.entries(directCourseToSubjectMap)) {
           if (normalizedCourseName.includes(courseKey)) {
             return subjectName;
           }
@@ -395,19 +427,17 @@ const ProfilePage = () => {
         // Subject specific mappings
         const idToSubjectMap = {
           'math': 'Mathematics',
-          'algebra': 'Mathematics',
-          'geometry': 'Mathematics',
-          'calculus': 'Mathematics',
           'science': 'Science',
-          'biology': 'Science',
-          'chemistry': 'Science',
-          'physics': 'Science',
           'history': 'History',
-          'worldhistory': 'History',
           'language': 'Language',
-          'english': 'Language',
+          'english': 'English',
+          'engineering': 'Engineering',
+          'economics': 'Economics',
+          'music': 'Music',
+          'art': 'Art',
+          'psychology': 'Psychology',
+          'foreign': 'Foreign Languages',
           'computer': 'Computer Science',
-          'computerscience': 'Computer Science'
         };
         
         // If we still don't have a match, try the ID mapping
@@ -423,22 +453,23 @@ const ProfilePage = () => {
       
       // Calculate average progress for each subject
       const subjectsProgress = subjects.map(subject => {
-        let progress = 0;
+        let progressValue = 0;
         
         // If we have progress data for this subject, calculate the average
         if (subjectProgressMap[subject] && subjectProgressMap[subject].courseCount > 0) {
-          progress = Math.round(
+          progressValue = Math.round(
             subjectProgressMap[subject].totalProgress / subjectProgressMap[subject].courseCount
           );
+          
+          console.log(`Subject ${subject}: Progress = ${progressValue}%, Courses = ${subjectProgressMap[subject].courseCount}, Total = ${subjectProgressMap[subject].totalProgress}`);
         } else {
           // Fallback if no course progress data is available for this subject
-          // Use a small non-zero value to show that the subject exists but has minimal progress
-          progress = 0; 
+          console.log(`Subject ${subject}: No progress data available`);
         }
         
         return {
           name: subject,
-          progress: progress,
+          progress: progressValue,
           color: getSubjectColor(subject)
         };
       });
@@ -453,7 +484,7 @@ const ProfilePage = () => {
         totalStudyMinutes,
         completedAssignments,
         averageScore,
-        streakDays,
+        studyStreak,
         subjectsProgress,
         schedulingStyle
       });
@@ -609,7 +640,7 @@ const ProfilePage = () => {
   };
   
   // Generate achievements based on subjects and activity
-  const generateAchievements = (subjects, streakDays = 0, completedAssignments = 0) => {
+  const generateAchievements = (subjects, studyStreak = 0, completedAssignments = 0) => {
     const baseAchievements = [
       {
         id: 'first-login',
@@ -636,7 +667,7 @@ const ProfilePage = () => {
         icon: <IconTrophy size={24} />,
         date: formatDate(new Date()),
         color: '#ff9800',
-        achieved: streakDays >= 7
+        achieved: studyStreak >= 7
       },
       {
         id: 'assignments-10',
@@ -1296,35 +1327,11 @@ const ProfilePage = () => {
                           <IconTrophy size={24} />
                         </div>
                         <div className="stat-content">
-                          <h3>{statistics.streakDays}</h3>
+                          <h3>{statistics.studyStreak}</h3>
                           <p>Day Streak</p>
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="subject-progress-section">
-                      <h3>Subject Progress</h3>
-                      <div className="subject-progress-list">
-                        {statistics.subjectsProgress.map((subject, index) => (
-                          <div className="subject-progress-item" key={index}>
-                            <div className="subject-progress-header">
-                              <h4>{subject.name}</h4>
-                              <span>{subject.progress}%</span>
-                            </div>
-                            <div className="subject-progress-bar">
-                              <div 
-                                className="subject-progress-fill" 
-                                style={{ 
-                                  width: `${subject.progress}%`,
-                                  backgroundColor: subject.color 
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
                     <div className="recent-achievements">
                       <div className="section-header">
                         <h3>Recent Achievements</h3>

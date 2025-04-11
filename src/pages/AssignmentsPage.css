@@ -375,7 +375,7 @@
 }
 
 .assignment-actions {
-  d#252f47 flex;
+  display: flex;
   justify-content: space-between;
   align-items: center;
 }
@@ -1121,6 +1121,10 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
+.dark-theme .loading-spinner-container p {
+  color: #e2e8f0; /* White text for dark mode */
+}
+
 .loading-spinner-assignments {
   width: 50px;
   height: 50px;
@@ -1204,6 +1208,7 @@
 .dark-theme .feedback-content {
   background-color: #1e293b;
   color: #e2e8f0;
+  border: 1px solid #1e293b;
 }
 
 .completed-message {
